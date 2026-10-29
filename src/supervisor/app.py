@@ -81,6 +81,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             app.state.schema_check = check
     except Exception:  # noqa: BLE001
         log.warning("schema self-check did not run", exc_info=True)
+    if runtime is not None and get_settings().factory_seed_starters:  # WP-F5: off by default
+        try:
+            from supervisor.factory import starters
+
+            await run_in_threadpool(starters.seed_for_runtime, get_settings(), runtime)
+        except Exception:  # noqa: BLE001 - seeding must never block startup
+            log.warning("starter agents were not seeded", exc_info=True)
     if runtime is not None:  # WP7: in-process scheduler (on in laptop mode by default)
         try:
             await run_in_threadpool(scheduler.start_for_runtime, get_settings(), runtime)

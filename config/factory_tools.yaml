@@ -28,7 +28,7 @@ tools:
     kind: read_pack_results
     scope: [system, pack]
     data_class: internal
-    allowed_groups: [model_risk, data, cyber, third_party, platform]
+    allowed_groups: [model_risk, data, cyber, third_party, ethics, platform]
     modes: [read]
   - tool_id: read_system_record
     label: Read the register record of the system

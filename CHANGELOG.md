@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- WP-F5 (phase 12B): **six starter assessment agents and two templates**, under `AGENT_FACTORY` (new
+  flag `FACTORY_SEED_STARTERS`, default `0`). Definitions in `config/factory_agents/`:
+  `model-risk-assessor`, `data-governance-assessor`, `cyber-assessor` (the one loop example: `rules`
+  evaluator, 3 iterations), `legal-compliance-assessor`, `third-party-assessor`, `ethics-assessor`
+  (11 to 13 items each, article pointer in every question, pack items read `read_pack_results`), and the
+  templates `supply-chain-assessor` and `reputation-assessor` (empty golden set). All `draft` in the file.
+  Golden sets (60 to 66 gate cases and 24 synthetic labels each) under `config/factory_agents/golden/`,
+  made by `python -m tools.factory_golden_gen` (seeded, no model, `--check`). New `factory/starters.py`,
+  `python -m supervisor.factory seed` (creates the missing drafts and their golden sets; idempotent) and a
+  startup hook behind `FACTORY_SEED_STARTERS=1`. New `gate ... --model fake` (`factory/devfake.py`, a
+  fixture-replay model for development and tests; refused in `databricks_app` mode). Shared files:
+  `config/factory_tools.yaml` (group `ethics` may use `read_pack_results`), `config.py` (one flag),
+  `app.py` (startup hook), `app.yaml` (commented flag). Off: nothing is seeded. Details:
+  `docs/factory.md` "Starter agents".
 - WP-C4 (phase 12): **portfolio blocks on My overview**, `OVERVIEW_PORTFOLIO` (default `0`; needs
   `CONSOLE_OVERVIEW_V4`, `GOVERNANCE_ENABLED`). New `console/portfolio.py`: block **Classification**
   (a bar per outcome plus not classified, counts and integer percents, link to the Systems list

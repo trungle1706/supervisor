@@ -1,0 +1,170 @@
+[
+ {
+  "case_id": "et-et-01-01",
+  "finding_id": "f-ET-01",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-02-01",
+  "finding_id": "f-ET-02",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-03-01",
+  "finding_id": "f-ET-03",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-04-01",
+  "finding_id": "f-ET-04",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-05-01",
+  "finding_id": "f-ET-05",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-06-01",
+  "finding_id": "f-ET-06",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-07-01",
+  "finding_id": "f-ET-07",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-08-01",
+  "finding_id": "f-ET-08",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-09-01",
+  "finding_id": "f-ET-09",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-10-01",
+  "finding_id": "f-ET-10",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-11-01",
+  "finding_id": "f-ET-11",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-12-01",
+  "finding_id": "f-ET-12",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-01-02",
+  "finding_id": "f-ET-01",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-02-02",
+  "finding_id": "f-ET-02",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-03-02",
+  "finding_id": "f-ET-03",
+  "human_verdict": "question",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-04-02",
+  "finding_id": "f-ET-04",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-05-02",
+  "finding_id": "f-ET-05",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-06-02",
+  "finding_id": "f-ET-06",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-07-02",
+  "finding_id": "f-ET-07",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-08-02",
+  "finding_id": "f-ET-08",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-09-02",
+  "finding_id": "f-ET-09",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-10-02",
+  "finding_id": "f-ET-10",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-11-02",
+  "finding_id": "f-ET-11",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-12-02",
+  "finding_id": "f-ET-12",
+  "human_verdict": "fail",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ }
+]

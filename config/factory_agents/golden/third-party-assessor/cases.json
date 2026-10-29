@@ -1,0 +1,2743 @@
+[
+ {
+  "case_id": "tp-tp-01-01",
+  "expected": {
+   "TP-01": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0101-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0101-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0101-1#1",
+       "text": "Báo cáo đánh giá nhà cung cấp Đối tác Delta Tech: hoàn tất ngày 2026-07-30; kết luận chấp nhận có điều kiện."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0101-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0101-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0101",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-01-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-01-02",
+  "expected": {
+   "TP-01": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0102-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0102-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0102-1#1",
+       "text": "Báo cáo đánh giá nhà cung cấp Nhà cung cấp Beta AI: lập ngày 2025-03-28, đã quá 365 ngày; chưa đánh giá lại."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0102-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0102-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0102",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-01-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-01-03",
+  "expected": {
+   "TP-01": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0103-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0103-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0103",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-01-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-01-04",
+  "expected": {
+   "TP-01": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-01-04.vendor_assessment"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0104-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0104-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0104",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-01-04",
+    "system_type": "assistant",
+    "vendor_assessment": "Công ty Alpha Cloud: chưa đánh giá"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-01-05",
+  "expected": {
+   "TP-01": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-01-05.vendor_assessment"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0105-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0105-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0105",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-01-05",
+    "system_type": "assistant",
+    "vendor_assessment": "Công ty Gamma Nền tảng: đánh giá ngày 2026-06-20, đã lưu hồ sơ"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-01-06",
+  "expected": {
+   "TP-01": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0106-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0106-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0106-1#1",
+       "text": "Báo cáo đánh giá nhà cung cấp Công ty Alpha Cloud: lập ngày 2024-11-18, đã quá 365 ngày; chưa đánh giá lại."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0106-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0106-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0106",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-01-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-02-01",
+  "expected": {
+   "TP-02": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0201-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0201-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0201-1#1",
+       "text": "Tóm tắt hợp đồng với Công ty Alpha Cloud: hợp đồng tuân thủ quy định của Ngân hàng Nhà nước về hợp đồng dịch vụ công nghệ thông tin."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0201-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0201-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0201",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-02-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-02-02",
+  "expected": {
+   "TP-02": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0202-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0202-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0202-1#1",
+       "text": "Tóm tắt hợp đồng với Công ty Gamma Nền tảng: hợp đồng theo mẫu của nhà cung cấp, chưa rà soát theo quy định về hợp đồng dịch vụ công nghệ thông tin."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0202-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0202-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0202",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-02-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-02-03",
+  "expected": {
+   "TP-02": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0203-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0203-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0203",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-02-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-02-04",
+  "expected": {
+   "TP-02": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0204-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0204-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0204-1#1",
+       "text": "Rà soát pháp chế hợp đồng Công ty Alpha Cloud: thiếu điều khoản bắt buộc về quyền kiểm tra của ngân hàng."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0204-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0204-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0204",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-02-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-02-05",
+  "expected": {
+   "TP-02": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0205-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0205-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0205-1#1",
+       "text": "Rà soát pháp chế hợp đồng Đối tác Delta Tech: các điều khoản đáp ứng quy định về hợp đồng dịch vụ công nghệ thông tin của Ngân hàng Nhà nước."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0205-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0205-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0205",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-02-05",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-02-06",
+  "expected": {
+   "TP-02": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0206-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0206-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0206-1#1",
+       "text": "Tóm tắt hợp đồng với Đối tác Delta Tech: hợp đồng theo mẫu của nhà cung cấp, chưa rà soát theo quy định về hợp đồng dịch vụ công nghệ thông tin."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0206-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0206-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0206",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-02-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-03-01",
+  "expected": {
+   "TP-03": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0301-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0301-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0301-1#1",
+       "text": "Chứng nhận của Công ty Gamma Nền tảng: ISO/IEC 27001, hiệu lực đến 2027-03-25."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0301-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0301-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0301",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-03-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-03-02",
+  "expected": {
+   "TP-03": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0302-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0302-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0302-1#1",
+       "text": "Chứng nhận của Công ty Alpha Cloud: ISO/IEC 27001 đã hết hiệu lực từ 2025-01-30; chưa có báo cáo kiểm toán độc lập mới."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0302-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0302-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0302",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-03-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-03-03",
+  "expected": {
+   "TP-03": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0303-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0303-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0303",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-03-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-03-04",
+  "expected": {
+   "TP-03": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-03-04.vendor_certificates"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0304-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0304-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0304",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-03-04",
+    "system_type": "assistant",
+    "vendor_certificates": "không có chứng nhận hoặc báo cáo kiểm toán độc lập"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-03-05",
+  "expected": {
+   "TP-03": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-03-05.vendor_certificates"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0305-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0305-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0305",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-03-05",
+    "system_type": "assistant",
+    "vendor_certificates": "SOC 2 loại II, hiệu lực đến 2027-08-13"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-03-06",
+  "expected": {
+   "TP-03": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0306-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0306-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0306-1#1",
+       "text": "Chứng nhận của Công ty Gamma Nền tảng: ISO/IEC 27001 đã hết hiệu lực từ 2024-11-10; chưa có báo cáo kiểm toán độc lập mới."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0306-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0306-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0306",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-03-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-04-01",
+  "expected": {
+   "TP-04": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0401-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0401-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0401-1#1",
+       "text": "Hợp đồng Đối tác Delta Tech yêu cầu báo cáo chất lượng mô hình theo từng phiên bản; báo cáo mới nhất ngày 2026-07-30 đã lưu."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0401-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0401-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0401",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-04-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-04-02",
+  "expected": {
+   "TP-04": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0402-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0402-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0402-1#1",
+       "text": "Hợp đồng Đối tác Delta Tech không yêu cầu báo cáo chất lượng mô hình; chưa nhận báo cáo nào."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0402-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0402-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0402",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-04-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-04-03",
+  "expected": {
+   "TP-04": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0403-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0403-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0403",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-04-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-04-04",
+  "expected": {
+   "TP-04": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-04-04.vendor_quality_report"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0404-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0404-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0404",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-04-04",
+    "system_type": "assistant",
+    "vendor_quality_report": "yêu cầu có trong hợp đồng nhưng chưa nhận báo cáo từ 2024-10-11"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-04-05",
+  "expected": {
+   "TP-04": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-04-05.vendor_quality_report"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0405-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0405-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0405",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-04-05",
+    "system_type": "assistant",
+    "vendor_quality_report": "hằng năm và theo phiên bản; báo cáo gần nhất 2026-09-24"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-04-06",
+  "expected": {
+   "TP-04": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0406-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0406-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0406-1#1",
+       "text": "Hợp đồng Công ty Gamma Nền tảng không yêu cầu báo cáo chất lượng mô hình; chưa nhận báo cáo nào."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0406-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0406-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0406",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-04-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-05-01",
+  "expected": {
+   "TP-05": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0501-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0501-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0501-1#1",
+       "text": "Hợp đồng Đối tác Delta Tech: ngân hàng được truy cập API và nhật ký để giám sát; nhà cung cấp không được dùng dữ liệu của ngân hàng để huấn luyện mô hình."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0501-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0501-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0501",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-05-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-05-02",
+  "expected": {
+   "TP-05": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0502-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0502-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0502-1#1",
+       "text": "Hợp đồng Công ty Alpha Cloud: có quyền truy cập nhật ký nhưng cho phép nhà cung cấp dùng dữ liệu đầu vào để cải thiện mô hình."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0502-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0502-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0502",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-05-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-05-03",
+  "expected": {
+   "TP-05": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0503-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0503-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0503",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-05-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-05-04",
+  "expected": {
+   "TP-05": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0504-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0504-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0504-1#1",
+       "text": "Hợp đồng Đối tác Delta Tech: không có quyền truy cập nhật ký hay API giám sát; không nêu việc cấm huấn luyện trên dữ liệu của ngân hàng."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0504-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0504-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0504",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-05-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-05-05",
+  "expected": {
+   "TP-05": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0505-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0505-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0505-1#1",
+       "text": "Phụ lục bảo mật Nhà cung cấp Beta AI: cung cấp nhật ký và công cụ giám sát cho ngân hàng; cấm huấn luyện trên dữ liệu của ngân hàng."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0505-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0505-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0505",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-05-05",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-05-06",
+  "expected": {
+   "TP-05": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0506-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0506-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0506-1#1",
+       "text": "Hợp đồng Công ty Alpha Cloud: có quyền truy cập nhật ký nhưng cho phép nhà cung cấp dùng dữ liệu đầu vào để cải thiện mô hình."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0506-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0506-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0506",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-05-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-06-01",
+  "expected": {
+   "TP-06": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-06-01.platform",
+   "case-tp-tp-06-01.exit_plan"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0601-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0601-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0601",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "exit_plan": "chuyển sang nền tảng thay thế trong 15 ngày; đã diễn tập",
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Khối Công nghệ thông tin",
+    "platform": "nền tảng Đối tác Delta Tech",
+    "system_id": "case-tp-tp-06-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-06-02",
+  "expected": {
+   "TP-06": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-06-02.platform",
+   "case-tp-tp-06-02.exit_plan"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0602-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0602-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0602",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "exit_plan": "chưa có",
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "platform": "nền tảng Đối tác Delta Tech",
+    "system_id": "case-tp-tp-06-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-06-03",
+  "expected": {
+   "TP-06": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0603-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0603-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0603",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-06-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-06-04",
+  "expected": {
+   "TP-06": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0604-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0604-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0604-1#1",
+       "text": "Ghi nhận phụ thuộc: toàn bộ hệ thống chạy trên Nhà cung cấp Beta AI; chưa có phương án chuyển đổi."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0604-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0604-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0604",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-06-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-06-05",
+  "expected": {
+   "TP-06": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0605-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0605-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0605-1#1",
+       "text": "Kế hoạch thoát: nếu Đối tác Delta Tech ngừng dịch vụ, chuyển sang mô hình chạy nội bộ; người phụ trách Phòng Phát triển ứng dụng."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0605-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0605-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0605",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-06-05",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-06-06",
+  "expected": {
+   "TP-06": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-06-06.platform",
+   "case-tp-tp-06-06.exit_plan"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0606-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0606-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0606",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "exit_plan": "chưa có",
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Khối Công nghệ thông tin",
+    "platform": "nền tảng Công ty Alpha Cloud",
+    "system_id": "case-tp-tp-06-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-07-01",
+  "expected": {
+   "TP-07": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0701-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0701-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0701-1#1",
+       "text": "Quy trình khi Đối tác Delta Tech cập nhật mô hình: đánh giá tác động trên bộ kiểm thử trước khi dùng; phương án dự phòng: giữ phiên bản cũ đã ghim."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0701-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0701-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0701",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-07-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-07-02",
+  "expected": {
+   "TP-07": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0702-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0702-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0702-1#1",
+       "text": "Quy trình khi Công ty Gamma Nền tảng cập nhật mô hình: bản mới được áp dụng ngay, không đánh giá tác động, không có phương án dự phòng."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0702-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0702-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0702",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-07-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-07-03",
+  "expected": {
+   "TP-07": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0703-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0703-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0703",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-07-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-07-04",
+  "expected": {
+   "TP-07": "not_applicable"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-07-04.model_hosting"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0704-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0704-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0704",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "model_hosting": "mô hình tự xây dựng, không dùng mô hình của nhà cung cấp",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-07-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng not_applicable: nguồn cho thấy mục không áp dụng cho hệ thống này."
+ },
+ {
+  "case_id": "tp-tp-07-05",
+  "expected": {
+   "TP-07": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-07-05.vendor_change_plan"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0705-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0705-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0705",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-07-05",
+    "system_type": "assistant",
+    "vendor_change_plan": "đánh giá tác động trước khi áp dụng bản mới; có phương án dự phòng"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-07-06",
+  "expected": {
+   "TP-07": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-07-06.vendor_change_plan"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0706-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0706-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0706",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-07-06",
+    "system_type": "assistant",
+    "vendor_change_plan": "chưa có"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-08-01",
+  "expected": {
+   "TP-08": "pass"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0801-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0801-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0801-1#1",
+       "text": "Hợp đồng Công ty Gamma Nền tảng, điều khoản khắc phục: nhà cung cấp phối hợp xử lý khiếu nại và bồi thường khi hệ thống gây thiệt hại cho khách hàng."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0801-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0801-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0801",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-08-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-08-02",
+  "expected": {
+   "TP-08": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0802-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0802-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0802-1#1",
+       "text": "Hợp đồng Công ty Gamma Nền tảng: loại trừ mọi trách nhiệm về thiệt hại của khách hàng; không có quy trình khắc phục."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0802-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0802-2#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0802",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-08-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-08-03",
+  "expected": {
+   "TP-08": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0803-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0803-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0803",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-08-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-08-04",
+  "expected": {
+   "TP-08": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-08-04.remedy_process"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0804-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0804-1#1",
+       "text": "Ghi chú vận hành: lịch bảo trì định kỳ vào cuối tuần, thông báo trước cho các bên liên quan."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0804",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "remedy_process": "chưa có",
+    "system_id": "case-tp-tp-08-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-08-05",
+  "expected": {
+   "TP-08": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-08-05.remedy_process"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0805-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0805-1#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0805",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "remedy_process": "quy trình xử lý khiếu nại và bồi thường thiệt hại do hệ thống thuê ngoài, có người phụ trách",
+    "system_id": "case-tp-tp-08-05",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-08-06",
+  "expected": {
+   "TP-08": "fail"
+  },
+  "expected_evidence_refs": [
+   "internal-tp0806-1#1"
+  ],
+  "inputs": {
+   "documents": [
+    {
+     "doc_id": "internal-tp0806-1",
+     "sections": [
+      {
+       "label": "Phần 1",
+       "ref": "internal-tp0806-1#1",
+       "text": "Hợp đồng Công ty Gamma Nền tảng: loại trừ mọi trách nhiệm về thiệt hại của khách hàng; không có quy trình khắc phục."
+      }
+     ]
+    },
+    {
+     "doc_id": "internal-tp0806-2",
+     "sections": [
+      {
+       "label": "Phần 2",
+       "ref": "internal-tp0806-2#1",
+       "text": "Hướng dẫn chung của phòng: lịch họp tuần, đầu mối liên hệ và mẫu biên bản; không có nội dung về mục đang xét."
+      }
+     ]
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0806",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-08-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-09-01",
+  "expected": {
+   "TP-09": "pass"
+  },
+  "expected_evidence_refs": [
+   "pack:model_dependency_inventory:tp0901"
+  ],
+  "inputs": {
+   "packs": [
+    {
+     "label": "pack model_dependency_inventory",
+     "ref": "pack:model_dependency_inventory:tp0901",
+     "text": "model_dependency_inventory: passed at version 7 (current version 7); 25 of 25 probes ok"
+    },
+    {
+     "label": "pack judge_golden_set",
+     "ref": "pack:judge_golden_set:tp0901",
+     "text": "judge_golden_set: passed at version 7 (current version 7); 25 of 25 probes ok"
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0901",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-09-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-09-02",
+  "expected": {
+   "TP-09": "fail"
+  },
+  "expected_evidence_refs": [
+   "pack:model_dependency_inventory:tp0902"
+  ],
+  "inputs": {
+   "packs": [
+    {
+     "label": "pack model_dependency_inventory",
+     "ref": "pack:model_dependency_inventory:tp0902",
+     "text": "model_dependency_inventory: failed at version 6 (current version 6); 3 of 39 probes failed"
+    },
+    {
+     "label": "pack atlas_coverage",
+     "ref": "pack:atlas_coverage:tp0902",
+     "text": "atlas_coverage: passed at version 6 (current version 6); 39 of 39 probes ok"
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0902",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-09-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-09-03",
+  "expected": {
+   "TP-09": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "packs": [
+    {
+     "label": "pack atlas_coverage",
+     "ref": "pack:atlas_coverage:tp0903",
+     "text": "atlas_coverage: passed at version 5 (current version 5); 5 of 5 probes ok"
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0903",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-09-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-09-04",
+  "expected": {
+   "TP-09": "fail"
+  },
+  "expected_evidence_refs": [
+   "pack:model_dependency_inventory:tp0904"
+  ],
+  "inputs": {
+   "packs": [
+    {
+     "label": "pack model_dependency_inventory",
+     "ref": "pack:model_dependency_inventory:tp0904",
+     "text": "model_dependency_inventory: passed at version 6; current version is 7; no run at the current version"
+    },
+    {
+     "label": "pack judge_golden_set",
+     "ref": "pack:judge_golden_set:tp0904",
+     "text": "judge_golden_set: passed at version 7 (current version 7); 24 of 24 probes ok"
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0904",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-09-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-09-05",
+  "expected": {
+   "TP-09": "pass"
+  },
+  "expected_evidence_refs": [
+   "pack:model_dependency_inventory:tp0905"
+  ],
+  "inputs": {
+   "packs": [
+    {
+     "label": "pack model_dependency_inventory",
+     "ref": "pack:model_dependency_inventory:tp0905",
+     "text": "model_dependency_inventory: passed at version 3 (current version 3); 28 of 28 probes ok"
+    },
+    {
+     "label": "pack atlas_coverage",
+     "ref": "pack:atlas_coverage:tp0905",
+     "text": "atlas_coverage: passed at version 3 (current version 3); 28 of 28 probes ok"
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0905",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-09-05",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-09-06",
+  "expected": {
+   "TP-09": "fail"
+  },
+  "expected_evidence_refs": [
+   "pack:model_dependency_inventory:tp0906"
+  ],
+  "inputs": {
+   "packs": [
+    {
+     "label": "pack model_dependency_inventory",
+     "ref": "pack:model_dependency_inventory:tp0906",
+     "text": "model_dependency_inventory: failed at version 3 (current version 3); 1 of 33 probes failed"
+    },
+    {
+     "label": "pack judge_golden_set",
+     "ref": "pack:judge_golden_set:tp0906",
+     "text": "judge_golden_set: passed at version 3 (current version 3); 33 of 33 probes ok"
+    }
+   ],
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp0906",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-09-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-10-01",
+  "expected": {
+   "TP-10": "pass"
+  },
+  "expected_evidence_refs": [
+   "fct-tp1001-1"
+  ],
+  "inputs": {
+   "facts": {
+    "facts": [
+     {
+      "detail": "khu vực lưu trữ: trong nước; loại dữ liệu gửi đi: nội bộ đã che",
+      "fact_id": "fct-tp1001-1",
+      "file": "config/endpoints.yaml",
+      "kind": "endpoint",
+      "line": 4,
+      "name": "api-mo-hinh-39",
+      "quote": "region: vn"
+     },
+     {
+      "detail": "công cụ tra cứu danh mục sản phẩm, chỉ đọc",
+      "fact_id": "fct-tp1001-2",
+      "file": "agent/tools.py",
+      "kind": "tool",
+      "line": 9,
+      "name": "tra_cuu_danh_muc",
+      "quote": "def tra_cuu_danh_muc():"
+     }
+    ],
+    "node_id": "case-tp-tp-10-01",
+    "version": 1
+   },
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1001",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-10-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-10-02",
+  "expected": {
+   "TP-10": "fail"
+  },
+  "expected_evidence_refs": [
+   "fct-tp1002-1"
+  ],
+  "inputs": {
+   "facts": {
+    "facts": [
+     {
+      "detail": "khu vực lưu trữ: không rõ",
+      "fact_id": "fct-tp1002-1",
+      "file": "config/endpoints.yaml",
+      "kind": "endpoint",
+      "line": 4,
+      "name": "api-mo-hinh-26",
+      "quote": "region: ''"
+     },
+     {
+      "detail": "mô hình ngôn ngữ dùng cho tóm tắt",
+      "fact_id": "fct-tp1002-2",
+      "file": "agent/model.py",
+      "kind": "model",
+      "line": 5,
+      "name": "mo_hinh_ngon_ngu",
+      "quote": "MODEL_NAME = 'mo_hinh_ngon_ngu'"
+     }
+    ],
+    "node_id": "case-tp-tp-10-02",
+    "version": 1
+   },
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1002",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-10-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-10-03",
+  "expected": {
+   "TP-10": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "facts": {
+    "facts": [
+     {
+      "detail": "mô hình ngôn ngữ dùng cho tóm tắt",
+      "fact_id": "fct-tp1003-1",
+      "file": "agent/model.py",
+      "kind": "model",
+      "line": 5,
+      "name": "mo_hinh_ngon_ngu",
+      "quote": "MODEL_NAME = 'mo_hinh_ngon_ngu'"
+     }
+    ],
+    "node_id": "case-tp-tp-10-03",
+    "version": 1
+   },
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1003",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-10-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-10-04",
+  "expected": {
+   "TP-10": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-10-04.vendor_data_access"
+  ],
+  "inputs": {
+   "facts": {
+    "facts": [
+     {
+      "detail": "công cụ tra cứu danh mục sản phẩm, chỉ đọc",
+      "fact_id": "fct-tp1004-1",
+      "file": "agent/tools.py",
+      "kind": "tool",
+      "line": 9,
+      "name": "tra_cuu_danh_muc",
+      "quote": "def tra_cuu_danh_muc():"
+     }
+    ],
+    "node_id": "case-tp-tp-10-04",
+    "version": 1
+   },
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1004",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-10-04",
+    "system_type": "assistant",
+    "vendor_data_access": "chưa ghi khu vực lưu trữ và loại dữ liệu gửi cho nhà cung cấp"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-10-05",
+  "expected": {
+   "TP-10": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-10-05.vendor_data_access"
+  ],
+  "inputs": {
+   "facts": {
+    "facts": [
+     {
+      "detail": "mô hình ngôn ngữ dùng cho tóm tắt",
+      "fact_id": "fct-tp1005-1",
+      "file": "agent/model.py",
+      "kind": "model",
+      "line": 5,
+      "name": "mo_hinh_ngon_ngu",
+      "quote": "MODEL_NAME = 'mo_hinh_ngon_ngu'"
+     }
+    ],
+    "node_id": "case-tp-tp-10-05",
+    "version": 1
+   },
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1005",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-10-05",
+    "system_type": "assistant",
+    "vendor_data_access": "khu vực lưu trữ trong nước; nhà cung cấp chỉ thấy dữ liệu đã che"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-10-06",
+  "expected": {
+   "TP-10": "fail"
+  },
+  "expected_evidence_refs": [
+   "fct-tp1006-1"
+  ],
+  "inputs": {
+   "facts": {
+    "facts": [
+     {
+      "detail": "khu vực lưu trữ: không rõ",
+      "fact_id": "fct-tp1006-1",
+      "file": "config/endpoints.yaml",
+      "kind": "endpoint",
+      "line": 4,
+      "name": "api-mo-hinh-16",
+      "quote": "region: ''"
+     },
+     {
+      "detail": "mô hình ngôn ngữ dùng cho tóm tắt",
+      "fact_id": "fct-tp1006-2",
+      "file": "agent/model.py",
+      "kind": "model",
+      "line": 5,
+      "name": "mo_hinh_ngon_ngu",
+      "quote": "MODEL_NAME = 'mo_hinh_ngon_ngu'"
+     }
+    ],
+    "node_id": "case-tp-tp-10-06",
+    "version": 1
+   },
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1006",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-10-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-11-01",
+  "expected": {
+   "TP-11": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-11-01.accountable_owner"
+  ],
+  "inputs": {
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1101",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "accountable_owner": "Khối Công nghệ thông tin, người chịu trách nhiệm hệ thống thuê ngoài",
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-11-01",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-11-02",
+  "expected": {
+   "TP-11": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-11-02.accountable_owner"
+  ],
+  "inputs": {
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1102",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "accountable_owner": "(trống)",
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Phát triển ứng dụng",
+    "system_id": "case-tp-tp-11-02",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-11-03",
+  "expected": {
+   "TP-11": "question"
+  },
+  "expected_evidence_refs": [],
+  "inputs": {
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1103",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "lifecycle_stage": "operation",
+    "name": "Công cụ gợi ý hạn mức",
+    "owner_team": "Khối Công nghệ thông tin",
+    "system_id": "case-tp-tp-11-03",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng question: các nguồn đã nạp không quyết định được mục này; không được đoán."
+ },
+ {
+  "case_id": "tp-tp-11-04",
+  "expected": {
+   "TP-11": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-11-04.accountable_owner"
+  ],
+  "inputs": {
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1104",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "accountable_owner": "nhà cung cấp Đối tác Delta Tech",
+    "lifecycle_stage": "operation",
+    "name": "Bộ phân loại yêu cầu",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-11-04",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ },
+ {
+  "case_id": "tp-tp-11-05",
+  "expected": {
+   "TP-11": "pass"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-11-05.accountable_owner"
+  ],
+  "inputs": {
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1105",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "accountable_owner": "Phòng Kiểm định mô hình độc lập",
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý hồ sơ tín dụng",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-11-05",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng pass: nguồn đã trích cho thấy quy tắc đạt; phải trích đúng tham chiếu của nguồn."
+ },
+ {
+  "case_id": "tp-tp-11-06",
+  "expected": {
+   "TP-11": "fail"
+  },
+  "expected_evidence_refs": [
+   "case-tp-tp-11-06.accountable_owner"
+  ],
+  "inputs": {
+   "regkb": [
+    {
+     "label": "VN-TT53-2026 Art.14(3)",
+     "ref": "VN-TT53-2026#Art.14(3)-tp1106",
+     "text": "Điều 14(3): ngân hàng quản lý tối thiểu tám loại rủi ro đối với việc sử dụng trí tuệ nhân tạo."
+    }
+   ],
+   "system": {
+    "accountable_owner": "(trống)",
+    "lifecycle_stage": "operation",
+    "name": "Trợ lý tư vấn tiền gửi",
+    "owner_team": "Phòng Kỹ thuật dữ liệu",
+    "system_id": "case-tp-tp-11-06",
+    "system_type": "assistant"
+   }
+  },
+  "rubric_notes": "Kỳ vọng fail: nguồn cho thấy quy tắc bị vi phạm; thiếu sót được ghi rõ trong nguồn."
+ }
+]
