@@ -10,11 +10,11 @@ import pytest
 
 from supervisor.adapters.auth.base import AuthPrincipal
 from supervisor.adapters.auth.dev_header import DevHeaderPrincipal
-from supervisor.adapters.factory import Adapters, build_adapters, make_masker
+from supervisor.adapters.factory import Adapters, make_masker
 from supervisor.adapters.notify import InboxNotifier
 from supervisor.cases.service import CaseService
-from supervisor.config import REPO_ROOT, load_settings
-from supervisor.jobs import bootstrap_schema
+from supervisor.config import REPO_ROOT
+from tests._seed import adapters_from_template
 
 
 class ListSink:
@@ -32,10 +32,11 @@ class ListSink:
 
 
 @pytest.fixture
-def adapters(tmp_path: Path) -> Iterator[Adapters]:
-    settings = load_settings(sql_backend="sqlite", data_dir=tmp_path / "data", llm_base_url="")
-    a = build_adapters(settings)
-    bootstrap_schema.run(a.settings, a)
+def adapters(tmp_path: Path, request: pytest.FixtureRequest) -> Iterator[Adapters]:
+    # WP-T1: a file copy of a store built once per process. A test that asks for ``seeded`` (or
+    # ``console``) gets the copy of the store with the demo replay already run.
+    kind = "replayed" if "seeded" in request.fixturenames else "bare"
+    a = adapters_from_template(kind, tmp_path / "data")
     try:
         yield a
     finally:
@@ -105,10 +106,7 @@ class Console:
 def seeded(adapters: Adapters) -> Iterator[Any]:
     """Demo replay behind the real gateway (four incidents), then a fresh runtime on the
     same store for the console (as after an app restart)."""
-    from supervisor.demo import replay as R
-
-    report = R.run_gated(adapters.settings, adapters=adapters)
-    assert report.ok, "\n".join(report.lines)
+    # the replay already ran in the template that ``adapters`` copied (tests/_seed.py)
     from supervisor.wiring import build_runtime
 
     runtime = build_runtime(adapters.settings, adapters=adapters, policy_refresh_s=0.0)

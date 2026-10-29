@@ -1,0 +1,49 @@
+name: tests
+
+# WP-T1. No secrets are used or needed: the suite is offline (SUPERVISOR_ENV_FILE=/dev/null).
+# A release tag needs a green run of this workflow (docs/testing.md).
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPERVISOR_ENV_FILE: /dev/null
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - name: Install (locked)
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run --frozen python -m ruff check .
+      - name: Schema DDL is current
+        run: uv run --frozen python -m schema.generate --check
+      - name: Databricks notebook is current
+        run: uv run --frozen python -m supervisor.databricks.notebook --check
+      - name: Full suite
+        run: >-
+          uv run --frozen python -m pytest tests -q -p no:cacheprovider -n auto
+          --junitxml=reports/junit.xml
+      - name: Upload the junit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit
+          path: reports/junit.xml
+          if-no-files-found: warn

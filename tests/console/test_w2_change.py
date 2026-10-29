@@ -8,6 +8,7 @@ Apply change behind a confirmation tick, the override file, the chain record, th
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -309,3 +310,13 @@ def test_my_overview_banner_is_none_while_the_flag_is_off(console: Console) -> N
     from supervisor.console import overview_v4
 
     assert overview_v4._law_change(console.ctx, console.ctx.clock.now()) is None  # noqa: SLF001
+
+
+@pytest.fixture(autouse=True)
+def _fresh_regkb_cache() -> Iterator[None]:
+    """WP-T1: these tests write overrides; start and end with an empty per-process RegKB cache."""
+    from tests._cache import clear_regkb_cache
+
+    clear_regkb_cache()
+    yield
+    clear_regkb_cache()

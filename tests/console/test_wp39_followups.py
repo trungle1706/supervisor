@@ -66,11 +66,11 @@ def test_the_plain_post_keeps_the_permission_and_the_origin_check(v2console: Con
 
 
 def _write_report(c: Console) -> None:
-    from supervisor.detectors import harness
+    from tests._cache import cached_detector_report  # WP-T1: one harness run per process
 
     path = analytics_v2.report_path(c.ctx)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(harness.run(commit="-", date="-")), encoding="utf-8")
+    path.write_text(json.dumps(cached_detector_report(commit="-", date="-")), encoding="utf-8")
 
 
 def _lat_rows(c: Console) -> None:

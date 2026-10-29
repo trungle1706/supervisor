@@ -1,11 +1,18 @@
 # Linux/macOS convenience only. Bank users: see docs/RUNBOOK.md (Windows cmd).
-.PHONY: sync test lint fmt ddl reqs reqs-nexus preflight serve bench bench-quick
+.PHONY: sync test test-fast test-full lint fmt ddl reqs reqs-nexus preflight serve bench bench-quick
 
 sync:
 	uv sync --python 3.11
 
 test:
 	uv run python -m pytest
+
+# WP-T1 (docs/testing.md): daily run without the slow tests, 6 workers (shared host)
+test-fast:
+	PYTHONPATH=src SUPERVISOR_ENV_FILE=/dev/null uv run python -m pytest tests -q -p no:cacheprovider -m "not slow" -n 6
+
+test-full:
+	PYTHONPATH=src SUPERVISOR_ENV_FILE=/dev/null uv run python -m pytest tests -q -p no:cacheprovider -n 6
 
 lint:
 	uv run python -m ruff check .

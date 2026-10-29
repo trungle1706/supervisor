@@ -11,10 +11,9 @@ from typing import Any
 import pytest
 
 from supervisor.adapters.auth.base import AuthPrincipal
-from supervisor.adapters.factory import Adapters, build_adapters
-from supervisor.config import load_settings
+from supervisor.adapters.factory import Adapters
 from supervisor.governance.systems import SystemService
-from supervisor.jobs import bootstrap_schema
+from tests._seed import adapters_from_template
 
 
 class ListSink:
@@ -61,10 +60,11 @@ def sink() -> ListSink:
 
 
 @pytest.fixture
-def adapters(tmp_path: Path) -> Iterator[Adapters]:
-    settings = load_settings(sql_backend="sqlite", data_dir=tmp_path / "data", llm_base_url="")
-    a = build_adapters(settings)
-    bootstrap_schema.run(a.settings, a)
+def adapters(tmp_path: Path, request: pytest.FixtureRequest) -> Iterator[Adapters]:
+    # WP-T1: a file copy of a store built once per process (tests/_seed.py); ``seeded`` and
+    # ``console`` get the copy with the demo replay already run.
+    kind = "replayed" if "seeded" in request.fixturenames else "bare"
+    a = adapters_from_template(kind, tmp_path / "data")
     try:
         yield a
     finally:
@@ -162,14 +162,7 @@ def on(
 @pytest.fixture
 def gadapters(tmp_path: Path) -> Iterator[Adapters]:
     """A temporary SQLite store with GOVERNANCE_ENABLED on (the rules run after each change)."""
-    settings = load_settings(
-        sql_backend="sqlite",
-        data_dir=tmp_path / "gdata",
-        llm_base_url="",
-        governance_enabled=True,
-    )
-    a = build_adapters(settings)
-    bootstrap_schema.run(a.settings, a)
+    a = adapters_from_template("bare", tmp_path / "gdata", governance_enabled=True)
     try:
         yield a
     finally:

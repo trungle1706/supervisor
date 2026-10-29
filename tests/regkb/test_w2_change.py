@@ -668,3 +668,14 @@ def test_cli_diff_of_an_unchanged_text_needs_no_model(
     capsys.readouterr()
     assert lawagent.main(["--diff", IID, "--incoming", str(g)]) == 2
     assert "mock_model" in capsys.readouterr().out
+
+
+@pytest.fixture(autouse=True)
+def _fresh_regkb_cache() -> Iterator[None]:
+    """WP-T1: these tests write overrides and read the loaded base back; start and end with an
+    empty per-process RegKB cache (the cache key also follows the file content)."""
+    from tests._cache import clear_regkb_cache
+
+    clear_regkb_cache()
+    yield
+    clear_regkb_cache()
