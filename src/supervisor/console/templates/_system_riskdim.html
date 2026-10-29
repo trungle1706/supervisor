@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_riskdim_ux5.html" %}{% else %}
 {# Risk assessment tab of the system page (WP-C2, RISK_DIMENSIONS): the eight risk types of Circular 53
    Art. 14(3), one row each. Variables: s, rd_rows, rd_counts, rd_banner, rd_illustrative, rd_statuses,
    rd_can_edit, rd_can_waive, rd_is_owner, rd_min_reason, rd_register (systems_riskdim.tab_data).
@@ -75,3 +76,4 @@
 </section>
 {% endfor %}
 <p class="notice" data-rd="banner-end"><span class="dot"></span><b>{{ rd_banner }}</b></p>
+{% endif %}

@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_smart_guardian_panel_ux5.html" %}{% else %}
 {# Smart guardian panel (WP-G4, SMART_GUARDIAN). Variables: s, lang, sg_sid, sg_row, sg_groups,
    sg_titles, sg_open, sg_can, sg_nodes, sg_banner, sg_decision (smart_guardian_view.panel_data).
    Proposals only: a person ticks lines and accepts. The pre-deploy test proves the fit. #}
@@ -88,3 +89,4 @@
   <p class="hint">{{ sg_banner }}</p>
 </section>
 </div>
+{% endif %}

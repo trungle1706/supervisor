@@ -96,7 +96,8 @@ async def candidates_rows(
     _off(ctx)
     src = "top" if request.query_params.get("src") == "top" else ""
     data = await _call(_page_data, ctx, request.query_params, src)
-    return render(request, ctx, me, "_cand_rows.html", **data)
+    page = "_cand_rows_ux5.html" if ctx.settings.console_ux5 and not src else "_cand_rows.html"
+    return render(request, ctx, me, page, **data)
 
 
 @router.get(

@@ -2,11 +2,13 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_integration') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('integration_title') }}</h1></div>
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g2.css">
+{{ u5.page_head(t('integration_title'), t('int_purpose_lead'), about=t('int_purpose_rest') ~ ' ' ~ t('int_why')) }}
+{% else %}<div class="pagehead"><h1>{{ t('integration_title') }}</h1></div>
 <div class="purpose">
   <p><strong>{{ t('int_purpose_lead') }}</strong> {{ t('int_purpose_rest') }}</p>
   <p class="why">{{ t('int_why') }}</p>
-</div>
+</div>{% endif %}
 {% if reports %}
 <div class="tablewrap"><table data-integration-list="1">
   <thead><tr><th>{{ t('int_report') }}</th><th>{{ t('int_agent') }}</th><th>{{ t('int_framework') }}</th><th>{{ t('int_readiness') }}</th><th>{{ t('int_patches') }}</th></tr></thead>

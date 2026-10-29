@@ -46,18 +46,25 @@
 <label class="chk"><input type="checkbox" name="{{ name }}" value="1"{% if v.get(name) %} checked{% endif %}> {{ t('sy_f_' ~ name) }} {{ mark(name) }}</label>{{ chip(name) }}
 {% endmacro %}
 {% macro buttons(last=False) %}
-<p class="rg2-buttons">
+{% if ux5 %}<div class="g2-foot rg2-buttons">
+  {% if step > 1 %}<a class="btn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>{% endif %}
+  <a class="g2-sp" href="/console/register?lang={{ lang }}" style="text-align:right">{{ t('rg2_my_drafts') }}</a>
+  <button class="btn" type="submit" formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('g2_reg_save_draft') }}</button>
+  <button class="btn primary" type="submit">{{ t('rg2_continue') }}</button>
+</div>
+{% else %}<p class="rg2-buttons">
   {% if step > 1 %}<a class="chipbtn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>{% endif %}
   <button class="btn" type="submit">{{ t('rg2_continue') }}</button>
   <button class="chipbtn" type="submit" formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('rg2_save_later') }}</button>
   <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a>
-</p>
+</p>{% endif %}
 {% endmacro %}
 {% block title %}{{ t('rg2_title') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
 {{ ui.pagehead(t('rg2_title') ~ ' - ' ~ lbl(step)) }}
 {{ stepnav() }}
+{% if ux5 %}<link rel="stylesheet" href="/console/static/ux5_g2.css"><div class="g2-formcol">{% endif %}
 {% if error %}<div class="notice rg2-error" role="alert" data-register="error"><span class="dot"></span><b>{{ error }}</b></div>{% endif %}
 <p class="hint">{{ t(('rg3_hint_' if v3 else 'rg2_hint_') ~ lab[step - 1]) }}</p>
 {% if v3 %}{% include "_compliance_strip.html" %}{% endif %}
@@ -377,4 +384,5 @@
   <form method="post" action="{{ base }}/abandon?lang={{ lang }}"><p><button class="chipbtn" type="submit">{{ t('rg2_abandon') }}</button></p></form>
 </div>
 {% endif %}
+{% if ux5 %}</div>{% endif %}
 {% endblock %}

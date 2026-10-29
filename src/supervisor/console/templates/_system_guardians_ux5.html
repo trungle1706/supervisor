@@ -1,0 +1,49 @@
+{# Guardians tab, CONSOLE_UX5 (package G2): the proposal first; the settings (floor once, detectors, other
+   guardians) in one disclosure. The YAML export is an admin technical detail inside the proposal. #}
+{% import "_ux5.html" as u5 with context %}
+{% import "_v3.html" as v3 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g2.css">
+<div class="g2-tabhead">
+  <h2>{{ t('nv3_guardians') }}</h2>
+  {{ u5.disclaimer(t('g2_advisory')) }}
+</div>
+{% if sg_on %}{% include "_smart_guardian_panel.html" %}{% endif %}
+<details class="card g2-settings" data-section="system-guardians-settings"{% if not sg_on %} open{% endif %}>
+  <summary><b>{{ t('g2_gd_settings') }}</b></summary>
+  <section data-section="system-guardians-floor">
+    <h4>{{ t('ux4b_floor') }}</h4>
+    {% if gd_floor is none %}{{ v3.na(gd_floor_na) }}
+    {% elif gd_floor %}
+    <div class="tablewrap flat"><table><thead><tr><th scope="col">{{ t('nv3_guardians') }}</th><th scope="col">{{ t('g2_rules_reason') }}</th></tr></thead><tbody>
+      {% for f in gd_floor %}<tr><td><code>{{ f.slug }}</code></td><td>{% for r in f.rules %}<span class="u5-chip na"><span class="u5-dot"></span>{{ r }}</span> {% endfor %}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<p class="hint">{{ t('ux4b_floor_none') }}</p>{% endif %}
+  </section>
+  {% if gd_no_agents %}
+  <p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+  {% else %}
+  <section data-section="system-guardians-det">
+    <h4>{{ t('catg_detect') }}</h4>
+    {% if not gd_master %}<p class="hint">{{ t('nv3_cover_master_off') }}</p>{% endif %}
+    <div class="tablewrap flat"><table data-table="system-guardians">
+      <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('ux4b_detectors_on') }}</th><th scope="col">{{ t('nv3_c_guardian') }}</th></tr></thead>
+      <tbody>{% for r in gd_rows %}<tr><td>{{ r.agent_id }}</td><td>{% for s in r.detectors %}<code>{{ s }}</code> {% else %}<span class="muted">-</span>{% endfor %}</td><td>{{ v3.cover(r.cover) }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <p class="hint">{{ t('g2_gd_always_on') }}</p>
+  </section>
+  <details class="g2-others" data-section="system-guardians-judges">
+    <summary>{{ t('g2_gd_others', n=(gd_judges|length) + (gd_monitors|length)) }}{% if gd_judges_on and gd_judge_mock %} <span class="u5-chip warn"><span class="u5-dot"></span>mock</span>{% endif %}</summary>
+    <h4>{{ t('catg_judge') }}</h4>
+    <p>{% for j in gd_judges %}{{ u5.status_chip('ok' if j.on else 'na', t('cat_' ~ j.key)) }} {% endfor %}</p>
+    <h4>{{ t('catg_monitor') }}</h4>
+    <p>{% for m in gd_monitors %}{{ u5.status_chip('ok' if m.on else 'na', t('cat_' ~ m.key)) }} {% endfor %}</p>
+  </details>
+  {% endif %}
+  {% if gd_bindings is not none %}
+  <section data-section="system-guardians-bindings">
+    <h4>{{ t('gb_tab_title') }}</h4>
+    <p>{% for g in gd_bindings if g.state == 'off' or g.locked %}<code>{{ g.slug }}</code> {{ u5.status_chip('warn' if g.locked else 'na', t('gb_locked') if g.locked else t('gb_state_off')) }} {% else %}<span class="muted">{{ t('gb_tab_none') }}</span>{% endfor %}</p>
+    <p class="hint"><a href="/console/catalog?system={{ s.system_id }}&amp;lang={{ lang }}">{{ t('gb_tab_link') }}</a></p>
+  </section>
+  {% endif %}
+</details>

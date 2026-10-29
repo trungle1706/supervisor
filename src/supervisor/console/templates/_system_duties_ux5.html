@@ -1,0 +1,152 @@
+{# Duties tab, CONSOLE_UX5 (package G2): one group per framework, tick strip per group, 25 rows per page,
+   one bulk bar per group, evidence as a count chip, actions as a small menu. Same POST routes as the
+   old tab. Variables: s, du_* (systems_duties.tab_data_ux5). Advisory only; not legal advice. #}
+{% import "_ux5.html" as u5 with context %}
+{% set dub = '/console/systems/' ~ s.system_id %}
+{% macro du_post(path) %}method="post" action="{{ dub }}/duties/{{ path }}?lang={{ lang }}" hx-post="{{ dub }}/duties/{{ path }}?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML"{% endmacro %}
+{% macro row_menu(r) %}
+  {% set rt %}<input type="hidden" name="status_id" value="{{ r.status_id }}">{% endset %}
+  <details class="g2-menu"><summary class="btn sm" data-act="duty-menu">{{ t('wf_actions') }}</summary>
+    <div class="g2-menu-body">
+      {% if du_can_edit %}
+      <form {{ du_post('close') }} class="stack-f">{{ rt }}
+        <input type="text" name="closing_control" list="du-controls" maxlength="70" required placeholder="{{ t('du_control_ph') }}" aria-label="{{ t('du_control') }}">
+        <input type="text" name="evidence_ref" maxlength="{{ du_max_evidence }}" required placeholder="{{ t('du_evidence_ph') }}" aria-label="{{ t('du_evidence') }}">
+        <button class="btn sm primary" type="submit" data-act="duty-close-go">{{ t('du_close') }}</button>
+      </form>{% endif %}
+      {% if du_can_waive and not du_is_owner %}
+      <form {{ du_post('waive') }} class="stack-f">{{ rt }}
+        <input type="text" name="reason" minlength="{{ du_min_waive }}" maxlength="500" required placeholder="{{ t('du_waive_ph', n=du_min_waive) }}" aria-label="{{ t('du_waive_ph', n=du_min_waive) }}">
+        <button class="btn sm" type="submit" data-act="duty-waive-go">{{ t('du_waive') }}</button>
+      </form>{% endif %}
+    </div>
+  </details>
+{% endmacro %}
+{% set can_act = du_can_edit or du_can_waive %}
+<div class="g2-tabhead" data-section="duty-head">
+  <h2>{{ t('du_tab') }}</h2>
+  <button type="button" class="u5-info" title="{{ t('g2_du_about') }}" aria-label="{{ t('ux5_info') }}">i</button>
+  {{ u5.disclaimer(t('g2_advisory')) }}
+  <span class="g2-sp"></span>
+  {% if du_can_edit %}
+  <form {{ du_post('reevaluate') }} class="g2-inline" data-form="duty-reevaluate">
+    <button class="btn sm" type="submit" data-act="duty-reevaluate" title="{{ t('du_reeval_hint') }}">{{ t('du_reeval') }}</button>
+  </form>
+  {% if du_pack %}
+  <form {{ du_post('refresh-evidence') }} class="g2-inline" data-form="duty-refresh-evidence">
+    <button class="btn sm" type="submit" data-act="duty-refresh-evidence" title="{{ t('du_refresh_hint', days=du_window_days) }}">{{ t('du_refresh') }}</button>
+  </form>
+  {% endif %}{% endif %}
+</div>
+
+<section class="u5-strip g2-score" data-section="duty-score" aria-label="{{ t('du_score_title') }}">
+  {% if du_score.pct is none %}
+  <div data-du="score"><b>-</b><span>{{ t('du_score_none') }}</span></div>
+  {% else %}
+  <div data-du="score"><b>{{ du_score.pct }}%</b><span>{{ t('g2_du_closed_of', total=du_score.open + du_score.closed) }}</span>
+    <div class="g2-track" role="img" aria-label="{{ du_score.pct }}%"><i style="width:{{ [du_score.pct, 1]|max }}%"></i></div></div>
+  {% endif %}
+  <div><b>{{ du_score.open }}</b><span>{{ t('du_f_open') }}</span></div>
+  <div><b>{{ du_score.closed }}</b><span>{{ t('du_f_closed') }}</span></div>
+  <div><b>{{ du_score.waived }}</b><span>{{ t('du_f_waived') }}</span></div>
+  <div><b class="g2-warn">{{ du_counts.needs_answer }}</b><span>{{ t('g2_du_need_answer') }}</span></div>
+  {% if u5_owner %}<div><b class="g2-sm">{{ u5_owner }}</b><span>{{ t('du_col_owner') }}</span></div>{% endif %}
+</section>
+<p class="hint g2-note">{{ t('g2_du_note', waived=du_score.waived, groups=du_score.open_groups) }}
+  {% if du_score.open_groups %}<a href="/console/risks?drawer={{ du_risk_id }}&amp;lang={{ lang }}">{{ t('g2_du_view_risk') }}</a>{% endif %}</p>
+
+<form class="g2-filters" method="get" action="{{ dub }}" role="search" aria-label="{{ t('du_filter') }}" data-du="filters">
+  <input type="hidden" name="tab" value="duties"><input type="hidden" name="lang" value="{{ lang }}">
+  <div class="g2-seg" role="group" aria-label="{{ t('du_filter') }}">
+    {% for f in du_filters %}<a class="{% if f == du_filter %}on{% endif %}" href="{{ dub }}?tab=duties&amp;f={{ f }}&amp;lang={{ lang }}" data-filter="{{ f }}"{% if f == du_filter %} aria-current="true"{% endif %}>{{ t('du_f_' ~ f) }} <span>{{ du_counts[f] }}</span></a>{% endfor %}
+  </div>
+  <input type="hidden" name="f" value="{{ du_filter }}">
+  <select name="cov" aria-label="{{ t('g2_du_cov') }}" onchange="this.form.submit()">
+    {% for c in du_cov_opts %}<option value="{{ c }}"{% if c == du_cov %} selected{% endif %}>{{ t('g2_du_cov') }}: {{ t('g2_du_cov_' ~ c) }}</option>{% endfor %}
+  </select>
+  <input type="search" name="q" value="{{ du_q }}" maxlength="80" placeholder="{{ t('g2_du_search') }}" aria-label="{{ t('g2_du_search') }}">
+  <noscript><button class="btn sm" type="submit">{{ t('apply') }}</button></noscript>
+</form>
+
+{% if du_can_edit %}
+<datalist id="du-controls">
+  {% for c in du_choices.catalogue %}<option value="{{ c }}">{% endfor %}
+  {% for c in du_choices.manual %}<option value="manual:{{ c }}">{% endfor %}
+</datalist>
+{% endif %}
+
+{% if not u5_groups %}
+<section class="card">{{ t('du_empty') }}</section>
+{% else %}
+<section class="card g2-fwcard" aria-label="{{ t('g2_du_by_fw') }}">
+  <div class="g2-legend">{{ t('g2_du_mark') }} {{ u5.tick_legend(u5_legend) }}</div>
+  {% for g in u5_groups %}
+  {% set gid = 'g2-fw-' ~ loop.index %}
+  <details class="g2-fw" data-section="duty-group" data-group="{{ g.instrument_id }}"{% if loop.first %} open{% endif %}>
+    <summary>
+      <span class="g2-fwname"><b>{{ g.name }}</b>{% if g.title %}<span>{{ g.title }}</span>{% endif %}</span>
+      {{ u5.tick_strip(g.ticks) }}
+      <span class="g2-cnts">{{ t('g2_du_n_open', n=g.open) }}</span>
+    </summary>
+    <div class="tablewrap flat"><table data-table="duties" class="g2-duties">
+      <thead><tr>
+        {% if can_act and g.can_bulk %}<th scope="col" class="g2-c-sel"><span class="sr">{{ t('g2_du_select') }}</span></th>{% endif %}
+        <th scope="col" class="g2-c-id">{{ t('g2_du_col_id') }}</th><th scope="col" class="g2-c-duty">{{ t('du_col_duty') }}</th><th scope="col" class="g2-c-st">{{ t('status') }}</th>
+        {% if u5_owners_differ %}<th scope="col">{{ t('du_col_owner') }}</th>{% endif %}
+        {% if du_pack %}<th scope="col" class="g2-c-ev">{{ t('g2_du_evidence') }}</th>{% endif %}
+        {% if can_act %}<th scope="col" class="g2-c-act"><span class="sr">{{ t('wf_actions') }}</span></th>{% endif %}
+      </tr></thead>
+      <tbody>
+      {% for r in g.rows %}
+        <tr data-obligation="{{ r.obligation_id }}" data-status="{{ r.status }}">
+          {% if can_act and g.can_bulk %}<td class="g2-c-sel">{% if r.can_act %}<input type="checkbox" form="{{ gid }}-bulk" name="sel_{{ r.status_id }}" value="1" aria-label="{{ t('g2_du_select') }} {{ r.obligation_id }}">{% endif %}</td>{% endif %}
+          <td class="g2-c-id"><span class="mono" title="{{ r.obligation_id }}">{{ r.obligation_id }}</span></td>
+          <td class="g2-c-duty"><b>{{ r.article or r.obligation_id }}</b>
+            {% if r.duty %}<div class="g2-duty">{{ r.duty }}</div>{% endif %}
+            {% if r.change_url %}<div><a href="{{ r.change_url }}" data-du="change-link">{{ t('rc_duty_link') }}</a></div>{% endif %}
+            {% if r.status != 'open' %}<div class="idline" data-du="detail" title="{{ r.detail }}">{{ t('du_st_' ~ r.status) }}{% if r.due %} · {{ r.due }}{% endif %}{% if r.closing_control %} · {{ r.closing_control }}{% endif %}{% if r.detail %}: {{ r.detail[:120] }}{% endif %}</div>{% endif %}
+          </td>
+          <td class="g2-c-st">
+            {% if r.applies == 'needs_answer' %}{{ u5.status_chip('info', t('du_ap_needs_answer')) }}
+            {% elif r.status == 'closed' %}{{ u5.status_chip('ok', t('du_st_closed')) }}
+            {% elif r.status == 'waived' %}{{ u5.status_chip('na', t('du_st_waived')) }}
+            {% else %}{{ u5.status_chip('bad' if r.coverage == 'none' else 'warn', t('du_cov_' ~ r.coverage)) }}{% if r.overdue %} {{ u5.status_chip('bad', t('rk_overdue')) }}{% endif %}{% endif %}
+          </td>
+          {% if u5_owners_differ %}<td>{{ r.owner }}</td>{% endif %}
+          {% if du_pack %}<td class="g2-c-ev" data-du="evidence">
+            {% if r.ev and r.ev.mapped %}<span class="g2-ev {{ 'ok' if r.ev.mark == 'works' else '' }}" title="{{ r.ev_tip }}">{{ t('g2_du_ev_rows', n=r.ev_rows) }}</span>
+            {% elif r.ev %}<span class="muted" title="{{ t('du_ev_nomap') }}">{{ t('g2_du_ev_none') }}</span>{% else %}-{% endif %}
+          </td>{% endif %}
+          {% if can_act %}<td class="g2-c-act">{% if r.can_act %}{{ row_menu(r) }}{% elif r.applies == 'needs_answer' %}<span class="hint">{{ t('du_needs_answer') }}</span>{% endif %}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% if can_act and g.can_bulk %}
+    <form id="{{ gid }}-bulk" class="g2-bulk" {{ du_post('close') }} data-du="bulk">
+      <span class="g2-bulk-t">{{ t('g2_du_bulk') }}</span>
+      <span class="g2-sp"></span>
+      {% if du_can_waive and not du_is_owner %}
+      <details class="g2-menu"><summary class="btn sm" data-act="duty-waive">{{ t('g2_du_waive_sel') }}</summary>
+        <div class="g2-menu-body">
+          <input type="text" name="reason" minlength="{{ du_min_waive }}" maxlength="500" placeholder="{{ t('du_waive_ph', n=du_min_waive) }}" aria-label="{{ t('du_waive_ph', n=du_min_waive) }}">
+          <button class="btn sm" type="submit" formaction="{{ dub }}/duties/waive?lang={{ lang }}" hx-post="{{ dub }}/duties/waive?lang={{ lang }}" data-act="duty-waive-go">{{ t('g2_du_waive_sel') }}</button>
+        </div></details>
+      {% endif %}
+      {% if du_can_edit %}
+      <details class="g2-menu"><summary class="btn sm primary" data-act="duty-close">{{ t('g2_du_close_sel') }}</summary>
+        <div class="g2-menu-body">
+          <input type="text" name="closing_control" list="du-controls" maxlength="70" placeholder="{{ t('du_control_ph') }}" aria-label="{{ t('du_control') }}">
+          <input type="text" name="evidence_ref" maxlength="{{ du_max_evidence }}" placeholder="{{ t('du_evidence_ph') }}" aria-label="{{ t('du_evidence') }}">
+          <button class="btn sm primary" type="submit" data-act="duty-close-go">{{ t('g2_du_close_sel') }}</button>
+        </div></details>
+      {% endif %}
+    </form>
+    {% endif %}
+  </details>
+  {% endfor %}
+</section>
+{% if u5_pages > 1 %}{{ u5.pager(u5_page, u5_pages, dub ~ '?tab=duties&f=' ~ du_filter ~ '&cov=' ~ du_cov ~ ('&q=' ~ du_q|urlencode if du_q else '') ~ '&lang=' ~ lang ~ '&p=1'|replace('&p=1', '')) }}{% endif %}
+<div class="u5-foot"><span>{{ t('g2_du_shown', n=u5_shown) }}</span></div>
+{% endif %}
+{% if du_is_owner and du_can_waive %}<p class="hint" data-du="owner-note">{{ t('du_owner_note') }}</p>{% endif %}

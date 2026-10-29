@@ -61,7 +61,27 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         check_id(p["agent"], "agent")
     svc = ctx.tasks
     everything = svc.list_tasks()
-    shown_all = [r for r in everything if _fits(r, p)]
+    ux5_on = bool(getattr(ctx.settings, "console_ux5", False))
+    names: dict[str, str] = {}
+    if ux5_on:  # UX5 (G2): the duty tasks belong to the Duties tab; the agent column shows names
+        everything = [r for r in everything if not str(r["template_id"]).startswith("DUTY-")]
+        names = {str(x["system_id"]): str(x["name"]) for x in ctx.state.query("ai_system")}
+        if not any(k in query for k in ("required", "agent", "stage", "status", "q", "page")):
+            p["required"] = "true"  # default view: required tasks
+            p["status"] = "open"
+    if ux5_on and p["q"]:  # the search also matches the system name
+        needle = p["q"].lower()
+        shown_all = [
+            r
+            for r in everything
+            if _fits(r, {**p, "q": ""})
+            and (
+                needle in f"{r['task_id']} {r['template_id']} {r['title']}".lower()
+                or needle in names.get(str(r["agent_id"]), "").lower()
+            )
+        ]
+    else:
+        shown_all = [r for r in everything if _fits(r, p)]
     col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "agent_id", "asc")
     shown = sort_rows(shown_all, col, direction)
     page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
@@ -97,6 +117,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "stage_opts": [(s, f"tk_stage_{s}") for s in STAGES],
         "status_opts": [(s, f"tk_st_{s}") for s in STATUSES],
         "total_tasks": len(everything),
+        "task_names": names,
         "illustrative": svc.cfg.illustrative,
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),

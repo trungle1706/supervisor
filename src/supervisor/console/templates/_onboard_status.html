@@ -1,11 +1,11 @@
 {% import "_ui.html" as ui with context %}
 {% set running = job is not none and job.status == 'running' %}
 <div {% if running %}hx-get="/console/onboard/status?lang={{ lang }}" hx-trigger="every 2s" hx-target="#onboard-status" hx-swap="innerHTML"{% endif %} data-running="{{ '1' if running else '0' }}">
-<div class="wizard" aria-label="{{ t('lifecycle') }}">
+{% if not ux5 or job or runs %}<div class="wizard" aria-label="{{ t('lifecycle') }}">
   {% for s in wizard %}
-  <div class="wstep {{ s.state }}" data-stage="{{ s.key }}"><b>{{ loop.index }} {{ t('stage_' ~ s.key) }}</b>{{ t('ws_' ~ s.key) }}</div>
+  <div class="wstep {{ s.state }}" data-stage="{{ s.key }}"{% if ux5 %} title="{{ t('ws_' ~ s.key) }}"{% endif %}><b>{{ loop.index }} {{ t('stage_' ~ s.key) }}</b>{% if not ux5 %}{{ t('ws_' ~ s.key) }}{% endif %}</div>
   {% endfor %}
-</div>
+</div>{% endif %}
 
 <section class="card">
   <h3>{{ t('start') }}</h3>
@@ -17,7 +17,7 @@
   {% if enabled %}
   <div class="hint">{{ t('start_hint') }}</div>
   {% else %}
-  <div class="hint" data-onboard-off="1">{{ t('onboard_off') }} <code>python -m supervisor.onboard --target src\supervisor_agents\payments --out out\payments --mock-llm</code></div>
+  <div class="hint" data-onboard-off="1">{{ t('onboard_off') }} {% if not ux5 or 'admin' in me.roles %}<code>python -m supervisor.onboard --target src\supervisor_agents\payments --out out\payments --mock-llm</code>{% endif %}</div>
   {% endif %}
   {% if job %}
   <div class="progress" data-job="{{ job.status }}">

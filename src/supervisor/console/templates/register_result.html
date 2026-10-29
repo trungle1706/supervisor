@@ -5,13 +5,14 @@
 {% block title %}{{ t('rg2_title') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
+{% if ux5 %}<link rel="stylesheet" href="/console/static/ux5_g2.css">{% endif %}
 {{ ui.pagehead(d.system.name) }}
 <div class="notice" data-register="done"><span class="dot"></span><b>{{ t('rg2_done') }}</b> {{ t('rg2_done_line') }}</div>
 <div class="grid g2">
 <section class="card">
   <h3>{{ t('rg2_written') }}</h3>
   <ul data-register="steps-done">
-  {% for s in d.steps %}<li data-status="{{ s.status }}">{{ ui.pill(t('rg2_st_' ~ s.status), {'ok': 'ok', 'failed': 'bad', 'skipped': 'neutral'}[s.status]) }} {{ t(s.key) }}{% if s.detail %} <code>{{ s.detail }}</code>{% endif %}</li>{% endfor %}
+  {% for s in d.steps %}<li data-status="{{ s.status }}">{{ ui.pill(t('rg2_st_' ~ s.status), {'ok': 'ok', 'failed': 'bad', 'skipped': 'neutral'}[s.status]) }} {{ t(s.key) }}{% if s.detail and not ux5 %} <code>{{ s.detail }}</code>{% endif %}</li>{% endfor %}
   </ul>
 </section>
 <section class="card">
@@ -23,7 +24,7 @@
     {% if 'SYS-REG-SPID' in d.tasks %}<li>{{ t('rg2_next_spid') }}</li>{% endif %}
     {% if d.agent_id %}<li>{{ t('rg2_next_running') }}</li>{% endif %}
   </ol>
-  {% if d.get('v3') %}
+  {% if d.get('v3') and not ux5 %}
   <h3>{{ t('rg3_links') }}</h3>
   <ul data-register="v3-links">
     {% if d.agent_id %}<li><a href="/console/agents/{{ d.agent_id|urlencode }}?lang={{ lang }}" data-link="agent">{{ t('rg3_link_agent') }}</a>
@@ -35,7 +36,7 @@
       - <a href="/console/systems/{{ d.system.system_id }}?tab=tasks&amp;lang={{ lang }}" data-link="system-tasks">{{ t('rg3_link_approval') }}</a></li>
   </ul>
   {% endif %}
-  <p><a class="btn" href="/console/systems/{{ d.system.system_id }}?lang={{ lang }}">{{ t('rg2_open_system') }}</a>
+  <p><a class="btn{% if ux5 %} primary{% endif %}" href="/console/systems/{{ d.system.system_id }}?lang={{ lang }}">{{ t('rg2_open_system') }}</a>
   <a href="/console/register/new?lang={{ lang }}">{{ t('rg2_register_another') }}</a></p>
 </section>
 </div>

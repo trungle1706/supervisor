@@ -236,6 +236,149 @@ def tab_data(
     }
 
 
+UX5_PAGE = 25
+UX5_COVERAGE = ("all", "none", "partial", "full")
+
+
+def _tick_of(row: Mapping[str, Any]) -> str:
+    """One mark per duty: gap (open, no coverage), partial, bank (open, covered), closed."""
+    if row["status"] == "closed":
+        return "closed"
+    if row["status"] != "open" or row["applies"] != "yes":
+        return ""
+    return {"none": "gap", "partial": "partial"}.get(str(row["coverage"]), "bank")
+
+
+def tab_data_ux5(
+    ctx: Any, me: Any, system: Mapping[str, Any], query: Mapping[str, str]
+) -> dict[str, Any]:
+    """CONSOLE_UX5 view model of the Duties tab: one group per framework (not split by coverage),
+    25 rows per page, a tick strip and a bulk bar per group. Same score, filters and buttons."""
+    from supervisor.console import ux5
+
+    flt = query.get("f") or "open"
+    if flt not in dg.FILTERS:
+        raise ListingError(f"filter f must be one of {', '.join(dg.FILTERS)}")
+    cov = query.get("cov") or "all"
+    if cov not in UX5_COVERAGE:
+        raise ListingError(f"coverage cov must be one of {', '.join(UX5_COVERAGE)}")
+    needle = (query.get("q") or "").strip().lower()[:80]
+    sid = str(system["system_id"])
+    rows = dg.rows_of(ctx.state, sid)
+    kb = dg.kb_of(ctx)
+    infos = {str(r["obligation_id"]): _info(kb, str(r["obligation_id"])) for r in rows}
+
+    def keep(r: Mapping[str, Any]) -> bool:
+        if not _keep(r, flt) or (cov != "all" and r["coverage"] != cov):
+            return False
+        if needle:
+            i = infos[str(r["obligation_id"])]
+            hay = f"{r['obligation_id']} {i['article']} {i['duty']}".lower()
+            return needle in hay
+        return True
+
+    shown = [r for r in rows if keep(r)]
+    page_rows, page, pages = ux5.page_slice(shown, query.get("p"), UX5_PAGE)
+    today = ctx.clock.now().date()
+    totals: dict[str, dict[str, Any]] = {}
+    for r in shown:
+        g = totals.setdefault(str(r["instrument_id"]), {"n": 0, "open": 0, "ticks": {}})
+        g["n"] += 1
+        g["open"] += 1 if (r["applies"] == "yes" and r["status"] == "open") else 0
+        tick = _tick_of(r)
+        if tick:
+            g["ticks"][tick] = g["ticks"].get(tick, 0) + 1
+    marks = de.tab_rows(de.Env.from_console(ctx), sid, page_rows) if pack_on(ctx) else {}
+    links = change_links(ctx, page_rows)
+    groups: list[dict[str, Any]] = []
+    owners = {str(r["owner_user"]) for r in shown}
+    for r in page_rows:
+        inst = str(r["instrument_id"])
+        if not groups or groups[-1]["instrument_id"] != inst:
+            try:
+                ins = kb.instrument(inst)
+                name, title = str(ins.number or inst), str(ins.title_en or "")
+            except Exception:  # noqa: BLE001 - an instrument RegKB no longer knows is still listed
+                name, title = inst, ""
+            t = totals[inst]
+            groups.append(
+                {
+                    "instrument_id": inst,
+                    "name": name,
+                    "title": title,
+                    "n": t["n"],
+                    "open": t["open"],
+                    "ticks": [
+                        (k, t["ticks"][k])
+                        for k in ("gap", "partial", "bank", "closed")
+                        if k in t["ticks"]
+                    ],
+                    "rows": [],
+                }
+            )
+        due = dg.as_date(r["due_date"])
+        ev = marks.get(str(r["obligation_id"]))
+        info = infos[str(r["obligation_id"])]
+        groups[-1]["rows"].append(
+            {
+                **{
+                    k: r[k] for k in ("status_id", "obligation_id", "applies", "coverage", "status")
+                },
+                **info,
+                "owner": r["owner_user"],
+                "due": due.isoformat() if due else "",
+                "overdue": bool(due and due < today and r["status"] == "open"),
+                "closing_control": r["closing_control"] or "",
+                "detail": de.split_note(r["note"]) if r["status"] != "open" else "",
+                "change_url": links.get(str(r["obligation_id"]), ""),
+                "ev": ev,
+                "ev_rows": sum(int(c["n"]) for c in ev["controls"]) if ev else 0,
+                "ev_tip": ", ".join(f"{c['id']}={int(c['n'])}" for c in ev["controls"])
+                if ev
+                else "",
+                "can_act": r["applies"] == "yes" and r["status"] == "open",
+            }
+        )
+    for g in groups:
+        g["can_bulk"] = any(x["can_act"] for x in g["rows"])
+    sc = dg.score(rows)
+    counts = {f: sum(1 for r in rows if _keep(r, f)) for f in dg.FILTERS}
+    owner_all = sorted({str(r["owner_user"]) for r in rows if r["applies"] == "yes"})
+    return {
+        "du_on": True,
+        "du_score": {**sc, "open_groups": len(dg.open_groups(rows))},
+        "du_rows_n": len(rows),
+        "du_filter": flt,
+        "du_filters": dg.FILTERS,
+        "du_counts": counts,
+        "du_cov": cov,
+        "du_cov_opts": UX5_COVERAGE,
+        "du_q": needle,
+        "u5_groups": groups,
+        "u5_page": page,
+        "u5_pages": pages,
+        "u5_shown": len(shown),
+        "u5_legend": [
+            k
+            for k in ("gap", "partial", "bank", "closed")
+            if any(k == tk for g in groups for tk, _ in g["ticks"])
+        ],
+        "u5_owner": owner_all[0] if len(owner_all) == 1 else "",
+        "u5_owners_differ": len(owners) > 1,
+        "du_can_edit": may_edit(me, system),
+        "du_can_waive": may_waive(me, system),
+        "du_is_owner": dg._is_owner(system, str(getattr(me, "user_id", ""))),  # noqa: SLF001
+        "du_choices": dg.control_choices(ctx) if may_edit(me, system) else {},
+        "du_pack": pack_on(ctx),
+        "du_window_days": int(getattr(ctx.settings, "duty_evidence_window_days", 30)),
+        "du_banner": dg.BANNER,
+        "du_min_waive": dg.MIN_WAIVE,
+        "du_max_evidence": dg.MAX_EVIDENCE,
+        "du_risk_id": dg.risk_id_of(sid),
+        "du_today": today.isoformat() if isinstance(today, dt.date) else "",
+    }
+
+
 _PACKAGE = re.compile(r"\(package ([0-9a-f]{8})\)")
 
 

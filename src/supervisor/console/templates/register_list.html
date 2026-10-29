@@ -4,15 +4,16 @@
 {% block title %}{{ t('rg2_title') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
+{% if ux5 %}<link rel="stylesheet" href="/console/static/ux5_g2.css">{% endif %}
 {{ ui.pagehead(t('rg2_drafts')) }}
 {% if saved %}<div class="notice" role="status" data-register="saved"><span class="dot"></span>{{ t('rg2_saved') }}</div>{% endif %}
-<p><a class="btn" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a></p>
+<p><a class="btn{% if ux5 %} primary{% endif %}" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a></p>
 {% if drafts %}
 <div class="tablewrap"><table class="list" data-table="drafts">
 <thead><tr><th scope="col">{{ t('sy_col_name') }}</th><th scope="col">{{ t('rg2_source') }}</th><th scope="col">{{ t('rg2_step_word') }}</th><th scope="col">{{ t('rg2_updated') }}</th><th scope="col"></th></tr></thead>
 <tbody>
 {% for d in drafts %}
-<tr data-draft="{{ d.draft_id }}"><td>{{ d.data.v.get('name') or t('rg2_unnamed') }}</td><td>{{ t('rg2_from_kind_' ~ d.source_kind) }}</td><td>{{ d.step }} / 6</td><td>{{ d.updated_at }}</td>
+<tr data-draft="{{ d.draft_id }}"><td>{{ d.data.v.get('name') or t('rg2_unnamed') }}</td><td>{{ t('rg2_from_kind_' ~ d.source_kind) }}</td><td>{% if ux5 %}{{ t('g2_reg_step', n=d.step) }}{% else %}{{ d.step }} / 6{% endif %}</td><td>{% if ux5 %}{{ d.updated_at[:16]|replace('T', ' ') }}{% else %}{{ d.updated_at }}{% endif %}</td>
 <td><a class="chipbtn" href="/console/register/{{ d.draft_id }}/step/{{ d.step }}?lang={{ lang }}">{{ t('rg2_resume') }}</a></td></tr>
 {% endfor %}
 </tbody></table></div>

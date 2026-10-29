@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_tasks_ux5.html" %}{% else %}
 {# Tasks tab of the system page (WP-G1): the stage, the stage approvals and the task list of every
    agent linked to the system. Read only; changes go through the API. Variables: s, lifecycle,
    tk_off, task_n, task_agents. #}
@@ -138,3 +139,4 @@
   {% endif %}
 </section>
 {% endfor %}
+{% endif %}

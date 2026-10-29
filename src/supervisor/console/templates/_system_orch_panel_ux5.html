@@ -1,0 +1,20 @@
+{# Run assessment panel, CONSOLE_UX5 (package G2): a slim run line. The eight results are rows of the
+   table on the Risk assessment tab. The plan hash, outcome and budget are admin details. Not legal advice. #}
+{% import "_ux5.html" as u5 with context %}
+{% set ob = '/console/systems/' ~ s.system_id %}
+{% set done_n = orch_run["items"]|selectattr('status', 'equalto', 'done')|list|length if orch_run else 0 %}
+{% set need_n = orch_run["items"]|selectattr('needs_person')|list|length if orch_run else 0 %}
+<div id="orch-panel" data-section="orch-panel"{% if orch_run and orch_run.running %} hx-get="{{ ob }}/orchestrate?lang={{ lang }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+<div class="g2-run" data-orch="panel">
+  {% if orch_run %}
+  {{ u5.status_chip('ok' if orch_run.status == 'done' else 'bad' if orch_run.status == 'failed' else 'warn', t('orch_run_' ~ orch_run.status)) }}
+  <span data-orch="summary">{{ t('g2_rd_summary', done=done_n, n=orch_run["items"]|length, need=need_n) }}</span>
+  <span class="muted" data-orch="attempt">{{ t('g2_rd_attempt', n=orch_run.attempt_n) }}</span>
+  {% if orch_run.running %}<span class="muted" data-orch="running">{{ t('orch_running') }}</span>
+  {% else %}<button class="btn sm" type="button" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML" data-act="orch-reload">{{ t('g2_rd_update_rows') }}</button>{% endif %}
+  {% if 'admin' in me.roles %}{{ u5.technical([(t('orch_outcome'), orch_run.plan.outcome), (t('orch_plan_hash'), orch_run.plan_hash[:12]), (t('orch_budget'), (orch_run.budget.used_ms // 1000)|string ~ ' / ' ~ orch_run.budget.total_seconds|string ~ ' s; ' ~ orch_run.budget.used_tokens|string ~ ' / ' ~ orch_run.budget.total_tokens|string)]) }}{% endif %}
+  {% else %}
+  <span class="muted" data-orch="none">{{ t('orch_none') }}</span>
+  {% endif %}
+</div>
+</div>

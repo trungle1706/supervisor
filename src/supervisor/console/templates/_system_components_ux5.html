@@ -1,0 +1,18 @@
+{# Components of one system, CONSOLE_UX5 (package G2): names, not inventory ids. Variables: s, ref_names. #}
+{% set rn = ref_names if ref_names is defined else {} %}
+{% if s.components %}
+<div class="tablewrap flat"><table>
+  <thead><tr><th scope="col">{{ t('sy_ref') }}</th><th scope="col">{{ t('sy_link_role') }}</th><th scope="col">{{ t('sy_link_source') }}</th></tr></thead>
+  <tbody>
+  {% for c in s.components %}<tr><td><b>{{ rn.get(c.ref_id) or c.ref_id }}</b> <span class="muted" title="{{ c.ref_id }}">{{ t('sy_ref_' ~ c.ref_kind) }}</span></td><td>{{ t('g2_sy_part_of') if c.role == 'component_of' else t('sy_link_' ~ c.role) }}</td><td>{{ t('g2_sy_by_' ~ c.source) if c.source in ('onboarding', 'manual') else c.source }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="hint">{{ t('sy_no_components') }}</p>{% endif %}
+{% if s.effective_risk.via %}
+<h3 class="sec">{{ t('g2_sy_risk_from') }}</h3>
+<ul class="drawer-list">
+{% for v in s.effective_risk.via %}<li>{{ rn.get(v.ref_id) or v.ref_id }} <span class="muted">({{ t('sy_risk_' ~ v.level) }})</span></li>
+{% endfor %}
+</ul>
+{% endif %}

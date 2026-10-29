@@ -20,8 +20,10 @@
   {% for r in page.items %}
     {% set dq = list_qs ~ '&lang=' ~ lang %}
     <tr class="row" data-row="{{ r.task_id }}" data-status="{{ r.status }}">
-      <td><a class="head rowlink mono" href="/console/tasks?drawer={{ r.task_id }}&amp;{{ dq }}" hx-get="/console/tasks/{{ r.task_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.template_id }}</a><div class="idline">{{ r.title }}</div></td>
-      <td class="mono">{{ r.agent_id }}</td>
+      {% if ux5 %}<td><a class="head rowlink" href="/console/tasks?drawer={{ r.task_id }}&amp;{{ dq }}" hx-get="/console/tasks/{{ r.task_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false" title="{{ r.template_id }}">{{ r.title }}</a></td>
+      <td>{% if task_names.get(r.agent_id) %}<a href="/console/systems/{{ r.agent_id }}?lang={{ lang }}">{{ task_names[r.agent_id] }}</a>{% else %}<span class="mono">{{ r.agent_id }}</span>{% endif %}</td>
+{% else %}<td><a class="head rowlink mono" href="/console/tasks?drawer={{ r.task_id }}&amp;{{ dq }}" hx-get="/console/tasks/{{ r.task_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.template_id }}</a><div class="idline">{{ r.title }}</div></td>
+      <td class="mono">{{ r.agent_id }}</td>{% endif %}
       <td>{{ t('tk_stage_' ~ r.stage) }}</td>
       <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
       <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}{% if r.waive_pending %} {{ ui.pill(t('tk_waive_pending'), 'warn') }}{% endif %}</td>

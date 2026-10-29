@@ -1,0 +1,88 @@
+/* UX5 package G2: systems list/detail, wizard, candidates, onboard, integration, tasks.
+   Linked from the G2 templates only when CONSOLE_UX5 is on; every rule sits under .ux5. */
+
+.ux5 .g2-sp { flex: 1 1 auto; }
+.ux5 .g2-inline { display: inline; margin: 0; }
+.ux5 .g2-warn { color: var(--u5-high); }
+.ux5 .g2-sm { font-size: 15px !important; overflow-wrap: anywhere; }
+
+/* ---- system head and grouped tab nav ---- */
+.ux5 .g2-syshead { margin: 4px 0 8px; }
+.ux5 .g2-syshead .u5-title { gap: 8px; }
+.ux5 .g2-meta { color: var(--u5-muted); font-size: 13px; margin-top: 2px; }
+.ux5 .g2-why { margin-top: 4px; }
+.ux5 .g2-why > summary { font-size: 12px; cursor: pointer; color: var(--u5-muted); }
+.ux5 .g2-sysnav { display: flex; flex-wrap: wrap; gap: 4px 24px; border-bottom: 1px solid var(--u5-line); margin: 8px 0 16px; }
+.ux5 .g2-tg { display: flex; flex-direction: column; }
+.ux5 .g2-tg-l { font-size: 11px; font-weight: 600; color: var(--u5-muted); padding-top: 2px; }
+.ux5 .g2-sysnav .tabs { display: flex; gap: 14px; flex-wrap: nowrap; border: 0; background: none; padding: 0; margin: 0; box-shadow: none; }
+.ux5 .g2-sysnav .tabs a { padding: 6px 0 8px; border-radius: 0; border: 0; background: none; color: var(--u5-muted); font-weight: 500; font-size: 14px; white-space: nowrap; box-shadow: none; }
+.ux5 .g2-sysnav .tabs a.on { color: var(--u5-ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--u5-ink); background: none; }
+.ux5 .g2-sysnav .tabs a .k { font-size: 12px; color: var(--u5-muted); background: none; padding: 0; }
+.ux5 .g2-tabhead { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin: 4px 0 12px; }
+.ux5 .g2-tabhead h2 { margin: 0; }
+
+/* ---- menus (details used as a small dropdown) ---- */
+.ux5 details.g2-menu { position: relative; display: inline-block; }
+.ux5 details.g2-menu > summary { list-style: none; cursor: pointer; }
+.ux5 details.g2-menu > summary::-webkit-details-marker { display: none; }
+.ux5 .g2-menu-body { position: absolute; z-index: 20; right: 0; top: calc(100% + 4px); min-width: 260px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--u5-panel); border: 1px solid var(--u5-line); border-radius: 8px; padding: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+.ux5 .g2-menu-body form { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.ux5 .g2-menu-body input { width: 100%; box-sizing: border-box; padding: 6px 8px; }
+
+/* ---- duties ---- */
+.ux5 .g2-score { margin-bottom: 4px; }
+.ux5 .g2-track { height: 6px; border-radius: 3px; background: var(--u5-inset); margin-top: 8px; overflow: hidden; }
+.ux5 .g2-track i { display: block; height: 100%; background: var(--u5-closed); }
+.ux5 .g2-note { margin: 4px 0 12px; }
+.ux5 .g2-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.ux5 .g2-filters input[type="search"] { margin-left: auto; min-width: 240px; padding: 6px 10px; }
+.ux5 .g2-filters select { padding: 6px 10px; }
+.ux5 .g2-seg { display: inline-flex; border: 1px solid var(--u5-line); border-radius: 8px; overflow: hidden; background: var(--u5-panel); }
+.ux5 .g2-seg a { padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--u5-muted); border-left: 1px solid var(--u5-line); }
+.ux5 .g2-seg a:first-child { border-left: 0; }
+.ux5 .g2-seg a span { font-weight: 500; }
+.ux5 .g2-seg a.on { background: var(--u5-ink); color: var(--u5-panel); }
+.ux5 .g2-seg a:hover { text-decoration: none; }
+.ux5 .g2-fwcard { padding: 0; }
+.ux5 .g2-legend { padding: 10px 20px; border-bottom: 1px solid var(--u5-line); display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; font-size: 12px; color: var(--u5-muted); }
+.ux5 .g2-legend .u5-legend { margin: 0; }
+.ux5 details.g2-fw { border-top: 1px solid var(--u5-line); }
+.ux5 details.g2-fw:first-of-type { border-top: 0; }
+.ux5 details.g2-fw > summary { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr) auto 90px; gap: 14px; align-items: center; padding: 12px 20px; cursor: pointer; }
+.ux5 details.g2-fw > summary::-webkit-details-marker { display: none; }
+.ux5 details.g2-fw > summary::before { content: "\25B8"; position: absolute; margin-left: -14px; color: var(--u5-muted); font-size: 12px; }
+.ux5 details.g2-fw[open] > summary::before { content: "\25BE"; }
+.ux5 .g2-fwname b { display: block; font-weight: 600; color: var(--u5-ink); }
+.ux5 .g2-fwname span { font-size: 12px; color: var(--u5-muted); }
+.ux5 .g2-cnts { font-size: 13px; color: var(--u5-muted); text-align: right; }
+.ux5 table.g2-duties { table-layout: fixed; width: 100%; }
+.ux5 table.g2-duties .g2-c-sel { width: 32px; }
+.ux5 table.g2-duties .g2-c-id { width: 200px; overflow-wrap: anywhere; }
+.ux5 table.g2-duties .g2-c-duty { width: auto; min-width: 40ch; overflow-wrap: anywhere; }
+.ux5 table.g2-duties .g2-c-st { width: 130px; }
+.ux5 table.g2-duties .g2-c-ev { width: 100px; }
+.ux5 table.g2-duties .g2-c-act { width: 96px; }
+.ux5 .g2-duty { color: var(--u5-body); font-weight: 400; }
+.ux5 .g2-ev { display: inline-flex; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--u5-inset); color: var(--u5-body); white-space: nowrap; cursor: help; }
+.ux5 .g2-ev.ok { color: var(--u5-ok); }
+.ux5 .g2-bulk { display: flex; gap: 8px; align-items: center; padding: 10px 20px; background: var(--u5-inset); border-top: 1px solid var(--u5-line); font-size: 13px; color: var(--u5-muted); flex-wrap: wrap; }
+.ux5 .g2-bulk .g2-menu-body { right: 0; }
+.ux5 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---- rules / tasks / guardians / risk assessment ---- */
+.ux5 .g2-rulegroup { border-top: 1px solid var(--u5-line-soft); padding: 8px 0; }
+.ux5 .g2-rulegroup summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ux5 .g2-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.ux5 .g2-q { padding: 12px 0; border-top: 1px solid var(--u5-line-soft); }
+.ux5 .g2-q .g2-radios { display: flex; gap: 16px; margin: 6px 0; }
+.ux5 .g2-q textarea, .ux5 .g2-q input[type="text"] { width: 100%; box-sizing: border-box; }
+.ux5 .g2-formcol { max-width: 760px; }
+.ux5 .g2-formcol .card { width: 100%; box-sizing: border-box; }
+.ux5 .g2-steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.ux5 .g2-steps span { font-size: 12px; font-weight: 600; padding: 3px 9px; border: 1px solid var(--u5-line); border-radius: 999px; color: var(--u5-muted); background: var(--u5-panel); }
+.ux5 .g2-steps span.on { color: var(--u5-ink); border-color: var(--u5-ink); }
+.ux5 .g2-foot { border-top: 1px solid var(--u5-line-soft); padding: 10px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ux5 .g2-formcol > .g2-foot, .ux5 .g2-formcol form > .g2-foot { position: sticky; bottom: 0; background: var(--u5-ground); border-top: 1px solid var(--u5-line); }
+.ux5 .g2-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }

@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_orch_panel_ux5.html" %}{% else %}
 {# Run assessment panel of the Risk assessment tab (WP-F4, ONBOARD_ORCHESTRATOR). Variables: s, lang,
    orch_run (run view or none), orch_labels, orch_can_run, orch_banner (systems_orch.panel_data).
    Polls itself every 2 s while a run is queued or running. Not legal advice. #}
@@ -53,3 +54,4 @@
   <p class="hint">{{ orch_banner }}</p>
 </section>
 </div>
+{% endif %}

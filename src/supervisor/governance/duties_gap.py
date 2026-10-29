@@ -228,6 +228,16 @@ def control_choices(ctx: Any) -> dict[str, list[str]]:
 def pick(rows: list[dict[str, Any]], form: Mapping[str, str]) -> list[dict[str, Any]]:
     """The rows an action works on: one row (``status_id``) or a group (``group`` =
     ``<instrument id>|<coverage>``). Only open applying rows are picked for a group."""
+    chosen = {k[4:] for k, v in form.items() if k.startswith("sel_") and v}  # UX5 bulk bar
+    if chosen and not (form.get("status_id") or form.get("group")):
+        picked_many = [
+            r
+            for r in rows
+            if r["status_id"] in chosen and r["applies"] == "yes" and r["status"] == OPEN_STATE
+        ]
+        if not picked_many:
+            raise DutyError("nothing_to_do", "none of the selected duties is open")
+        return picked_many
     sid = (form.get("status_id") or "").strip()
     group = (form.get("group") or "").strip()
     if bool(sid) == bool(group):

@@ -1,0 +1,80 @@
+{# Risk assessment tab, CONSOLE_UX5 (package G2): one disclaimer chip, one table (the run result and the
+   eight risk types merged), the report opened by a link (no report id), details in a disclosure.
+   Same POST routes as the old tab. Variables: s, rd_*, orch_on, orch_run, orch_labels. Not legal advice. #}
+{% import "_ux5.html" as u5 with context %}
+{% set rdb = '/console/systems/' ~ s.system_id %}
+{% set rd_kind = {'pass': 'ok', 'fail': 'bad', 'in_progress': 'warn', 'waived': 'na', 'not_applicable': 'na', 'not_started': 'na'} %}
+{% macro rd_post(dim, action) %}method="post" action="{{ rdb }}/risk-dimensions/{{ dim }}/{{ action }}?lang={{ lang }}" hx-post="{{ rdb }}/risk-dimensions/{{ dim }}/{{ action }}?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML"{% endmacro %}
+{% set items = {} %}
+{% set orun = orch_run if orch_on else none %}
+{% if orun %}{% for i in orun["items"] %}{% set _ = items.update({i.dimension_id: i}) %}{% endfor %}{% endif %}
+<div class="g2-tabhead" data-rd="banner">
+  <h2>{{ t('rd_tab') }}</h2>
+  <button type="button" class="u5-info" title="{{ rd_banner }} {{ t('rd_date_note') }}{% if rd_illustrative %} {{ t('rd_illustrative') }}{% endif %}" aria-label="{{ t('ux5_info') }}">i</button>
+  {{ u5.disclaimer(t('g2_advisory')) }}
+  <span class="g2-sp"></span>
+  {% if orch_on %}{% if orch_can_run %}
+  <form method="post" action="{{ rdb }}/orchestrate?lang={{ lang }}" hx-post="{{ rdb }}/orchestrate?lang={{ lang }}" hx-target="#orch-panel" hx-swap="outerHTML" class="g2-inline">
+    <button class="btn sm primary" type="submit" data-act="orch-run">{{ t('orch_run') }}</button>
+  </form>{% endif %}{% endif %}
+</div>
+{% if orch_on %}{% include "_system_orch_panel.html" %}{% endif %}
+<p data-rd="counts" class="g2-counts">
+  {% for st in rd_all_statuses %}{{ u5.status_chip(rd_kind[st], t('rd_st_' ~ st) ~ ' ' ~ rd_counts.get(st, 0)) }} {% endfor %}
+</p>
+<section class="card" data-section="rd-summary">
+  <div class="tablewrap flat"><table data-table="rd-rows">
+    <thead><tr><th scope="col">{{ t('orch_col_type') }}</th><th scope="col">{{ t('orch_col_status') }}</th><th scope="col">{{ t('g2_rd_result') }}</th><th scope="col">{{ t('orch_col_report') }}</th>{% if rd_can_edit %}<th scope="col"><span class="sr">{{ t('wf_actions') }}</span></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for r in rd_rows %}
+      {% set it = items.get(r.dimension_id) %}
+      <tr data-section="rd-row" data-dimension="{{ r.dimension_id }}" data-status="{{ r.status }}">
+        <td><b>{{ r.label_vi if lang == 'vi' else r.label_en }}</b>
+          {% if r.applies_to == 'bank' %}<span class="muted"> {{ t('rd_bank_only') }}</span>{% endif %}
+          <details class="g2-rd-more"><summary>{{ t('g2_details') }}</summary>
+            <dl class="u5-kv">
+              <dt>{{ t('rd_threshold') }}</dt><dd data-rd="threshold">{% for k, v in r.threshold.items() %}{{ k|replace('_', ' ') }}: {{ v }}{% if not loop.last %}; {% endif %}{% endfor %}</dd>
+              <dt>{{ t('rd_evidence') }}</dt><dd data-rd="evidence">{% if r.evidence %}{% for e in r.evidence %}<code>{{ e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}-{% endif %}</dd>
+              {% if r.note %}<dt>{{ t('rd_note') }}</dt><dd data-rd="note">{{ r.note }}</dd>{% endif %}
+              {% if r.valid_until %}<dt>{{ t('rd_valid_until') }}</dt><dd>{{ r.valid_until }}</dd>{% endif %}
+              <dt>{{ t('rd_proposal') }}</dt><dd data-rd="proposal">{{ u5.status_chip(rd_kind[r.proposal.status], t('rd_st_' ~ r.proposal.status)) }}
+                {% if r.proposal.checks %}<details><summary>{{ t('g2_rd_checks', n=r.proposal.checks|length) }}</summary>
+                  {% for c in r.proposal.checks %}<div><code>{{ c.id }}</code> {{ t('rd_chk_' ~ c.state) }}{% if c.required %}*{% endif %}</div>{% endfor %}</details>
+                {% else %}<span class="muted">{{ t('rd_no_rules') }}</span>{% endif %}</dd>
+              {% if rd_register and r.risk_lines %}<dt>{{ t('rd_lines') }}</dt><dd data-rd="lines">{% for l in r.risk_lines %}<a href="/console/risks?lang={{ lang }}">{{ l.title }}</a> <span class="muted">({{ l.category }})</span>{% if not loop.last %}; {% endif %}{% endfor %}</dd>{% endif %}
+            </dl>
+          </details>
+        </td>
+        <td>{{ u5.status_chip(rd_kind[r.status], t('rd_st_' ~ r.status)) }}{% if r.expired %} {{ u5.status_chip('warn', t('rd_expired')) }}{% endif %}</td>
+        <td data-orch="verdict">{% if it and it.needs_person %}{{ u5.status_chip('bad', t('orch_needs_person')) }}{% elif it %}{{ t('orch_it_' ~ it.status) }}{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td>{% if it and it.report_ref %}<a href="/v1/orchestrate/{{ orun.run_id }}/reports/{{ r.dimension_id }}" data-orch="report">{{ t('g2_rd_open_report') }}</a>{% elif r.report_ref %}<a href="/v1/orchestrate/{{ orun.run_id if orun else '' }}/reports/{{ r.dimension_id }}" data-orch="report">{{ t('g2_rd_open_report') }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>
+        {% if rd_can_edit %}<td class="g2-c-act">
+          <details class="g2-menu g2-menu-r"><summary class="btn sm" data-act="rd-set">{{ t('wf_actions') }}</summary>
+            <div class="g2-menu-body">
+              {% if r.proposal.status != 'not_started' and r.proposal.status != r.status %}
+              <form method="post" action="{{ rdb }}/risk-dimensions/{{ r.dimension_id }}/confirm?lang={{ lang }}" hx-post="{{ rdb }}/risk-dimensions/{{ r.dimension_id }}/confirm?lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML">
+                <button class="btn sm primary" type="submit" data-act="rd-confirm">{{ t('rd_confirm') }}</button>
+              </form>
+              {% endif %}
+              <form {{ rd_post(r.dimension_id, 'set') }}>
+                <select name="status" aria-label="{{ t('rd_status') }}">
+                  {% for st in rd_statuses %}<option value="{{ st }}"{% if st == r.status %} selected{% endif %}>{{ t('rd_st_' ~ st) }}</option>{% endfor %}
+                </select>
+                <input type="text" name="evidence" maxlength="1600" value="{{ r.evidence | join(' ') }}" placeholder="{{ t('rd_evidence_ph') }}" aria-label="{{ t('rd_evidence') }}">
+                <input type="text" name="note" maxlength="300" placeholder="{{ t('rd_note_ph') }}" aria-label="{{ t('rd_note') }}">
+                <button class="btn sm primary" type="submit" data-act="rd-set-go">{{ t('g2_save') }}</button>
+              </form>
+              {% if rd_can_waive and not rd_is_owner and r.status != 'waived' %}
+              <form {{ rd_post(r.dimension_id, 'waive') }}>
+                <input type="text" name="reason" minlength="{{ rd_min_reason }}" maxlength="300" required placeholder="{{ t('rd_waive_ph', n=rd_min_reason) }}" aria-label="{{ t('rd_waive_ph', n=rd_min_reason) }}">
+                <button class="btn sm" type="submit" data-act="rd-waive-go">{{ t('rd_waive') }}</button>
+              </form>
+              {% endif %}
+            </div>
+          </details>
+        </td>{% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>

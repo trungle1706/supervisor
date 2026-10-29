@@ -223,7 +223,10 @@ def detail_view(
         extra["rp_pack"] = systems_duties.pack_on(ctx)  # WP-L4: Regulator pack link in the header
         counts["duties"] = extra["duty_score"]["open"]
         if tab == "duties":
-            extra.update(systems_duties.tab_data(ctx, me, system, query or {}))
+            if getattr(ctx.settings, "console_ux5", False):  # UX5 (G2): one group per framework
+                extra.update(systems_duties.tab_data_ux5(ctx, me, system, query or {}))
+            else:
+                extra.update(systems_duties.tab_data(ctx, me, system, query or {}))
     if tab == "guardians":  # WP-G4: the smart guardian panel (SMART_GUARDIAN)
         from supervisor.console import smart_guardian_view
 
@@ -261,6 +264,8 @@ def detail_view(
         "json_text": json.dumps(system, sort_keys=True, indent=2, default=str),
         **extra,
     }
+    if getattr(ctx.settings, "console_ux5", False):  # UX5 (G2): names for the components list
+        out["ref_names"] = _ref_names(ctx, system)
     if tab == "rules":  # WP-G2
         out.update(_rules_data(ctx, me, system_id))
     elif tab == "classification":
@@ -282,12 +287,52 @@ def _rules_data(ctx: Any, me: Any, system_id: str) -> dict[str, Any]:
         sha = load_rules(ctx.settings.assignment_rules_config).sha256
     except Exception:  # noqa: BLE001 - the tab still shows the saved rows
         sha = ""
+    out_ux5: dict[str, Any] = {}
+    if getattr(ctx.settings, "console_ux5", False):  # UX5 (G2): identical rows grouped by rule
+        out_ux5["rule_groups"] = group_assignments(rows)
     return {
+        **out_ux5,
         "assignments": rows,
         "floor": ctx.rules.guardian_floor(system_id),
         "rules_sha": sha,
         "can_edit": _can_edit(me),
     }
+
+
+def _ref_names(ctx: Any, system: Mapping[str, Any]) -> dict[str, str]:
+    """UX5: ``ref_id -> display name`` of the inventory nodes a system is built from."""
+    names: dict[str, str] = {}
+    for c in system["components"]:
+        if c["ref_kind"] != "agent":
+            row = ctx.state.get("inventory_node", {"node_id": c["ref_id"]})
+            if row:
+                names[str(c["ref_id"])] = str(row.get("display_name") or row.get("name") or "")
+    for v in system["effective_risk"].get("via") or []:
+        if v["ref_kind"] != "agent" and str(v["ref_id"]) not in names:
+            row = ctx.state.get("inventory_node", {"node_id": v["ref_id"]})
+            if row:
+                names[str(v["ref_id"])] = str(row.get("display_name") or row.get("name") or "")
+    return names
+
+
+def group_assignments(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """UX5: the assignment rows grouped by the rules that fired (same rules, same fields), with the
+    count of obligations, guardians, ... per kind. Order: the first row of each group."""
+    groups: dict[tuple[str, ...], dict[str, Any]] = {}
+    for a in rows:
+        key = tuple(sorted({str(r["rule"]) for r in a["rules"]}))
+        g = groups.setdefault(
+            key, {"rules": list(key), "fields": [], "kinds": {}, "n": 0, "active": 0, "items": []}
+        )
+        for r in a["rules"]:
+            for f in r.get("fields") or []:
+                if f not in g["fields"]:
+                    g["fields"].append(f)
+        g["n"] += 1
+        g["active"] += 1 if a["active"] else 0
+        g["kinds"][a["kind"]] = g["kinds"].get(a["kind"], 0) + 1
+        g["items"].append({"kind": a["kind"], "ref_id": a["ref_id"], "active": bool(a["active"])})
+    return list(groups.values())
 
 
 def _classification_data(ctx: Any, me: Any, system_id: str) -> dict[str, Any]:

@@ -2,11 +2,13 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_onboard') }}{% endblock %}
 {% block content %}
-<div class="pagehead"><h1>{{ t('onboard_title') }}</h1></div>
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g2.css">
+{{ u5.page_head(t('onboard_title'), t('ob_purpose_lead'), about=t('ob_purpose_rest') ~ ' ' ~ t('ob_why')) }}
+{% else %}<div class="pagehead"><h1>{{ t('onboard_title') }}</h1></div>
 <div class="purpose">
   <p><strong>{{ t('ob_purpose_lead') }}</strong> {{ t('ob_purpose_rest') }}</p>
   <p class="why">{{ t('ob_why') }}</p>
-</div>
+</div>{% endif %}
 <div id="onboard-status">
 {% include "_onboard_status.html" %}
 </div>

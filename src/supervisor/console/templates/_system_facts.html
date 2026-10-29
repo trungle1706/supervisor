@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_facts_ux5.html" %}{% else %}
 {# Facts of one system (drawer Details and the Overview tab). Variable: s. #}
 {% import "_ui.html" as ui with context %}
 {{ ui.kv([
@@ -22,3 +23,4 @@
   (t('sy_f_business_impact'), t('sy_impact_' ~ s.business_impact)),
   (t('status'), t('sy_st_' ~ s.status)),
 ]) }}
+{% endif %}

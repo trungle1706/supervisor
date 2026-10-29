@@ -1,0 +1,58 @@
+{# Classification tab, CONSOLE_UX5 (package G2): one card per question (question, answer row, reason below),
+   Q-codes hidden, one disclaimer chip. Same routes and field names. Variables: s, cls, ai_pending, can_edit, min_why. #}
+{% import "_ux5.html" as u5 with context %}
+{% import "_ui.html" as ui with context %}
+{% set base = '/console/systems/' ~ s.system_id ~ '/classification' %}
+<div class="g2-tabhead">
+  <h2>{{ t('sy_tab_classification') }}</h2>
+  <button type="button" class="u5-info" title="{{ t('sy_cls_intro') }}" aria-label="{{ t('ux5_info') }}">i</button>
+  {{ u5.disclaimer(t('g2_advisory')) }}
+</div>
+<p class="hint">{{ t('sy_cls_intro') }}</p>
+{% if s.tags.get('autonomy_level_proposal') %}<p class="hint">{{ t('sy_cls_autonomy_proposal', level=s.tags.autonomy_level_proposal) }}</p>{% endif %}
+<section class="card g2-formcol" data-section="cls-applied">
+  <h3>{{ t('sy_cls_current') }}</h3>
+  {% if cls.applied %}
+  <p>{{ u5.status_chip('bad' if cls.applied.outcome == 'high_risk' else 'ok', t('sy_d33_' ~ cls.applied.outcome)) }}
+    <span class="muted">{{ cls.applied.applied_at[:16]|replace('T', ' ') }}</span>{% if cls.history_n > 1 %} <span class="muted">· {{ t('sy_cls_history') }}: {{ cls.history_n }}</span>{% endif %}</p>
+  {% else %}<p class="hint">{{ t('sy_cls_none_applied') }}</p>{% endif %}
+</section>
+<section class="card g2-formcol" data-section="cls-draft">
+  <div class="g2-tabhead"><h3>{{ t('sy_cls_draft') }}</h3><span class="g2-sp"></span>
+  {% if can_edit %}
+  <form method="post" action="{{ base }}/draft?lang={{ lang }}" hx-post="{{ base }}/draft?lang={{ lang }}" hx-swap="none" class="g2-inline">
+    <button class="btn sm" type="submit">{{ t('sy_cls_remake') if cls.draft else t('sy_cls_make') }}</button>
+  </form>
+  {% endif %}</div>
+  {% if cls.draft %}
+  <p>{{ t('sy_cls_outcome') }}: {{ u5.status_chip('bad' if cls.draft.outcome == 'high_risk' else ('ok' if cls.draft.outcome == 'not_high_risk' else 'na'), t('sy_d33_' ~ cls.draft.outcome)) }}
+    <span class="muted">{{ cls.draft.reason }}</span></p>
+  {% if ai_pending %}<p class="hint">{{ t('sy_cls_ai_note') }}</p>{% endif %}
+  <form method="post" action="{{ base }}/answers?lang={{ lang }}" hx-post="{{ base }}/answers?lang={{ lang }}" hx-swap="none">
+  {% for a in cls.draft.answers %}
+    <div class="g2-q" data-question="{{ a.id }}">
+      <b>{{ a['text_vi'] if lang == 'vi' else a['text_en'] }}</b>
+      {% if can_edit %}
+      <div class="g2-radios" role="radiogroup" aria-label="{{ a['text_vi'] if lang == 'vi' else a['text_en'] }}">
+        <label><input type="radio" name="a_{{ a.id }}" value="yes" {{ 'checked' if a.answer == 'yes' }}> {{ t('sy_cls_yes') }}</label>
+        <label><input type="radio" name="a_{{ a.id }}" value="no" {{ 'checked' if a.answer == 'no' }}> {{ t('sy_cls_no') }}</label>
+        <label><input type="radio" name="a_{{ a.id }}" value="" {{ 'checked' if a.answer is none }}> {{ t('sy_cls_open') }}</label>
+        <span class="muted">{{ t('sy_cls_src_' ~ a.source) }}{% if a.get('mock') %} · {{ t('sy_cls_mock') }}{% endif %}</span>
+      </div>
+      <input type="text" name="j_{{ a.id }}" value="{{ a.justification }}" maxlength="500" placeholder="{{ t('sy_cls_why_min', n=min_why or 20) }}" aria-label="{{ t('sy_cls_why') }}">
+      {% else %}
+      <div>{{ t('sy_cls_' ~ a.answer) if a.answer else t('sy_cls_open') }} <span class="muted">· {{ t('sy_cls_src_' ~ a.source) }}</span></div>
+      {% if a.justification %}<div class="muted">{{ a.justification }}</div>{% endif %}
+      {% endif %}
+    </div>
+  {% endfor %}
+  {% if can_edit %}<div class="g2-foot"><button class="btn sm" type="submit">{{ t('sy_cls_save') }}</button></div>{% endif %}
+  </form>
+  {% if can_edit %}
+  <form method="post" action="{{ base }}/apply?lang={{ lang }}" hx-post="{{ base }}/apply?lang={{ lang }}" hx-swap="none" class="g2-actions">
+    {% if ai_pending %}<label><input type="checkbox" name="confirm_ai_prefill" value="1"> {{ t('sy_cls_confirm_ai') }}</label>{% endif %}
+    <button class="btn primary" type="submit">{{ t('sy_cls_apply') }}</button>
+  </form>
+  {% endif %}
+  {% else %}<p class="hint">{{ t('sy_cls_no_draft') }}</p>{% endif %}
+</section>

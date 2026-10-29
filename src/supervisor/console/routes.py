@@ -107,6 +107,7 @@ STATIC = {
     "console.js": "application/javascript",
     "console.css": "text/css",
     "ux5.css": "text/css",  # UX5-F: linked only with CONSOLE_UX5
+    "ux5_g2.css": "text/css",  # UX5 package G2 (systems, wizard, tasks)
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (

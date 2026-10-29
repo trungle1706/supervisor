@@ -17,7 +17,7 @@
   <tbody>
   {% for r in rk_rows %}
     <tr class="row">
-      <td>{% if rk_page %}<a class="mono" href="/console/risks?drawer={{ r.risk_id }}&amp;lang={{ lang }}">{{ r.risk_id }}</a>{% else %}<span class="mono">{{ r.risk_id }}</span>{% endif %}<div class="idline">{{ r.title }}</div></td>
+      {% if ux5 %}<td>{% if rk_page %}<a href="/console/risks?drawer={{ r.risk_id }}&amp;lang={{ lang }}">{{ r.title }}</a>{% else %}<b>{{ r.title }}</b>{% endif %}<div class="idline" title="{{ r.risk_id }}">{{ r.risk_id }}</div></td>{% else %}<td>{% if rk_page %}<a class="mono" href="/console/risks?drawer={{ r.risk_id }}&amp;lang={{ lang }}">{{ r.risk_id }}</a>{% else %}<span class="mono">{{ r.risk_id }}</span>{% endif %}<div class="idline">{{ r.title }}</div></td>{% endif %}
       <td>{{ t('rk_cat_' ~ r.category) }}</td>
       <td class="n">{{ r.inherent_score }} {{ ui.sev(r.inherent_band) }}</td>
       <td class="n">{{ r.residual_score }} {{ ui.sev(r.residual_band) }}</td>

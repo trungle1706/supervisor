@@ -1,0 +1,38 @@
+{# Facts of one system, CONSOLE_UX5 (package G2): three blocks (identity, risk, context), one risk line, the
+   owner only in the team table, empty values listed once as missing information. Variable: s. #}
+{% import "_ux5.html" as u5 with context %}
+{% set eff = s.effective_risk %}
+{% set identity = [
+  (t('sy_f_purpose'), s.purpose),
+  (t('sy_col_team'), s.owner_team),
+  (t('sy_f_business_owner'), s.business_owner),
+  (t('sy_f_system_type'), t('sy_system_type_' ~ s.system_type)),
+  (t('sy_col_stage'), t('sy_stage_' ~ s.lifecycle_stage)),
+  (t('status'), t('sy_st_' ~ s.status)),
+] %}
+{% set risk = [
+  (t('g2_sy_risk_level'), t('sy_risk_' ~ eff.level) ~ ' (' ~ t('g2_sy_risk_detail', manual=t('sy_risk_' ~ eff.manual_level), inherited=t('sy_risk_' ~ eff.inherited_level)) ~ ')'),
+  (t('sy_f_risk_justification'), s.risk_justification),
+  (t('sy_f_decision33_class'), t('sy_d33_' ~ s.decision33_class)),
+  (t('sy_f_business_impact'), t('sy_impact_' ~ s.business_impact)),
+  (t('sy_f_autonomy_level'), t('sy_autonomy_level_' ~ (s.autonomy_level or 'unspecified'))),
+  (t('sy_f_human_control'), t('sy_human_control_' ~ s.human_control)),
+] %}
+{% set context_rows = [
+  (t('sy_f_org_role'), t('sy_org_role_' ~ s.org_role)),
+  (t('sy_f_user_segment'), t('sy_user_segment_' ~ s.user_segment)),
+  (t('sy_f_personal_data'), t('sy_personal_data_' ~ s.personal_data)),
+  (t('sy_f_money_movement'), t('sy_yes') if s.money_movement else t('sy_no')),
+  (t('sy_f_credit_decision'), t('sy_yes') if s.credit_decision else t('sy_no')),
+] %}
+{% set ns = namespace(missing=[]) %}
+<div class="g2-cols" data-section="system-facts">
+{% for title, rows in [(t('g2_sy_identity'), identity), (t('g2_sy_risk'), risk), (t('g2_sy_context'), context_rows)] %}
+  <section class="card"><h3>{{ title }}</h3>
+    <dl class="u5-kv">
+    {% for k, v in rows %}{% if v in (None, '', 'Unspecified') or v == t('sy_impact_unspecified') %}{% set ns.missing = ns.missing + [k] %}{% else %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endif %}{% endfor %}
+    </dl>
+  </section>
+{% endfor %}
+</div>
+{% if ns.missing %}<p class="hint" data-sy="missing">{{ t('g2_sy_missing', n=ns.missing|length) }}: {{ ns.missing|join(', ') }}</p>{% endif %}

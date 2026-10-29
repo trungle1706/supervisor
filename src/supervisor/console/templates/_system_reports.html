@@ -4,7 +4,7 @@
 {% import "_ui.html" as ui with context %}
 {% import "_v3.html" as v3 with context %}
 {% if not rp_rows %}
-<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% if ux5 %}{{ ui.empty(t('sy_tasks_no_agents'), '', '/console/systems/' ~ s.system_id ~ '?tab=components&lang=' ~ lang, t('g2_link_agent')) }}{% else %}<p class="hint">{{ t('sy_tasks_no_agents') }}</p>{% endif %}
 {% else %}
 <section class="card" data-section="system-reports-tp">
   <h3>{{ t('nav_transparency') }}</h3>
@@ -36,9 +36,9 @@
 <section class="card" data-section="system-reports-chain">
   <h3>{{ t('ux4b_chain') }}</h3>
   <div class="tablewrap flat"><table data-table="system-chain">
-    <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('ux4b_lane') }}</th><th scope="col" class="n">{{ t('ux4b_entries') }}</th><th scope="col">{{ t('tp_col_state') }}</th></tr></thead>
+    <thead><tr><th scope="col">{{ t('agent') }}</th>{% if not ux5 %}<th scope="col">{{ t('ux4b_lane') }}</th>{% endif %}<th scope="col" class="n">{{ t('ux4b_entries') }}</th><th scope="col">{{ t('tp_col_state') }}</th></tr></thead>
     <tbody>
-    {% for r in rp_rows %}<tr><td class="mono">{{ r.agent_id }}</td><td class="mono">{{ r.lane }}</td><td class="n">{{ r.entries }}</td><td>{{ ui.verify_pill(r.verify) }}</td></tr>
+    {% for r in rp_rows %}<tr><td class="mono">{{ r.agent_id }}</td>{% if not ux5 %}<td class="mono">{{ r.lane }}</td>{% endif %}<td class="n">{{ r.entries }}</td><td>{{ ui.verify_pill(r.verify) }}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>
@@ -60,7 +60,7 @@
     {% for i in rp_incidents %}
       <tr>
         <td class="mono">{{ i.opened_at|day }}</td>
-        <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a><div class="idline mono">{{ i.incident_id }}</div></td>
+        <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a>{% if not ux5 %}<div class="idline mono">{{ i.incident_id }}</div>{% endif %}</td>
         <td>{{ ui.sev(i.severity) }}</td>
         <td class="mono">{{ i.agent_id }}</td>
         <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}</td>
