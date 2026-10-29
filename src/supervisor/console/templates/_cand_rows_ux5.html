@@ -1,0 +1,38 @@
+{# Candidate triage table, CONSOLE_UX5 (package G2). Not used by My overview (that keeps _cand_rows.html).
+   One Priority column (the score; impact in the tooltip), no description under the name, one action
+   button per row, 48 px rows. Same variables as _cand_rows.html. #}
+{% import "_ui.html" as ui with context %}
+{% import "_c_table.html" as tb with context %}
+{% import "_ov4.html" as ov with context %}
+{% set rows_url = '/console/candidates/rows' %}
+{% set qs = cand_base_qs ~ ('&' if cand_base_qs else '') ~ ('src=top' if cand_src else '') %}
+{% set lqs = cand_list_qs ~ ('&src=top' if cand_src else '') %}
+{% if cand_page.total %}
+<div class="tablewrap"><table class="list cand-tbl g2-cand" data-table="candidates">
+  <caption class="sr">{{ t('tri_title') }}</caption>
+  <thead><tr>
+    {{ tb.th('name', t('tri_c_candidate'), cand_sort_col, cand_sort_dir, cand_url, rows_url, qs, '#cand-rows') }}
+    {{ tb.th('kind', t('nv3_c_kind'), cand_sort_col, cand_sort_dir, cand_url, rows_url, qs, '#cand-rows') }}
+    <th scope="col">{{ t('tri_c_signals') }}</th>
+    {{ tb.th('autonomy', t('tri_c_autonomy'), cand_sort_col, cand_sort_dir, cand_url, rows_url, qs, '#cand-rows') }}
+    {{ tb.th('score', t('g2_cand_priority'), cand_sort_col, cand_sort_dir, cand_url, rows_url, qs, '#cand-rows', True) }}
+    <th scope="col"><span class="sr">{{ t('tri_c_action') }}</span></th>
+  </tr></thead>
+  <tbody>
+  {% for r in cand_page.items %}
+  <tr class="row" data-candidate="{{ r.node_id }}">
+    <td><a class="head" href="/console/candidates?drawer={{ r.node_id }}&amp;lang={{ lang }}" hx-get="/console/candidates/{{ r.node_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" title="{{ ov.cand_desc(r)|striptags }}">{{ r.name }}</a></td>
+    <td>{{ t('tri_kind_' ~ r.kind) }}</td>
+    <td class="cand-sig">{% for s in r.signals %}<span class="pill {{ 'warn' if s in ('money_tool', 'customer_table') else 'neutral' }}">{{ t('tri_sig_' ~ s) }}</span> {% endfor %}</td>
+    <td>{{ t('sy_autonomy_level_' ~ r.autonomy) }}</td>
+    <td class="n" title="{{ t('tri_c_impact') }} {{ r.impact }}">{{ ov.score_pill(r) }}</td>
+    <td>{% if cand_register %}<a class="btn sm" href="{{ cand_reg_base }}?from={{ r.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') if r.recommended_action == 'register_now' else t('tri_act_' ~ r.recommended_action) }}</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{{ tb.pager(cand_page, cand_url, rows_url, lqs, '#cand-rows') }}
+<details class="u5-about"><summary>{{ t('g2_cand_how') }}</summary><div>{{ t('tri_note') }}</div></details>
+{% else %}
+{{ ui.empty(t('tri_none'), t('tri_none_line')) }}
+{% endif %}

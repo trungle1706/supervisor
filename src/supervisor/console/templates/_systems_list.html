@@ -19,7 +19,7 @@
   {% for s in page.items %}
     {% set dq = list_qs ~ '&lang=' ~ lang %}
     <tr class="row" data-row="{{ s.system_id }}" data-status="{{ s.status }}">
-      <td><a class="head rowlink" href="/console/systems?drawer={{ s.system_id }}&amp;{{ dq }}" hx-get="/console/systems/{{ s.system_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ s.name }}</a><div class="idline mono">{{ s.system_id }}</div></td>
+      <td><a class="head rowlink"{% if ux5 %} title="{{ s.system_id }}"{% endif %} href="/console/systems?drawer={{ s.system_id }}&amp;{{ dq }}" hx-get="/console/systems/{{ s.system_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ s.name }}</a>{% if not ux5 %}<div class="idline mono">{{ s.system_id }}</div>{% endif %}</td>
       <td>{{ s.owner_team }}</td>
       <td>{{ t('sy_stage_' ~ s.lifecycle_stage) }}</td>
       <td>{{ ui.pill(t('sy_risk_' ~ s.effective_risk_level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk_level, 'neutral')) }}{% if s.effective_risk_source == 'inherited' %} <span class="muted">{{ t('sy_inherited') }}</span>{% endif %}</td>

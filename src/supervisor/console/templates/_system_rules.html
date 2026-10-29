@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_rules_ux5.html" %}{% else %}
 {# Rules tab of one system (WP-G2). Variables: s, assignments, floor, rules_sha, can_edit. #}
 {% import "_ui.html" as ui with context %}
 <p class="hint">{{ t('sy_rules_intro') }}</p>
@@ -30,3 +31,4 @@
 </table></div>
 <p class="hint">{{ t('sy_rules_off_hint') }}</p>
 {% else %}<p class="hint">{{ t('sy_rules_none') }}</p>{% endif %}
+{% endif %}

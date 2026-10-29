@@ -1,0 +1,87 @@
+{# Smart guardian panel, CONSOLE_UX5 (package G2): proposal lines only. The floor group is shown once, in the
+   Guardians tab settings, not here. The YAML export sits in the admin technical details. Same routes. #}
+{% import "_ux5.html" as u5 with context %}
+{% set sb = '/console/systems/' ~ sg_sid ~ '/guardian-proposal' %}
+{% set st_kind = {'proposed': 'warn', 'accepted': 'ok', 'rejected': 'bad', 'superseded': 'na'} %}
+<div id="sg-panel" data-section="smart-guardian">
+<section class="card" data-sg="panel">
+  <div class="g2-tabhead">
+    <h3>{{ t('sgd_title') }}</h3>
+    {% if sg_row %}{{ u5.status_chip(st_kind.get(sg_row.status, 'na'), t('sgd_st_' ~ sg_row.status)) }}
+    {% if sg_row.proposal.illustrative %}<button type="button" class="u5-info" title="{{ t('sgd_illustrative') }}" aria-label="{{ t('sgd_illustrative') }}">i</button>{% endif %}{% endif %}
+    <span class="g2-sp"></span>
+    {% if sg_can %}
+    <form method="post" action="{{ sb }}?lang={{ lang }}" hx-post="{{ sb }}?lang={{ lang }}" hx-target="#sg-panel" hx-swap="outerHTML" class="g2-inline">
+      <button class="btn sm primary" type="submit" data-act="sg-propose">{{ t('sgd_make') if not sg_open else t('sgd_remake') }}</button>
+    </form>
+    {% endif %}
+  </div>
+  <p class="hint">{{ t('sgd_intro') }}</p>
+  {% if not sg_row %}
+  <p class="muted" data-sg="none">{{ t('sgd_none') }}</p>
+  {% else %}
+  <p class="hint" data-sg="attempt">{{ t('g2_sg_proposed', when=sg_row.proposed_at[:16]|replace('T', ' ')) }}{% if sg_row.decided_by %} · {{ t('sgd_decided_by') }} {{ sg_row.decided_by }}{% endif %}{% if sg_row.note %} <span data-sg="note">({{ sg_row.note }})</span>{% endif %}</p>
+  <form id="sg-form" method="post" action="{{ sb }}/accept?lang={{ lang }}" hx-post="{{ sb }}/accept?lang={{ lang }}" hx-target="#sg-panel" hx-swap="outerHTML">
+    <input type="hidden" name="proposal_id" value="{{ sg_row.proposal_id }}">
+    {% for g in ['guardian_set', 'thresholds', 'autonomy_limits'] %}
+    <h4 data-sg-group="{{ g }}">{{ t(sg_titles[g]) }} <span class="k">{{ sg_groups[g]|length }}</span></h4>
+    {% if sg_groups[g] %}
+    <div class="tablewrap flat"><table class="queue" data-table="sg-{{ g }}">
+      <thead><tr><th scope="col"></th><th scope="col">{{ t('sgd_c_line') }}</th><th scope="col">{{ t('sgd_c_value') }}</th><th scope="col">{{ t('sgd_c_why') }}</th></tr></thead>
+      <tbody>
+      {% for ln in sg_groups[g] %}
+        <tr class="row" data-line="{{ ln.line_id }}" data-state="{{ ln.state }}">
+          <td>{% if ln.selectable and sg_open and sg_can %}<input type="checkbox" name="sel_{{ ln.line_id }}" value="1" checked aria-label="{{ ln.subject }}" data-sel="{{ ln.line_id }}">
+              {% elif ln.state == 'accepted' %}{{ u5.status_chip('ok', t('sgd_ln_accepted')) }}
+              {% elif ln.state == 'locked' %}{{ u5.status_chip('info', t('sgd_locked')) }}{% endif %}</td>
+          <td class="wrap">{{ ln.subject }}{% if ln.get('stage') %} <span class="muted">({{ ln.stage }})</span>{% endif %}</td>
+          <td class="wrap">{{ ln.vtext }}</td>
+          <td class="wrap" data-why="{{ ln.why.kind }}" data-rule="{{ ln.rule_id }}" title="{{ ln.rule_id }}">{{ t('sgd_why_' ~ ln.why.kind) }}{% if ln.why.get('detail') %} <span class="muted">{{ ln.why.detail }}</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <p class="muted">{{ t('sgd_group_empty') }}</p>
+    {% endif %}
+    {% endfor %}
+    {% if sg_open and sg_can %}
+    <div class="g2-foot">
+      <input type="text" name="note" maxlength="300" placeholder="{{ t('sgd_note_label') }}" aria-label="{{ t('sgd_note_label') }}">
+      <button class="btn sm primary" type="submit" data-act="sg-accept">{{ t('sgd_accept') }}</button>
+    </div>
+    {% endif %}
+  </form>
+  {% if sg_open and sg_can %}
+  <details class="g2-menu"><summary class="btn sm" data-act="sg-reject-open">{{ t('sgd_reject') }}</summary>
+    <div class="g2-menu-body"><form method="post" action="{{ sb }}/reject?lang={{ lang }}" hx-post="{{ sb }}/reject?lang={{ lang }}" hx-target="#sg-panel" hx-swap="outerHTML">
+      <input type="hidden" name="proposal_id" value="{{ sg_row.proposal_id }}">
+      <input type="text" name="reason" minlength="20" maxlength="300" required placeholder="{{ t('sgd_reason_label') }}" aria-label="{{ t('sgd_reason_label') }}" data-field="sg-reason">
+      <button class="btn sm" type="submit" data-act="sg-reject">{{ t('sgd_reject') }}</button>
+    </form></div>
+  </details>
+  {% endif %}
+  {% if sg_decision and sg_decision.get('results') %}
+  <ul class="plain" data-sg="results">
+    {% for r in sg_decision.results %}<li data-result="{{ r.result }}"><code>{{ r.subject }}</code> {{ u5.status_chip('ok' if r.result in ('applied', 'recorded') else 'warn', t('sgd_res_' ~ r.result)) }}{% if r.get('message') %} <span class="muted">{{ r.message }}</span>{% endif %}{% if r.get('instance_on') is false %} <span class="muted">{{ t('sgd_instance_off') }}</span>{% endif %}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if sg_decision and sg_decision.get('policy_snippet') and 'admin' in me.roles %}
+  <details class="u5-tech"><summary>{{ t('ux5_technical') }}: {{ t('sgd_snippet') }}</summary><div>
+    <pre class="mono" data-sg="snippet">{{ sg_decision.policy_snippet }}</pre>
+    <p class="hint">{{ t('sgd_snippet_hint') }}</p></div></details>
+  {% endif %}
+  {% if sg_row.status == 'accepted' %}
+  <div class="g2-foot" data-sg="proof">
+    <b>{{ t('sgd_proof') }}</b>
+    {% for n in sg_nodes %}
+    <form method="post" action="/console/predeploy/{{ n|urlencode }}?lang={{ lang }}" hx-post="/console/predeploy/{{ n|urlencode }}?lang={{ lang }}" hx-target="#sg-predeploy" hx-swap="innerHTML" class="g2-inline">
+      <button class="btn sm" type="submit" data-act="sg-predeploy" data-node="{{ n }}" title="{{ t('sgd_proof_hint') }}"{% if not sg_can %} disabled{% endif %}>{{ t('sgd_predeploy') }}</button>
+    </form>
+    {% endfor %}
+  </div>
+  <div id="sg-predeploy"></div>
+  {% endif %}
+  {% endif %}
+</section>
+</div>

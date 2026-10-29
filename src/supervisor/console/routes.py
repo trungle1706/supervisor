@@ -120,6 +120,7 @@ STATIC = {
     "ux5_g6.css": "text/css",  # UX5 G6 page styles
     "ux5_g4.css": "text/css",  # UX5-G4: agent page, catalogues, settings pages (ux5 only)
     "ux5_g5.css": "text/css",  # UX5 G5 pages
+    "ux5_g2.css": "text/css",  # UX5 package G2 (systems, wizard, tasks)
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (

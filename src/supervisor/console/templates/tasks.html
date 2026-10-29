@@ -4,22 +4,28 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_tasks') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_tasks'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g2.css">
+{% set head_chip %}{% if illustrative %}{{ u5.disclaimer(t('tk_illustrative')) }}{% endif %}{% endset %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nav_tasks'), None)]) }}
+{{ u5.page_head(t('nav_tasks'), t('tk_purpose'), about=t('tk_why'), actions=head_chip) }}
+{% else %}{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_tasks'), None)]) }}
 {{ ui.pagehead(t('nav_tasks'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('tk_purpose'), t('tk_why')) }}
 {% if illustrative %}<p class="hint">{{ t('tk_illustrative') }}</p>{% endif %}
+{% endif %}
 <section id="tasks" aria-label="{{ t('nav_tasks') }}">
 {{ ui.tiles(tiles, '/console/tasks', '/console/tasks/rows') }}
-{{ ui.filterbar('/console/tasks', '/console/tasks/rows', [
-  {'name': 'q', 'label': t('tk_col_task'), 'kind': 'search', 'value': params.q},
-  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
+{% set tk_fields = [
+  {'name': 'q', 'label': t('g2_tk_search') if ux5 else t('tk_col_task'), 'kind': 'search', 'value': params.q}] + ([] if ux5 else [
+  {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts}]) + [
   {'name': 'stage', 'label': t('tk_col_stage'), 'kind': 'select', 'value': params.stage, 'options': stage_opts},
   {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
-], '/console/tasks?lang=' ~ lang) }}
+] %}
+{{ ui.filterbar('/console/tasks', '/console/tasks/rows', tk_fields, '/console/tasks?lang=' ~ lang) }}
 <div id="list" aria-live="polite">
 {% include "_tasks_list.html" %}
 </div>
 </section>
-<p class="hint">{{ t('tk_edit_note') }}</p>
+{% if ux5 %}{% if 'admin' in me.roles %}{{ u5.technical([(t('g2_tk_api'), t('tk_edit_note'))]) }}{% endif %}{% else %}<p class="hint">{{ t('tk_edit_note') }}</p>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_task_drawer.html" %}{% endif %}{% endblock %}

@@ -13,6 +13,7 @@ MODULES: tuple[str, ...] = (
     "supervisor.console.i18n_ux5_g6",
     "supervisor.console.i18n_ux5_g4",
     "supervisor.console.i18n_ux5_g5",
+    "supervisor.console.i18n_ux5_g2",
     # add one line per page package, e.g. "supervisor.console.i18n_ux5_duties",
 )
 

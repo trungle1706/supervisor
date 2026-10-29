@@ -3,16 +3,21 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('ov4_t_candidates') }}{% endblock %}
 {% block content %}
-<h1 class="greet" data-page="candidates">{{ t('tri_title') }}</h1>
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g2.css">
+<div data-page="candidates">{{ u5.page_head(t('tri_title'), t('tri_purpose'), about=t('tri_why')) }}</div>
+{% set sig_keep = ['customer_table', 'money_tool', 'no_owner', 'writes'] %}
+{% else %}<h1 class="greet" data-page="candidates">{{ t('tri_title') }}</h1>
 {{ ui.purpose(t('tri_purpose'), t('tri_why')) }}
+{% endif %}
 {{ ui.filterbar('/console/candidates', '/console/candidates/rows', [
   {'name': 'kind', 'label': t('nv3_c_kind'), 'kind': 'select', 'value': cand_filters.kind, 'options': cand_kind_opts},
-  {'name': 'signal', 'label': t('tri_c_signals'), 'kind': 'select', 'value': cand_filters.signal, 'options': cand_signal_opts},
+  {'name': 'signal', 'label': t('tri_c_signals'), 'kind': 'select', 'value': cand_filters.signal, 'options': (cand_signal_opts|selectattr(0, 'in', sig_keep)|list) if ux5 else cand_signal_opts},
   {'name': 'band', 'label': t('tri_c_score'), 'kind': 'select', 'value': cand_filters.band, 'options': cand_band_opts},
 ], '/console/candidates?lang=' ~ lang, '#cand-rows') }}
 <div id="cand-rows">
-{% include "_cand_rows.html" %}
+{% include ("_cand_rows_ux5.html" if ux5 and not cand_src else "_cand_rows.html") %}
 </div>
-<div class="note">{{ t('tri_note') }}</div>
+{% if not ux5 %}<div class="note">{{ t('tri_note') }}</div>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_cand_drawer.html" %}{% endif %}{% endblock %}

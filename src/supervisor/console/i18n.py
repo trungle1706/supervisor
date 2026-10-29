@@ -4537,6 +4537,9 @@ _T.update(_WF)
 from supervisor.console.i18n_duties import DU as _DU  # noqa: E402  (WP-L3, prefix du_)
 
 _T.update(_DU)
+from supervisor.console.i18n_g2 import G2 as _G2  # noqa: E402  (UX5 package G2, prefix g2_)
+
+_T.update(_G2)
 from supervisor.console.i18n_riskdim import RD as _RD  # noqa: E402  (WP-C2, prefix rd_)
 
 _T.update(_RD)

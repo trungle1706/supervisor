@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_guardians_ux5.html" %}{% else %}
 {# WP-G4: the smart guardian panel (SMART_GUARDIAN); sg_on is false or absent while it is off. #}
 {% if sg_on %}{% include "_smart_guardian_panel.html" %}{% endif %}
 {# Guardians tab of the system page (WP-UX4b), read only until WP-S1: the detectors on for each
@@ -50,4 +51,5 @@
   <p>{% for g in gd_bindings if g.state == 'off' or g.locked %}<code>{{ g.slug }}</code> {{ ui.pill(t('gb_locked') if g.locked else t('gb_state_off'), 'warn' if g.locked else 'neutral') }} {% else %}<span class="muted">{{ t('gb_tab_none') }}</span>{% endfor %}</p>
   <p class="hint"><a href="/console/catalog?system={{ s.system_id }}&amp;lang={{ lang }}">{{ t('gb_tab_link') }}</a></p>
 </section>
+{% endif %}
 {% endif %}

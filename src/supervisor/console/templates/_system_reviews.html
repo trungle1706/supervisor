@@ -6,7 +6,7 @@
   <tbody>
   {% for r in reviews %}
     <tr>
-      <td>{{ r.title }}<div class="idline mono">{{ r.review_id }}</div></td>
+      <td>{{ r.title }}{% if not ux5 %}<div class="idline mono">{{ r.review_id }}</div>{% endif %}</td>
       <td>{{ t('sy_rv_kind_' ~ r.kind) }}</td>
       <td>{{ ui.pill(t('sy_rv_st_' ~ r.status), {'completed': 'ok', 'reopened': 'warn', 'in_progress': 'teal'}.get(r.status, 'neutral'), True) }}{% if r.locked %} <span class="muted">{{ t('sy_rv_locked') }}</span>{% endif %}{% if r.reopen_count %} <span class="muted">{{ t('sy_rv_reopened_n', n=r.reopen_count) }}</span>{% endif %}</td>
       <td class="mono">{{ r.reviewer_user }}</td>

@@ -43,7 +43,7 @@
 {% elif pl_sources or pl_missing %}
 {{ ui.empty(t('ux4b_policies_none'), t('ux4b_policies_none_line')) }}
 {% else %}
-<p class="hint">{{ t('sy_tasks_no_agents') }}</p>
+{% if ux5 %}{{ ui.empty(t('sy_tasks_no_agents'), '', '/console/systems/' ~ s.system_id ~ '?tab=components&lang=' ~ lang, t('g2_link_agent')) }}{% else %}<p class="hint">{{ t('sy_tasks_no_agents') }}</p>{% endif %}
 {% endif %}
-{% include "_compliance_note.html" %}
+{% if not ux5 %}{% include "_compliance_note.html" %}{% endif %}
 {% endif %}

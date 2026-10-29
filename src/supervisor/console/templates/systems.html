@@ -4,9 +4,13 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_systems') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_systems'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g2.css">
+{% set head_actions %}{% if register_v2_on %}<a class="btn primary" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a> <a class="btn" href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a>{% elif wizard %}<a class="btn primary" href="/console/systems/new?lang={{ lang }}" data-wizard="link">{{ t('ux4b_register_wizard') }}</a>{% endif %}{% endset %}
+{{ u5.page_head(t('nav_systems'), t('sy_purpose'), about=t('sy_why'), actions=head_actions) }}
+{% else %}{{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_systems'), None)]) }}
 {{ ui.pagehead(t('nav_systems')) }}{% if register_v2_on %}<p><a class="btn" href="/console/register/new?lang={{ lang }}" data-register="new">{{ t('rg2_register_btn') }}</a> <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a></p>{% elif wizard %}<p><a class="btn" href="/console/systems/new?lang={{ lang }}" data-wizard="link">{{ t('ux4b_register_wizard') }}</a></p>{% endif %}
 {{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
+{% endif %}
 {% if not scope_all %}<p class="hint">{{ t('sy_scope_note') }}</p>{% endif %}
 <section id="systems" aria-label="{{ t('nav_systems') }}">
 {{ ui.tiles(tiles, '/console/systems', '/console/systems/rows') }}
@@ -23,7 +27,7 @@
 {% include "_systems_list.html" %}
 </div>
 </section>
-{% if can_edit %}
+{% if can_edit and not (ux5 and (register_v2_on or wizard)) %}
 <details class="card" id="register">
   <summary>{{ t('sy_register') }}</summary>
   <form method="post" action="/console/systems?lang={{ lang }}" hx-post="/console/systems?lang={{ lang }}" hx-swap="none">

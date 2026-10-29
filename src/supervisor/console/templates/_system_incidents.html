@@ -10,7 +10,7 @@
   {% for i in incidents %}
     <tr>
       <td class="mono">{{ i.opened_at|day }}</td>
-      <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a><div class="idline mono">{{ i.incident_id }}</div></td>
+      <td><a href="/console/incidents?drawer={{ i.incident_id }}&amp;status=all&amp;lang={{ lang }}">{{ t('inc_kind_' ~ i.kind) }}</a>{% if not ux5 %}<div class="idline mono">{{ i.incident_id }}</div>{% endif %}</td>
       <td>{{ ui.sev(i.severity) }}</td>
       <td>{{ i.agent_id }}</td>
       <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}</td>

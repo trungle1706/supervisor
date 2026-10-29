@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_components_ux5.html" %}{% else %}
 {# Components (links) of one system. Variable: s. #}
 {% if s.components %}
 <div class="tablewrap flat"><table>
@@ -14,4 +15,5 @@
 {% for v in s.effective_risk.via %}<li class="mono">{{ v.ref_kind }}:{{ v.ref_id }} = {{ v.level }}</li>
 {% endfor %}
 </ul>
+{% endif %}
 {% endif %}

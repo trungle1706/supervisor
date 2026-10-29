@@ -1,3 +1,4 @@
+{% if ux5 %}{% include "_system_classification_ux5.html" %}{% else %}
 {# Classification tab of one system (WP-G2). Variables: s, cls, ai_pending, can_edit. #}
 {% import "_ui.html" as ui with context %}
 {% set base = '/console/systems/' ~ s.system_id ~ '/classification' %}
@@ -47,3 +48,4 @@
 </form>
 {% endif %}
 {% else %}<p class="hint">{{ t('sy_cls_no_draft') }}</p>{% endif %}
+{% endif %}
