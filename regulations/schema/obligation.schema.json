@@ -31,7 +31,7 @@
         "fetched_at": {"$ref": "#/$defs/date_iso"},
         "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "kind": {"enum": ["primary", "secondary"]},
-        "local_path": {"type": "string", "pattern": "^(regulations/sources|regkb/internal)/[A-Za-z0-9._/-]+$"}
+        "local_path": {"type": "string", "pattern": "^(regulations/sources|regkb/internal|regkb/overrides)/[A-Za-z0-9._/-]+$"}
       }
     },
     "dated": {

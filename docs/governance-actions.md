@@ -19,7 +19,7 @@ re-evaluation, plan a review, fire a webhook event, reopen a control.
                       rules file  (kind, min severity, system class)
                               |
         +-----------+---------+---------+-----------+---------------+-------------+----------------+
-   create_incident notify_owner raise_risk_level move_to_re_evaluation create_review fire_webhook reopen_control
+   create_incident notify_owner raise_risk_level move_to_re_evaluation create_review fire_webhook reopen_control reopen_obligations
         |
    incident (a person closes it)                        marker row per event: processed once
 ```
@@ -119,6 +119,7 @@ Run in this fixed order. Result codes are short fixed words, never text from an 
 | `create_review` | `ReviewService.create`: kind `internal`, title from a template, scope `[{kind: event, id: <ref>}]`, reviewer the first team member with role `reviewer`, then `oversight_manager`, then `compliance_specialist` (the owner never reviews) | `no_reviewer`, `review_refused` |
 | `fire_webhook` | `events.emit` of an `outbound_event` of kind `governance_action` (payload: event kind, severity, event key, first rule id, system id). Delivery is the WP-G1 stub behind `WEBHOOKS_ENABLED` | `failed` if the row cannot be written |
 | `reopen_control` | `ControlService.reopen` for each active control in scope of the agent that maps the evidence of the event (`gate_stop`: the rule; `pack_no_go`: the pack; `monitor_failing`: the monitor) or is named in the rule's `controls`. Writes one `failing` row in `control_status` with reason `reopened_by_event` and a `control_reopen` chain record | `controls_off`, `no_agent`, `no_control` |
+| `reopen_obligations` | WP-W2 (`regkb_changed` events only, flag `REGKB_CHANGE_LOOP`): the duty rows of the system on the obligations of a changed article go back to open with a note, and the gap tasks are made (`governance/regkb_reopen.py`). Event source `regkb_changes` reads `regkb_change` rows with status applied | `change_loop_off`, `no_rows` |
 
 A reopened control reads `failing` for that agent until a newer status row exists. The evidence
 pass skips a control and agent that hold a reopen row of the same window (it is counted as `held`),

@@ -2116,3 +2116,58 @@ tables:
       skipped_budget: int
       findings_n: int
       chained: bool
+
+  # --- WP-W2 change to re-evaluation (docs/regulations.md "Change to re-evaluation (WP-W2)") ---
+  regkb_change:
+    kind: state
+    description: >
+      WP-W2 (REGKB_CHANGE_LOOP). One row per instrument and imported update package: the law agent
+      diff of the stored text of record against the incoming text (status diffed) and the apply by
+      a person with regkb.confirm (status applied). The counts are whole numbers. articles and
+      obligations_affected list article numbers and RegKB obligation ids (law text ids only, no
+      personal data). applied_at is what the governance event source reads (event regkb_changed).
+      version_before and version_after are the RegKB version hashes around the apply. The files
+      (diff report, incoming text copy, override) are under DATA_DIR/regkb. Not legal advice.
+    primary_key: [change_id]
+    indexes:
+      - [status, applied_at]
+      - [package_sha, instrument_id]
+    columns:
+      change_id: string          # rc_ + 20 hex of sha256(package sha, instrument id)
+      package_sha: string
+      instrument_id: string
+      status: string             # diffed | applied
+      old_sha: string            # sha256 of the stored text of record that was diffed
+      new_sha: string            # sha256 of the incoming text
+      incoming_name: string      # <instrument>/<date>/<name>.txt inside the package
+      articles_changed: int
+      articles_added: int
+      articles_removed: int
+      changed_chars: int
+      articles: json             # article numbers that changed, were added or removed
+      obligations_affected: json # obligation ids whose article changed or was removed
+      classification_hit: bool   # a classification article (Law 7, 9, 10; Decree 6, 8, 9, 11; QD 33; TT 53 Art. 4)
+      drafts_n: int
+      model_id: string?
+      obligations_added: int
+      obligations_updated: int
+      obligations_removed: int
+      version_before: string?
+      version_after: string?
+      created_at: timestamp
+      created_by: string
+      applied_at: timestamp?
+      applied_by: string?
+  regkb_change_draft:
+    kind: state
+    description: >
+      WP-W2. Links a law agent draft (regkb_draft) to the change it was made for. change_ref is
+      the package sha and the article ("<sha256>:Dieu 12"). One row per draft.
+    primary_key: [draft_id]
+    indexes:
+      - [change_id]
+    columns:
+      draft_id: string
+      change_id: string
+      change_ref: string
+      article: string

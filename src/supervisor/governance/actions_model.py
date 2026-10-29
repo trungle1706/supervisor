@@ -33,6 +33,7 @@ EVENT_KINDS: tuple[str, ...] = (
     "chain_break",
     "model_version_change",
     "judge_escalation",
+    "regkb_changed",  # WP-W2: a law change was applied (REGKB_CHANGE_LOOP)
 )
 SEVERITIES: tuple[str, ...] = ("low", "medium", "high", "critical")
 SEVERITY_RANK: dict[str, int] = {s: i for i, s in enumerate(SEVERITIES)}
@@ -45,6 +46,7 @@ ACTION_KINDS: tuple[str, ...] = (
     "create_review",
     "fire_webhook",
     "reopen_control",
+    "reopen_obligations",  # WP-W2: duty rows back to open, gap tasks
 )
 # Words a rule author may reach for. The loader names them in its error (rule R1).
 FORBIDDEN_ACTIONS: tuple[str, ...] = (
@@ -63,6 +65,7 @@ SYSTEM_ACTIONS: tuple[str, ...] = (
     "move_to_re_evaluation",
     "create_review",
     "fire_webhook",
+    "reopen_obligations",
 )  # these need a system
 RULE_KEYS = {
     "id",

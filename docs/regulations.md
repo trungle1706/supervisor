@@ -628,6 +628,146 @@ Permissions `regkb.import` and `regkb.watch` are admin only. Each import writes 
 `regwatch_run` chain record (counts and the two sha256 values). A laptop carries the zip to the
 App by a file transfer approved by the bank.
 
+## Change to re-evaluation (WP-W2)
+
+Flag `REGKB_CHANGE_LOOP=1` (default off; needs `LAWAGENT_ENABLED=1` and `GOVERNANCE_ENABLED=1`; the
+input is a package imported by WP-W1, or a text file on the command line). With the flag off every
+route answers HTTP 400 `change_loop_off`, the loader reads no override and no event is made.
+Not legal advice. Bank counsel must confirm.
+
+```
+imported package (WP-W1)  ->  diff  ->  person: accept or drop drafts  ->  Apply change
+                                                                              |
+   override under DATA_DIR/regkb/overrides  ->  new RegKB version hash  ->  event regkb_changed
+        ->  duty rows open again + gap tasks + owner notice + re-evaluation (classification only)
+```
+
+Only the draft is made by a model. The diff, the override, the validator, the quote check and every
+rule of the event are deterministic.
+
+### Diff mode of the law agent
+
+```
+python -m supervisor.regkb.lawagent --diff VN-DEC142-2026 --incoming <package sha | text file>
+    [--incoming-name VN-DEC142-2026/2026-10-28/x.txt] [--out report.json]
+```
+
+The console button is "Diff against the text of record" on the watch page (per package and
+instrument) and on `/console/regkb/changes`. `POST /v1/regkb/changes/{sha}/{instrument}/diff` does the
+same (permission `regkb.confirm`, so approver and admin).
+
+1. The text of record is the newest override text of the instrument, else the stored text under
+   `regulations/sources`. The incoming text is a `text_changed` file of the package (or the file you
+   name).
+2. `split_articles` cuts both at the `Dieu N.` headings. The diff compares the white-space-folded
+   text per article: `unchanged`, `changed`, `added`, `removed`, with the number of changed
+   characters (words that differ, whole numbers). A text that differs outside the articles (annex,
+   title, signature block) is flagged `outside_articles_changed`.
+3. The model reads the changed and the added articles only, with the guards of the external mode
+   (duty id from `duties.yaml`, verbatim quote inside the article of the incoming text, 12 to 2000
+   characters). Rows go to `regkb_draft` with status `draft`; table `regkb_change_draft` links each
+   draft to its change (`change_ref` = `<package sha>:<article>`). **No model call** when no article
+   changed or was added.
+4. The obligations whose `article_ref` names a changed or removed article are listed as
+   `affected_obligations` (`article_changed`, or `article_removed` when all their articles are gone).
+   `lawagent.article_numbers` reads the article numbers: `Art. 5(3)` is 5; `Art. 5(1), 6(2)` is 5
+   and 6; `Art. 5-7` is 5, 6, 7; an annex reference has none and is not listed.
+
+Files under `DATA_DIR/regkb/changes/<package sha>/<instrument>/`: `diff.json`, `diff.md`,
+`diff.meta.json` (sha256 of both, of the incoming text and of the old text), `old.txt`,
+`incoming.txt`, `incoming.meta.json`. Report shape (`regkb-diff-1`):
+
+```
+{ "format", "change_id", "package_sha256", "instrument_id", "generated_at",
+  "old": {"sha256","where"}, "new": {"sha256","name"}, "outside_articles_changed": bool,
+  "model": {"id","prompt_version","calls"},
+  "summary": {"unchanged","changed","added","removed","articles_old","articles_new",
+              "changed_chars","classification_hit","drafts_made","affected_obligations_n",
+              "dropped_by_rules"},
+  "articles": [{"number","label","status","old_heading","new_heading","old_sha256",
+                "new_sha256","changed_chars"}],
+  "affected_obligations": [{"id","article_ref","articles","reason","coverage"}],
+  "drafts": [{"draft_id","article","duty_id"}] }
+```
+
+### Confirm and apply
+
+Page `/console/regkb/changes/{package sha}/{instrument}` (permission `regkb.view` to read): the old and
+the new folded text side by side for each article that is not unchanged, the drafted duties with
+Confirm and Drop (the same buttons and routes as the drafts page), the affected obligations, and
+**Apply change** behind a confirmation tick (`confirm=yes`). A person with `regkb.confirm` presses it;
+a second person is not required; the actor is logged on the row, in the audit rows and (as a hash)
+in the chain record. `POST /v1/regkb/changes/{sha}/{instrument}/apply` does the same.
+
+Apply refuses with HTTP 400 and a code: `no_diff`, `already_applied`, `nothing_to_apply`,
+`stale_diff` (the text of record changed after the diff), `override_invalid` (the validator or a quote
+check failed; nothing is written), `confirm_required` (console).
+
+### The override and the version hash
+
+The committed `regulations/vn/*.yaml` files are never written at run time. Apply writes
+`DATA_DIR/regkb/overrides/<instrument>/override.yaml` (format `regkb-override-1`) and the new text
+under `text/<sha12>.txt` with its sidecar (content addressed, never deleted):
+
+```
+format: regkb-override-1
+instrument_id: VN-DEC142-2026
+text: {path: regkb/overrides/VN-DEC142-2026/text/<sha12>.txt, sha256, url, title, fetched_at}
+removed: [obligation ids dropped because their article was removed]
+obligations: [obligation rows in the file shape of regulations/vn: a row with an existing id
+              replaces it, a row with a new id is added]
+applied: [{package_sha256, change_id, applied_at, applied_by, text_sha256}]
+```
+
+* A confirmed draft whose article and duty match an existing obligation **updates** it (same id,
+  its `control_mapping` and `applies_to` are kept, `text_vi`, `summary_en`, `evidence_needed`, sources
+  and `confirmed_by` are new). Any other confirmed draft is a **new** obligation with a free id. An
+  affected obligation with no confirmed draft stays as it is: counsel decides.
+* With the flag on, `load_kb()` applies the overrides after the committed files: the instrument's
+  primary source becomes the incoming text (path relative to `DATA_DIR`, sha256 checked), each
+  override row passes the same schema validator and semantic rules, and its `text_vi` must be a quote
+  of the incoming article (`override_invalid` / "text_vi is not a quote of the incoming text").
+  `load_kb(overrides_dir=...)` names the folder (tests, Apply). With the flag off the loader ignores
+  the folder.
+* **Hash.** There is no separate term for the override. The version hash is computed over the merged
+  instruments and obligations, so it changes because the instrument's primary source (url, sha256,
+  `local_path`) and the added, updated and removed obligations are different. The row
+  `regkb_change` keeps `version_before` and `version_after`.
+* Chain record `regkb_change`: package sha, instrument, articles changed (changed + added +
+  removed), obligations added, updated and removed, `actor_ref` (first 16 hex of the sha256 of the user
+  id). Integers and ids only.
+
+### Governance event `regkb_changed`
+
+New source `regkb_changes` in `governance/event_sources.py` reads `regkb_change` rows with status
+`applied`. One event per system (not archived): the systems that have an `obligation_status` row on an
+affected obligation, and, when a classification article changed, every system. Payload (in the row
+`regkb_change`): instrument, article numbers, `obligations_affected`, package sha. Severity: `high`
+when a classification article changed or a **full or partial** duty of the system on the
+classification path (articles cited by `config/classification.yaml`) is affected; else `medium`.
+
+| Rule (config/governance_actions.yaml) | Min severity | Actions |
+|---|---|---|
+| `GA-REGKB-CHANGED` | medium | `reopen_obligations`, `notify_owner`, `fire_webhook` |
+| `GA-REGKB-CHANGED-CLASSIFICATION` | high | `move_to_re_evaluation` |
+
+* `reopen_obligations` (new action, `governance/regkb_reopen.py`): every duty row of the system on an
+  affected obligation gets the note "article changed on <date> (package <sha8>)"; a closed or waived
+  row that applies goes back to `open`. One task per re-opened group (instrument and coverage) with the
+  WP-L3 text ("Close N duties of <number> (coverage partial)"; "Re-check ..." for full coverage),
+  template `DUTY-CHG-<sha8>-<instrument>-<coverage>`. One chain record `regkb_reopen` per system.
+* Classification articles (trigger list of WP-C1): Law 134/2025 Art. 7, 9, 10; Decree 142 Art. 6, 8,
+  9, 11; Circular 53 Art. 4; Decision 33 (any change, because Appendix IV is an annex the article
+  splitter does not read). `move_to_re_evaluation` only moves a system in `deployment` or `operation`.
+* Banner on My overview: "Law change pending review: N" while an imported package has a changed text
+  that is not applied, and "Law change applied on <date>: N systems re-opened" for 7 days after the
+  apply. Nothing shows while the flag is off.
+
+Limits: the diff reads articles; a change only in an annex is flagged but not drafted. Amending texts
+(a new decree that amends this one) are not diffed against the old text; counsel reads them and a new
+text of the instrument is imported when the consolidated text exists. The risk register line of
+WP-L3 is not refreshed by the event; use Re-evaluate on the Duties tab.
+
 ## Open points for counsel
 
 - Whether the Decision 33 transition date for banks is 2027-09-01 ("finance", AI Law Art. 35)

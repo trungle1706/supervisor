@@ -23,6 +23,11 @@ chain_break            ``chain_verify`` and ``audit_pack_built`` chain records t
 model_version_change   ``agent_version`` rows whose model endpoint or model family differs
                        from the version before; medium
 judge_escalation       cases of type judge (a judge asked for a person); severity of the case
+regkb_changed          ``regkb_change`` rows applied in the range (WP-W2): one event per
+                       system that has a duty row on an affected obligation, and, when a
+                       classification article changed, one per open system; high when a
+                       classification article changed or a full or partial duty on the
+                       classification path is affected, else medium
 =====================  ==================================================================
 
 ``attach_systems`` then gives each event the system (``system_component``, agent links) it
@@ -353,6 +358,73 @@ def judge_escalations(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[G
     ]
 
 
+def _json_list(value: Any) -> list[Any]:
+    if isinstance(value, list):
+        return value
+    try:
+        out = json.loads(value) if value else []
+    except (TypeError, ValueError):
+        return []
+    return out if isinstance(out, list) else []
+
+
+def regkb_changes(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[GovernanceEvent]:
+    """WP-W2. Applied law changes (``regkb_change``). The flag REGKB_CHANGE_LOOP gates the apply,
+    so with the flag off the table is empty and this source reads nothing."""
+    rows = _range(ctx, "regkb_change", "applied_at", lo, hi, {"status": "applied"})
+    if not rows:
+        return []
+    from supervisor.config import load_settings
+    from supervisor.regkb import change, lawagent
+
+    settings = load_settings()
+    path = change.classification_path_articles(settings)
+    try:
+        kb = change.kb_of(settings.data_dir)
+    except Exception:  # noqa: BLE001 - without the base only the flag of the change counts
+        log.exception("regkb_changed: the knowledge base could not be read")
+        kb = None
+    open_ids = sorted(
+        str(s["system_id"]) for s in ctx.state.query("ai_system") if s["status"] != "archived"
+    )
+    out: list[GovernanceEvent] = []
+    for c in rows:
+        affected = [str(x) for x in _json_list(c.get("obligations_affected"))]
+        hit = _true(c.get("classification_hit"))
+        by_system: dict[str, list[dict[str, Any]]] = {}
+        for oid in affected:
+            for r in ctx.state.query("obligation_status", {"obligation_id": oid}):
+                by_system.setdefault(str(r["system_id"]), []).append(dict(r))
+        targets = sorted(set(by_system) | (set(open_ids) if hit else set()))
+        ref = safe_ref("regkb_change", c["change_id"])
+        for sid in targets:
+            if sid not in open_ids:
+                continue
+            on_path = False
+            for r in by_system.get(sid, []):
+                if r["applies"] != "yes" or r["coverage"] not in ("full", "partial"):
+                    continue
+                try:
+                    ob = kb.get(str(r["obligation_id"])) if kb is not None else None
+                except Exception:  # noqa: BLE001 - an obligation the base no longer has
+                    ob = None
+                nums = set(lawagent.article_numbers(ob.article_ref)) if ob is not None else set()
+                if ob is not None and nums & path.get(ob.instrument_id, set()):
+                    on_path = True
+            out.append(
+                GovernanceEvent(
+                    kind="regkb_changed",
+                    severity="high" if (hit or on_path) else "medium",
+                    agent_id=NO_AGENT,
+                    ref=ref,
+                    at=as_dt(c["applied_at"]),
+                    system_id=sid,
+                    rule_id=str(c["instrument_id"])[:64],
+                )
+            )
+    return out
+
+
 # name -> reader. The name is the cursor key, so one failing source never holds back the others.
 SOURCES: dict[str, Callable[..., list[GovernanceEvent]]] = {
     "alerts": alerts,
@@ -363,6 +435,7 @@ SOURCES: dict[str, Callable[..., list[GovernanceEvent]]] = {
     "chain_breaks": chain_breaks,
     "model_changes": model_changes,
     "judge_escalations": judge_escalations,
+    "regkb_changes": regkb_changes,
 }
 
 
@@ -389,6 +462,9 @@ def attach_systems(
     system. The order is the sort key of the events."""
     out: list[GovernanceEvent] = []
     for e in events:
+        if e.system_id is not None:  # the source named the system (regkb_changed)
+            out.append(e)
+            continue
         ids = links.get(e.agent_id.lower(), []) if e.agent_id != NO_AGENT else []
         if not ids:
             out.append(e.for_system(None))

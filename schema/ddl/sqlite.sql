@@ -2093,3 +2093,52 @@ CREATE TABLE IF NOT EXISTS guardian_shadow_day (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (def_id, version, day)
 );
+
+-- regkb_change (state): WP-W2 (REGKB_CHANGE_LOOP). One row per instrument and imported update package: the law agent diff of the stored text of record against the incoming text (status diffed) and the apply by a person with regkb.confirm (status applied). The counts are whole numbers. articles and obligations_affected list article numbers and RegKB obligation ids (law text ids only, no personal data). applied_at is what the governance event source reads (event regkb_changed). version_before and version_after are the RegKB version hashes around the apply. The files (diff report, incoming text copy, override) are under DATA_DIR/regkb. Not legal advice.
+CREATE TABLE IF NOT EXISTS regkb_change (
+  change_id TEXT NOT NULL,
+  package_sha TEXT NOT NULL,
+  instrument_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  old_sha TEXT NOT NULL,
+  new_sha TEXT NOT NULL,
+  incoming_name TEXT NOT NULL,
+  articles_changed INTEGER NOT NULL,
+  articles_added INTEGER NOT NULL,
+  articles_removed INTEGER NOT NULL,
+  changed_chars INTEGER NOT NULL,
+  articles TEXT NOT NULL,
+  obligations_affected TEXT NOT NULL,
+  classification_hit INTEGER NOT NULL,
+  drafts_n INTEGER NOT NULL,
+  model_id TEXT,
+  obligations_added INTEGER NOT NULL,
+  obligations_updated INTEGER NOT NULL,
+  obligations_removed INTEGER NOT NULL,
+  version_before TEXT,
+  version_after TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  applied_at TEXT,
+  applied_by TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (change_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_regkb_change_status_applied_at ON regkb_change (status, applied_at);
+
+CREATE INDEX IF NOT EXISTS ix_regkb_change_package_sha_instrument_id ON regkb_change (package_sha, instrument_id);
+
+-- regkb_change_draft (state): WP-W2. Links a law agent draft (regkb_draft) to the change it was made for. change_ref is the package sha and the article ("<sha256>:Dieu 12"). One row per draft.
+CREATE TABLE IF NOT EXISTS regkb_change_draft (
+  draft_id TEXT NOT NULL,
+  change_id TEXT NOT NULL,
+  change_ref TEXT NOT NULL,
+  article TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (draft_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_regkb_change_draft_change_id ON regkb_change_draft (change_id);

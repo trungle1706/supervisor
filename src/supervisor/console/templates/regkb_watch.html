@@ -67,6 +67,16 @@
     <summary class="btn">{{ p.package_sha256[:12] }} · {{ p.run_id }} · {{ (p.imported_at or '-')[:19] }} · {{ p.imported_by }}</summary>
     <div class="idline">{{ t('rw_not_applied') }}</div>
     {{ changes_table(p.changes) }}
+    {% if rw.change_loop %}{# WP-W2: the diff of a changed text, per instrument #}
+    <div class="row-actions" data-w2-actions="{{ p.package_sha256 }}">
+      {% for iid in p.changes|selectattr('kind', 'equalto', 'text_changed')|map(attribute='instrument_id')|unique %}
+      <form method="post" action="/console/regkb/changes/{{ p.package_sha256 }}/{{ iid }}/diff?lang={{ lang }}">
+        <button class="btn" data-act="diff" data-instrument="{{ iid }}">{{ t('rc_diff_btn') }}: {{ iid }}</button>
+      </form>
+      {% endfor %}
+      <a class="btn" href="/console/regkb/changes?lang={{ lang }}">{{ t('rc_title') }}</a>
+    </div>
+    {% endif %}
   </details>
   {% else %}
   <p class="hint" data-empty="regwatch-packages">{{ t('rw_no_packages') }}</p>

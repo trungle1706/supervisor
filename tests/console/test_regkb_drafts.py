@@ -197,7 +197,10 @@ def test_permissions_in_the_matrix() -> None:
     found = {
         (m, p): rbac.route_entry(m, p)
         for m, p, _ in app_routes()
-        if "/console/regkb" in p and "/internal" not in p
+        if "/console/regkb" in p
+        and "/internal" not in p
+        and "/console/regkb/watch" not in p  # WP-W1
+        and "/console/regkb/changes" not in p  # WP-W2
     }
     assert found == {
         ("GET", "/console/regkb/{instrument_id}/drafts"): "regkb.view",

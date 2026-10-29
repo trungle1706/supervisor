@@ -5,6 +5,8 @@
     python -m supervisor.regkb.lawagent --instrument VN-DEC142-2026 --export-confirmed out.yaml
     python -m supervisor.regkb.lawagent --compare old.txt new.txt
     python -m supervisor.regkb.lawagent --internal 3F9A0C21B7D4 [--out drafts.json]
+    python -m supervisor.regkb.lawagent --diff VN-DEC142-2026 --incoming <package sha | text file>
+        [--incoming-name VN-DEC142-2026/2026-10-28/x.txt] [--out report.json]
 
 What happens, in order:
 
@@ -21,6 +23,12 @@ What happens, in order:
 Internal mode (WP-W3, REGKB_INTERNAL=1): ``--internal <doc_id>`` reads the MASKED text of an
 uploaded internal document (``regkb/internal.py``), draft one duty row per section that imposes a
 duty, and writes it to ``regkb_draft`` with ``instrument_id = VN-INT-<doc_id>``.
+
+Diff mode (WP-W2, REGKB_CHANGE_LOOP=1): ``--diff <instrument> --incoming <package sha or file>``
+compares the text of record with the incoming text article by article, drafts the changed and the
+added articles only (no model call when nothing changed) into ``regkb_draft`` and writes the
+report under ``DATA_DIR/regkb/changes/<package sha>/<instrument>/`` (see ``regkb/change.py``). A
+person confirms the change on ``/console/regkb/changes/<package sha>/<instrument>``.
 
 The model only drafts. A mock chat model is for unit tests: a run on a mock is refused unless
 ``--allow-mock`` is given, and every output then says MOCK MODEL.
@@ -209,6 +217,20 @@ def parse_article_ref(ref: str) -> tuple[int, str]:
     if m:
         return int(m.group(1)), m.group(2)
     raise ValueError(f"not an article reference: {ref!r}")
+
+
+def article_numbers(ref: str) -> list[int]:
+    """Article numbers an ``article_ref`` of an obligation names: 'Art. 5(3)' -> [5];
+    'Art. 5(1), 6(2)' -> [5, 6]; 'Decree 142/2026 Art. 5-7' -> [5, 6, 7]; 'Appendix IV' -> [].
+    Clause numbers in brackets are not article numbers. Used to find the obligations of an
+    article that changed (WP-W2)."""
+    out: list[int] = []
+    for m in re.finditer(r"(?:Art\.\s*|,\s*)(\d{1,3})(?:\s*-\s*(\d{1,3})(?!\d))?(?![\d/])", ref):
+        lo = int(m.group(1))
+        hi = int(m.group(2)) if m.group(2) else lo
+        if lo <= hi <= lo + 60:
+            out += range(lo, hi + 1)
+    return sorted(set(out))
 
 
 def parse_range(spec: str, available: Sequence[int]) -> list[int]:
@@ -685,6 +707,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--export-confirmed", metavar="FILE", help="write confirmed rows as YAML")
     parser.add_argument("--compare", nargs=2, metavar=("OLD", "NEW"), help="list changed articles")
     parser.add_argument("--internal", metavar="DOC_ID", help="internal mode: draft an uploaded doc")
+    parser.add_argument("--diff", metavar="INSTRUMENT", help="diff mode (REGKB_CHANGE_LOOP=1)")
+    parser.add_argument("--incoming", help="diff mode: a package sha (64 hex) or a text file")
+    parser.add_argument("--incoming-name", help="diff mode: the text inside the package")
     parser.add_argument("--allow-mock", action="store_true", help="allow a mock model (tests only)")
     args = parser.parse_args(argv)
     from supervisor.bootstrap import bootstrap
@@ -695,6 +720,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.compare:
             return _compare_cli(*args.compare)
+        if args.diff:
+            return _diff_cli(args)
         if args.internal:
             return _internal_cli(args)
         if not args.instrument:
@@ -769,6 +796,65 @@ def _run_cli(args: argparse.Namespace) -> int:
             _out(f"[OK] wrote {args.out}")
         _out(BANNER)
         return 1 if summary.model_errors and not summary.rows else 0
+    finally:
+        adapters.close()
+
+
+def _diff_cli(args: argparse.Namespace) -> int:
+    from supervisor.adapters.factory import build_adapters
+    from supervisor.config import load_settings
+    from supervisor.regkb import change
+
+    settings = load_settings()
+    _out(BANNER)
+    if not change.enabled(settings):
+        _out("[SKIP] the change loop is off (REGKB_CHANGE_LOOP=1; it needs LAWAGENT_ENABLED and")
+        _out("       GOVERNANCE_ENABLED)")
+        return 2
+    if not args.incoming:
+        _out("[FAIL] --incoming <package sha or text file> is required with --diff")
+        return 2
+    is_sha = re.fullmatch(r"[0-9a-f]{64}", args.incoming) is not None
+    adapters = build_adapters(settings)
+    try:
+        if adapters.executor.dialect == "sqlite":
+            from supervisor.jobs import bootstrap_schema
+
+            bootstrap_schema.run(settings, adapters)
+        chat = make_chat(settings) if args.allow_mock else None  # None = the gateway, no mock
+        report = change.run_diff(
+            data_dir=settings.data_dir,
+            state=adapters.state,
+            clock=adapters.clock,
+            settings=settings,
+            instrument_id=args.diff,
+            package_sha=args.incoming if is_sha else None,
+            incoming=args.incoming_name,
+            incoming_file=None if is_sha else Path(args.incoming),
+            actor="cli:lawagent",
+            chat=chat,
+            progress=_out,
+        )
+        s = report["summary"]
+        _out(
+            f"[OK] {report['instrument_id']}: {s['unchanged']} unchanged, {s['changed']} changed, "
+            f"{s['added']} added, {s['removed']} removed; changed characters {s['changed_chars']}"
+        )
+        _out(
+            f"[OK] affected obligations {s['affected_obligations_n']}; drafts {s['drafts_made']} "
+            f"(model calls {report['model']['calls']}); classification article touched: "
+            f"{'yes' if s['classification_hit'] else 'no'}"
+        )
+        _out("[OK] review: " + f"/console/regkb/changes/{report['package_sha256']}/{args.diff}")
+        if args.out:
+            Path(args.out).write_text(
+                json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+                encoding="utf-8",
+                newline="\n",
+            )
+            _out(f"[OK] wrote {args.out}")
+        _out(BANNER)
+        return 0
     finally:
         adapters.close()
 

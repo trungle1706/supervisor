@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rc_detail') }}{% endblock %}
+{% block content %}
+{# WP-W2. Variables: sha, instrument, row, report, pairs, drafts, pending_drafts, confirmed_drafts,
+   applied, can_confirm. Each draft card is the partial of the drafts page (Confirm and Drop post to
+   /console/regkb/<instrument>/drafts/...). #}
+{% set s = report.summary %}
+{{ ui.crumbs([('Regulations', None), (t('rc_title'), '/console/regkb/changes'), (instrument, None)]) }}
+{{ ui.pagehead(t('rc_detail') ~ ': ' ~ instrument, ui.pill(t('rc_s_applied') if applied else t('rc_s_diffed'), 'ok' if applied else 'info', True)) }}
+<div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('rc_banner') }}</b></div>
+<section class="card" id="change-summary" data-change="{{ row.change_id if row else '' }}">
+  <h3>{{ t('rc_summary') }}</h3>
+  <p class="mono">{{ sha }}</p>
+  <p data-counts="1">
+    {{ ui.pill(s.unchanged ~ ' ' ~ t('rc_unchanged'), 'neutral') }}
+    {{ ui.pill(s.changed ~ ' ' ~ t('rc_changed'), 'warn' if s.changed else 'neutral') }}
+    {{ ui.pill(s.added ~ ' ' ~ t('rc_added'), 'info' if s.added else 'neutral') }}
+    {{ ui.pill(s.removed ~ ' ' ~ t('rc_removed'), 'bad' if s.removed else 'neutral') }}
+    <span class="hint">{{ s.changed_chars }} {{ t('rc_chars') }}</span>
+  </p>
+  {% if s.classification_hit %}<div class="notice" data-classification="1"><span class="dot"></span>{{ t('rc_classification') }}</div>{% endif %}
+  {% if report.outside_articles_changed %}<div class="notice" data-outside="1"><span class="dot"></span>{{ t('rc_outside') }}</div>{% endif %}
+  <p class="hint mono">old {{ report.old.sha256[:12] }} &rarr; new {{ report.new.sha256[:12] }} &middot; {{ report.new.name }}</p>
+  {% if applied and row %}
+  <p data-applied="1">{{ ui.pill(t('rc_applied_on') ~ ' ' ~ (row.applied_at or '')[:10] ~ ' ' ~ t('rc_by') ~ ' ' ~ row.applied_by, 'ok', True) }}
+    <span class="hint">{{ t('rc_counts') }}: {{ row.obligations_added }} / {{ row.obligations_updated }} / {{ row.obligations_removed }}</span>
+    <span class="hint mono">{{ t('rc_version') }} {{ (row.version_before or '-')[:12] }} &rarr; {{ (row.version_after or '-')[:12] }}</span></p>
+  {% endif %}
+</section>
+
+<section class="card" id="change-articles">
+  <h3>{{ t('rc_articles') }} <span class="k">{{ pairs|length }}</span></h3>
+  {% for p in pairs %}
+  <div class="lawpair" data-article="{{ p.number }}" data-status="{{ p.status }}" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
+    <div>{{ ui.pill(p.label, 'neutral') }} {{ ui.pill(t('rc_' ~ p.status), {'changed': 'warn', 'added': 'info', 'removed': 'bad'}.get(p.status, 'neutral'), True) }} <span class="hint">{{ p.changed_chars }} {{ t('rc_chars') }}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+      <div><div class="hint">{{ t('rc_old') }}</div><blockquote lang="vi" data-side="old">{{ p.old_text or '-' }}</blockquote></div>
+      <div><div class="hint">{{ t('rc_new') }}</div><blockquote lang="vi" data-side="new">{{ p.new_text or '-' }}</blockquote></div>
+    </div>
+  </div>
+  {% else %}
+  <p class="hint">-</p>
+  {% endfor %}
+</section>
+
+<section class="card" id="change-affected">
+  <h3>{{ t('rc_affected') }} <span class="k">{{ report.affected_obligations|length }}</span></h3>
+  {% if report.affected_obligations %}
+  <div class="tablewrap flat"><table class="queue" data-table="affected">
+    <thead><tr><th scope="col">{{ t('rc_c_obligation') }}</th><th scope="col">article_ref</th><th scope="col">{{ t('rc_c_reason') }}</th><th scope="col">{{ t('rc_c_coverage') }}</th></tr></thead>
+    <tbody>
+    {% for o in report.affected_obligations %}
+      <tr class="row" data-obligation="{{ o.id }}"><td class="mono">{{ o.id }}</td><td>{{ o.article_ref }}</td><td>{{ o.reason }}</td><td>{{ o.coverage }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="hint">{{ t('rc_no_affected') }}</p>{% endif %}
+</section>
+
+<section class="card" id="change-drafts">
+  <h3>{{ t('rc_drafts') }} <span class="k">{{ drafts|length }}</span></h3>
+  <p class="hint"><span data-pending-drafts="1">{{ pending_drafts }}</span> {{ t('rc_pending_drafts') }} &middot; <span data-confirmed-drafts="1">{{ confirmed_drafts }}</span> {{ t('rc_confirmed_drafts') }}</p>
+  {% for d in drafts %}
+    {% include "_regkb_draft.html" %}
+  {% else %}
+  <p class="hint">{{ t('rc_no_drafts') }}</p>
+  {% endfor %}
+</section>
+
+{% if not applied %}
+<section class="card" id="change-apply">
+  <h3>{{ t('rc_apply') }}</h3>
+  <p class="hint">{{ t('rc_apply_note') }}</p>
+  {% if can_confirm %}
+  <form method="post" action="/console/regkb/changes/{{ sha }}/{{ instrument }}/apply?lang={{ lang }}">
+    <label><input type="checkbox" name="confirm" value="yes" required data-confirm="1"> {{ t('rc_apply_confirm') }}</label>
+    <div class="row-actions"><button class="btn primary" data-act="apply">{{ t('rc_apply') }}</button></div>
+  </form>
+  {% else %}<p class="hint">{{ t('rc_need_role') }}</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}
