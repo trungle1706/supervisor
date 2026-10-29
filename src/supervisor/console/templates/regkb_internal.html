@@ -2,7 +2,13 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('ri_title') }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g3.css">
+{% set actions %}{{ u5.disclaimer(t('ri_banner')) }}{% endset %}
+{{ u5.page_head(t('ri_title'), t('g3_ri_purpose'), actions=actions) }}
+{% else %}
 {{ ui.crumbs([('Regulations', None), (t('ri_title'), None)]) }}
 {{ ui.pagehead(t('ri_title')) }}
+{% endif %}
 {% include "_regkb_internal_panel.html" %}
 {% endblock %}

@@ -3,9 +3,17 @@
 {% block title %}{{ t('nav_policies') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_policies'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g3.css">{% endif %}
+{% if ux5 %}
+{{ u5.page_head(t('nav_policies'), t('policies_purpose'), about=t('policies_why')) }}
+{% set cur = versions|selectattr('active')|list|first %}
+{% if cur %}<p class="g3-line" data-version-line="1">{{ t('g3_pol_version_line', hash=cur.policy_hash[:8], since=cur.from|day, n=cur.rules_n) }}</p>{% endif %}
+<details class="g3-more"><summary>{{ t('g3_pol_history') }} ({{ versions|length }})</summary>
+{% else %}
 {{ ui.pagehead(t('nav_policies'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('policies_purpose'), t('policies_why')) }}
-<h2 class="sec">{{ t('policy_versions') }}</h2>
+{% endif %}
+{% if not ux5 %}<h2 class="sec">{{ t('policy_versions') }}</h2>{% endif %}
 <div class="tablewrap">
 <table class="queue">
   <caption class="sr">{{ t('policy_versions') }}</caption>
@@ -19,7 +27,11 @@
   </tbody>
 </table>
 </div>
-{% if tools %}
+{% if ux5 %}</details>{% endif %}
+{% if tools and ux5 %}
+<details class="g3-more"><summary>{{ t('g3_pol_tools', n=tools|length) }}</summary>
+<p class="idline">{% for name, cls in tools %}<span class="mono">{{ name }}</span> ({{ cls }}){{ ', ' if not loop.last else '' }}{% endfor %}</p></details>
+{% elif tools %}
 <h2 class="sec">{{ t('policy_tools') }}</h2>
 <p class="idline">{% for name, cls in tools %}<span class="mono">{{ name }}</span> ({{ cls }}){{ ', ' if not loop.last else '' }}{% endfor %}</p>
 {% endif %}
@@ -34,6 +46,6 @@
 <div id="list">
 {% include "_policies_list.html" %}
 </div>
-<p class="hint">{{ t('policies_git_note') }}</p>
+{% if not ux5 %}<p class="hint">{{ t('policies_git_note') }}</p>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_policy_drawer.html" %}{% endif %}{% endblock %}

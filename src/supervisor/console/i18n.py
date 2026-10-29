@@ -4895,6 +4895,9 @@ _T.update(_RG3)
 from supervisor.console.i18n_factory_gate import FG as _FG  # noqa: E402  (WP-F3, prefix fg_)
 
 _T.update(_FG)
+from supervisor.console.i18n_ux5_g3 import NEW as _G3  # noqa: E402  (UX5 group G3, prefix g3_)
+
+_T.update(_G3)
 
 
 # --- UX5-F --- strings of the UX5 shell and macros (templates/_ux5.html); used with CONSOLE_UX5

@@ -1,0 +1,60 @@
+{# Compliance advisor, one duty (CONSOLE_UX5, group G3). Duty text first, status and controls beside it, sources last. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% block title %}{{ t('nav_compliance') }} - {{ ob.id }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/ux5_g3.css">
+{% set admin = me.has('admin') %}
+{% set actions %}{{ u5.disclaimer(t('cp_disclaimer')) }}{% endset %}
+<div class="g3-crumb"><a href="/console/compliance?lang={{ lang }}">{{ t('nav_compliance') }}</a> / <a href="/console/compliance/{{ agent }}?lang={{ lang }}&amp;tab=all&amp;instrument={{ ob.instrument_id }}">{{ agent }}</a></div>
+{{ u5.page_head(ob.article_ref or ob.title_en, ob.title_en if ob.article_ref and ob.title_en != ob.article_ref else None, actions=actions) }}
+<p class="g3-meta"><span class="mono" data-oid="1">{{ ob.id }}</span></p>
+<div class="g3-two g3-two-wide">
+  <section class="card" data-section="text">
+    <h3>{{ t('cp_text_vi') }}</h3>
+    <div data-text-vi="1" class="g3-vi">{% if ob.text_vi %}{{ ob.text_vi }}{% else %}<span class="muted">{{ t('cp_no_text_vi') }}</span>{% endif %}</div>
+    <h3>{{ t('cp_summary_en') }}</h3>
+    <div>{{ ob.summary_en }}</div>
+    {% if ob.evidence_needed %}<h3>{{ t('cp_evidence_needed') }}</h3><div>{{ ob.evidence_needed|join('; ') }}</div>{% endif %}
+    <p class="hint">{{ t('g3_instr_row', number=ob.number, issuer=ob.issuer, status=ob.status) }}{% if admin %} <span class="mono">{{ ob.instrument_id }}</span>{% endif %}</p>
+  </section>
+  <section class="card" data-section="product-status">
+    <h3>{{ t('cp_this_product') }}: {{ agent }}</h3>
+    <div>{{ u5.status_chip(status_kind.get(row.status, 'na'), cw('status.' ~ row.status)) }}
+      <span class="g3-meta">{{ t('g3_ob_applies') if row.applies == 'yes' else (t('g3_ob_wait') if row.applies == 'needs_answer' else t('g3_ob_noapply')) }}</span></div>
+    <p><b>{{ t('cp_status_reason') }}:</b> {{ evidence(row) }}</p>
+    {% if admin %}{{ u5.technical([('status_reason', row.status_reason)]) }}{% endif %}
+  </section>
+</div>
+
+<section class="card" data-section="controls">
+  <h3>{{ t('cp_controls') }}</h3>
+  <table class="g3-tbl">
+    <thead><tr><th>{{ t('g3_col_control') }}</th><th>{{ t('g3_col_kind') }}</th><th>{{ t('g3_col_covers') }}</th><th></th></tr></thead>
+    <tbody>
+    {% for c in controls %}
+    <tr><td title="{{ c.id if admin }}">{{ c.id|replace('_', ' ')|capitalize }}</td>
+      <td>{{ t('g3_kind_' ~ c.kind) if t('g3_kind_' ~ c.kind) != 'g3_kind_' ~ c.kind else c.kind }}</td>
+      <td>{{ t('g3_cov_' ~ c.coverage) if t('g3_cov_' ~ c.coverage) != 'g3_cov_' ~ c.coverage else c.coverage }}</td>
+      <td>{{ c.note }}</td></tr>
+    {% else %}<tr><td colspan="4" class="hint">{{ t('cp_none') }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<nav class="g3-prevnext" aria-label="{{ t('g3_ob_all') }}">
+  {% if prev_id %}<a href="/console/compliance/{{ agent }}/obligation/{{ prev_id }}?lang={{ lang }}" rel="prev">&larr; {{ t('g3_ob_prev') }}</a>{% else %}<span></span>{% endif %}
+  <a href="/console/compliance/{{ agent }}?lang={{ lang }}&amp;tab=all&amp;instrument={{ ob.instrument_id }}">{{ t('g3_ob_all') }}</a>
+  {% if next_id %}<a href="/console/compliance/{{ agent }}/obligation/{{ next_id }}?lang={{ lang }}" rel="next">{{ t('g3_ob_next') }} &rarr;</a>{% else %}<span></span>{% endif %}
+</nav>
+
+<details class="g3-more card" data-section="sources">
+  <summary>{{ t('cp_sources') }} ({{ ob.sources|length }})</summary>
+  <ul>{% for s in ob.sources %}{% set parts = s.title.split(' (', 1) %}
+    <li>{{ parts[0] }} <span class="hint">({{ s.kind }}, {{ s.fetched_at }})</span>
+      {% if parts|length > 1 %}<details class="g3-more"><summary>{{ t('g3_src_note') }}</summary><p class="hint">({{ parts[1] }}</p></details>{% endif %}
+      {% if admin %}<div class="mono">{{ s.url }}</div>{% endif %}</li>
+  {% else %}<li class="hint">{{ t('cp_none') }}</li>{% endfor %}</ul>
+</details>
+{% endblock %}

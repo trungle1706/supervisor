@@ -1,21 +1,23 @@
 {# Internal documents panel (WP-W3, REGKB_INTERNAL): upload form, list, Draft duties. Variable: ri. #}
 {% import "_ui.html" as ui with context %}
 <section class="card" id="regkb-internal-panel" data-section="regkb-internal">
+  {% if not ux5 %}
   <h3>{{ t('ri_title') }} <span class="k">{{ ri.docs|length }}</span></h3>
   <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('ri_banner') }}</b></div>
   <p class="hint">{{ t('ri_hint', mb=ri.max_mb) }}</p>
+  {% endif %}
   {% if ri.docs %}
   <div class="tablewrap flat"><table class="queue" data-table="regkb-internal-docs">
     <thead><tr><th scope="col">{{ t('ri_c_doc') }}</th><th scope="col">{{ t('ri_c_owner') }}</th><th scope="col">{{ t('ri_c_version') }}</th><th scope="col">{{ t('ri_c_status') }}</th><th scope="col">{{ t('ri_c_drafts') }}</th><th scope="col">{{ t('ri_c_by') }}</th><th scope="col">{{ t('ri_c_actions') }}</th></tr></thead>
     <tbody>
     {% for d in ri.docs %}
       <tr class="row" data-doc="{{ d.doc_id }}">
-        <td>{{ d.title }}<div class="idline mono">{{ d.instrument_id }} · {{ d.sha256[:12] }}</div></td>
+        <td>{{ d.title|replace(' demo:showcase', '') if ux5 else d.title }}{% if not ux5 or me.has('admin') %}<div class="idline mono">{{ d.instrument_id }} · {{ d.sha256[:12] }}</div>{% endif %}</td>
         <td>{{ d.owner_group }}</td>
         <td class="mono">{{ d.version_label }}</td>
         <td>{{ ui.pill(t('ri_st_' ~ d.status), {'confirmed': 'ok', 'drafted': 'warn', 'retired': 'neutral'}.get(d.status, 'info'), True) }}
-          <div class="idline">{{ t('ri_instrument') }}: {{ t('ri_has_instrument') if d.has_instrument else t('ri_not_yet') }}</div></td>
-        <td class="mono">{{ d.drafts.draft }} / {{ d.drafts.confirmed }} / {{ d.drafts.dropped }}</td>
+          <div class="idline">{% if ux5 %}{{ t('ri_has_instrument') if d.has_instrument else t('ri_not_yet') }}{% else %}{{ t('ri_instrument') }}: {{ t('ri_has_instrument') if d.has_instrument else t('ri_not_yet') }}{% endif %}</div></td>
+        {% if ux5 %}<td>{{ t('g3_ri_dr', d=d.drafts.draft, c=d.drafts.confirmed, x=d.drafts.dropped) }}</td>{% else %}<td class="mono">{{ d.drafts.draft }} / {{ d.drafts.confirmed }} / {{ d.drafts.dropped }}</td>{% endif %}
         <td>{{ d.uploaded_by }}<div class="idline mono">{{ (d.uploaded_at or '-')[:19] }}</div></td>
         <td>
           {% if ri.can_upload and d.status != 'retired' %}
@@ -33,6 +35,7 @@
   {% if ri.can_upload %}
   <details {% if not ri.docs %}open{% endif %} class="intake-form">
     <summary class="btn{% if not ri.docs %} primary{% endif %}" data-action="upload">{{ t('ri_upload') }}</summary>
+    {% if ux5 %}<p class="hint">{{ t('ri_hint', mb=ri.max_mb) }}</p>{% endif %}
     <form hx-post="/console/regkb/internal?lang={{ lang }}" hx-encoding="multipart/form-data" hx-target="#regkb-internal-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
       <label>{{ t('ri_file') }} <input type="file" name="file" accept=".txt,.md,.pdf" aria-label="{{ t('ri_file') }}"></label>
       <label>{{ t('ri_f_title') }} <input type="text" name="title" maxlength="200" size="30" aria-label="{{ t('ri_f_title') }}"></label>

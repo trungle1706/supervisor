@@ -5,13 +5,18 @@
 {% block title %}{{ t('nav_controls') }}{% endblock %}
 {% block content %}
 {{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_controls'), None)]) }}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g3.css">{% endif %}
+{% if ux5 %}
+{{ u5.page_head(t('nav_controls'), t('ct_purpose'), about=t('ct_why')) }}
+{% else %}
 {{ ui.pagehead(t('nav_controls'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('ct_purpose'), t('ct_why')) }}
+{% endif %}
 <section id="controls" aria-label="{{ t('nav_controls') }}">
 {{ ui.tiles(tiles, '/console/controls', '/console/controls/rows') }}
 {% if failing_n %}<p class="hint">{{ t('ct_failing_line', n=failing_n) }}</p>{% endif %}
 {% if overdue_n %}<p class="hint">{{ t('rk_overdue_line', n=overdue_n) }}</p>{% endif %}
-{% if uncovered %}<p class="hint">{{ t('ct_uncovered_line', n=uncovered|length) }}</p>{% endif %}
+{% if uncovered %}<p class="hint">{{ t('ct_uncovered_line', n=uncovered|length) }}{% if ux5 %} <a href="/console/risks?lang={{ lang }}">{{ t('g3_ct_open_list') }}</a>{% endif %}</p>{% endif %}
 {{ ui.filterbar('/console/controls', '/console/controls/rows', [
   {'name': 'q', 'label': t('ct_col_control'), 'kind': 'search', 'value': params.q},
   {'name': 'agent', 'label': t('agent'), 'kind': 'select', 'value': params.agent, 'options': agent_opts},
@@ -24,6 +29,6 @@
 {% include "_controls_list.html" %}
 </div>
 </section>
-<p class="hint">{{ t('ct_edit_note') }}</p>
+{% if ux5 %}{% if me.has('admin') %}{{ u5.technical([('Edit', t('ct_edit_note'))]) }}{% endif %}{% else %}<p class="hint">{{ t('ct_edit_note') }}</p>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_control_drawer.html" %}{% endif %}{% endblock %}

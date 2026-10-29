@@ -1,6 +1,44 @@
 {# One law agent draft (WP-L1). Variables: d (draft item), instrument, can_confirm. Also the answer
    of Confirm and Drop (swapped in place of the card). #}
 {% import "_ui.html" as ui with context %}
+{% if ux5 %}
+<article class="lawdraft g3-lawcard" id="draft-{{ d.draft_id }}" data-draft="{{ d.draft_id }}" data-status="{{ d.status }}">
+  <div>
+    {{ ui.pill(t('g3_dr_' ~ d.status) if d.status in ('draft', 'confirmed', 'dropped') else d.status, {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}.get(d.status, 'neutral'), True) }}
+    <span class="pill mono">{{ d.duty_id }}</span>
+    {% if d.clause %}<span class="pill">{{ t('g3_dr_clause', c=d.clause) }}</span>{% endif %}
+    {% if d.section_ref %}<span class="pill" data-section-ref="{{ d.section_ref }}">{{ t('g3_dr_section', s=d.section_ref) }}</span>{% endif %}
+    {% for dim in d.dimensions or [] %}<span class="pill mono" data-dimension="{{ dim }}">{{ dim }}</span>{% endfor %}
+    <span class="hint">{{ d.duty_label }}</span>
+    {% if d.is_mock %}{{ ui.pill(t('g3_dr_mock'), 'bad', True) }}{% endif %}
+  </div>
+  <p style="margin:8px 0 0"><b>{{ d.summary_en }}</b></p>
+  <blockquote data-quote="1" lang="vi">{% if d.in_text %}{{ d.before }}<mark>{{ d.quote }}</mark>{{ d.after }}{% else %}<mark>{{ d.quote }}</mark>{% endif %}</blockquote>
+  <details class="g3-more"><summary>{{ t('g3_dr_details') }}</summary>
+    <dl>
+      <dt>{{ t('g3_dr_subject') }}</dt><dd>{{ d.subject }}</dd>
+      <dt>{{ t('g3_dr_trigger') }}</dt><dd>{{ d.trigger }}</dd>
+      <dt>{{ t('g3_dr_evidence') }}</dt><dd>{{ d.evidence_asked }}</dd>
+      <dt>{{ t('g3_dr_source') }}</dt><dd>{{ d.source }}</dd>
+      {% if d.model_id %}<dt>{{ t('g3_dr_model') }}</dt><dd>{{ d.model_id }}</dd>{% endif %}
+      {% if d.prompt_version %}<dt>{{ t('g3_dr_prompt') }}</dt><dd>{{ d.prompt_version }}</dd>{% endif %}
+    </dl>
+  </details>
+  {% if d.confirmed_by %}<p class="hint" data-decided-by="1">{{ t('g3_dr_decided') }}: {{ d.confirmed_by }}{% if d.confirmed_at %} &middot; {{ d.confirmed_at|day }}{% endif %}</p>{% endif %}
+  {% if d.status == 'draft' and can_confirm %}
+  <div class="row-actions">
+    <form method="post" action="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/confirm?lang={{ lang }}" hx-post="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/confirm?lang={{ lang }}" hx-target="#draft-{{ d.draft_id }}" hx-swap="outerHTML">
+      <input type="hidden" name="row_version" value="{{ d.row_version }}">
+      <button class="btn primary" data-act="confirm">{{ t('g3_dr_confirm') }}</button>
+    </form>
+    <form method="post" action="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/drop?lang={{ lang }}" hx-post="/console/regkb/{{ instrument }}/drafts/{{ d.draft_id }}/drop?lang={{ lang }}" hx-target="#draft-{{ d.draft_id }}" hx-swap="outerHTML">
+      <input type="hidden" name="row_version" value="{{ d.row_version }}">
+      <button class="btn" data-act="drop">{{ t('g3_dr_drop') }}</button>
+    </form>
+  </div>
+  {% endif %}
+</article>
+{% else %}
 <article class="lawdraft" id="draft-{{ d.draft_id }}" data-draft="{{ d.draft_id }}" data-status="{{ d.status }}" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
   <div>
     {{ ui.pill(d.status, {'draft': 'warn', 'confirmed': 'ok', 'dropped': 'neutral'}.get(d.status, 'neutral'), True) }}
@@ -33,3 +71,4 @@
   </div>
   {% endif %}
 </article>
+{% endif %}
