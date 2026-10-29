@@ -55,6 +55,49 @@ Realistic synthetic metadata for 300 AI systems across the bank, written straigh
 | Guardians, gate | bindings, 30 days of daily gate-decision rollups (allowed, blocked, masked, paused) for systems in operation, a few incidents and cases |
 | Inventory | graph nodes and edges for each system (agent, model, endpoint, tools, datasets, owner team, vendor) and 40 unmanaged candidates |
 
+### How to seed (WP-D1)
+
+The seeder is `src/supervisor/demo/showcase_portfolio.py`. It needs `SHOWCASE_ENABLED=1` (it
+refuses without it, also inside a Databricks App) and a store with the schema in place
+(`python -m supervisor.jobs.bootstrap_schema`). It writes state tables only (no evidence-chain
+record, no case event), 300 systems, about 22,000 rows, 5 seconds on SQLite. On Delta it sends
+batched `INSERT` statements through the Statement Execution API. Same `--seed` gives the same
+ids; a second run skips every row that exists.
+
+Windows cmd, from the repository folder, with `SQL_BACKEND=databricks_rest` in `.env`:
+
+```
+set SHOWCASE_ENABLED=1
+uv run python -m supervisor.demo.showcase portfolio --systems 300 --dry-run
+uv run python -m supervisor.demo.showcase portfolio --systems 300 --seed 1
+uv run python -m supervisor.demo.showcase portfolio --remove
+```
+
+Databricks notebook cell (the repository folder is on the cluster path; the notebook runs as a
+person, so the App service principal needs no extra grant for the seed):
+
+```
+import os, sys
+sys.path.insert(0, "/Workspace/FILL-ME-repo-folder/src")
+os.environ["SHOWCASE_ENABLED"] = "1"
+os.environ["SQL_BACKEND"] = "databricks_rest"
+from supervisor.config import load_settings
+from supervisor.demo import showcase_portfolio
+showcase_portfolio.run(load_settings(), systems=300, seed=1)
+# showcase_portfolio.run(load_settings(), remove=True)   # delete exactly the showcase rows
+```
+
+For the blocks of Act 1 turn on `GOVERNANCE_ENABLED`, `CONSOLE_NAV_V3`, `CONSOLE_OVERVIEW_V4`,
+`INVENTORY_ENABLED`, `CLASSIFICATION_V2`, `RISK_DIMENSIONS` and `OVERVIEW_PORTFOLIO` in the
+App. A laptop try-out: add `--demo-dir data\local\showcase` (a SQLite store of its own; run
+`bootstrap_schema` with the same data dir first).
+
+Tags and removal. `ai_system.tags` and `inventory_node.attrs` carry `demo:showcase`; the note,
+summary and reason texts start with `[demo:showcase]`; every other row has a system, agent, case
+or incident id that starts with `shw_` (nodes: name `shw-`, edges: reference `shw:`).
+`--remove` deletes by those prefixes and by nothing else. The gate rollup writes
+`decision_daily` rows of dimension `agent` only; the `total` rows belong to the rollup job.
+
 ## 5. Work packages
 
 | WP | Content |
