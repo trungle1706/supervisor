@@ -302,6 +302,7 @@
 
 {% elif key == 'guardians' %}
 {% if v3 %}
+{% if sg_on %}{% include "_smart_guardian_panel.html" %}{% endif %}
 {% if pd %}{% include "_predeploy_panel.html" %}{% else %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_PREDEPLOY') }}</div>{% endif %}
 {% endif %}
 <form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="step5">

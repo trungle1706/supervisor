@@ -165,6 +165,13 @@ if get_settings().governance_enabled:  # WP-G0: mounted only when the flag is on
     from supervisor.governance.orchestrator_routes import router as orchestrator_router  # WP-F4
 
     app.include_router(orchestrator_router)  # /v1/systems/{id}/orchestrate (400 while flag off)
+    from supervisor.console.smart_guardian_routes import (
+        console_router as sg_console_router,  # WP-G4
+    )
+    from supervisor.governance.smart_guardian_routes import router as sg_router
+
+    app.include_router(sg_router)  # /v1/systems/{id}/guardian-proposal (400 while flag off)
+    app.include_router(sg_console_router)  # /console/systems/{id}/guardian-proposal
 if get_settings().governance_enabled and get_settings().guardian_bindings_enabled:  # WP-S1
     from supervisor.governance.guardian_routes import console_router as guardians_console_router
     from supervisor.governance.guardian_routes import router as guardians_router

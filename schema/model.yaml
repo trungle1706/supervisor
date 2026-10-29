@@ -2042,3 +2042,31 @@ tables:
       report_sha256: string?
       package_sha256: string?
       error: string?           # at most 300 characters
+  # --- WP-G4 (phase 12C) the smart guardian ------------------------------------------------------
+  guardian_proposal:
+    kind: state
+    description: >
+      WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a
+      guardian set, thresholds, autonomy limits and the floor, each line with the pointer that
+      justifies it (finding, dimension status, fact, flag, classification, system record or
+      rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status:
+      proposed (open), accepted (a person with systems.edit accepted all or some lines; the
+      decision, the results and the policy snippet are kept in proposal_json), rejected (a reason
+      of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal
+      replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no
+      run). note is at most 300 characters, masked. Integers only; no floats, no personal data.
+      Chain record guardian_proposal: ids, hash and counts.
+    primary_key: [proposal_id]
+    indexes:
+      - [system_id, status]
+    columns:
+      proposal_id: string
+      system_id: string
+      attempt_n: int
+      proposal_json: json
+      status: string           # proposed | accepted | rejected | superseded
+      proposed_at: timestamp
+      proposed_by: string
+      decided_by: string?
+      decided_at: timestamp?
+      note: text?

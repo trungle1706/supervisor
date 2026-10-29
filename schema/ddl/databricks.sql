@@ -1778,3 +1778,23 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regwatch_run` (
 USING DELTA
 COMMENT 'WP-W1 (phase 11, REGWATCH_ENABLED). One run of the scheduler job regwatch (laptop mode): the watcher asked vbpl.vn about the stored Vietnamese instruments and wrote a watch report and a signed update package under DATA_DIR/regwatch/. status: running, ok, partial (some queries failed) or error. instruments_checked and changes_found are counts; report_sha256 and package_sha256 are SHA-256 hex of the report JSON and of the zip. Nothing in a run is applied to RegKB: the changes wait for review (WP-W2). error is a short text, no secret, no path. Integers, hashes and short texts only.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_proposal (state): WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a guardian set, thresholds, autonomy limits and the floor, each line with the pointer that justifies it (finding, dimension status, fact, flag, classification, system record or rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status: proposed (open), accepted (a person with systems.edit accepted all or some lines; the decision, the results and the policy snippet are kept in proposal_json), rejected (a reason of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no run). note is at most 300 characters, masked. Integers only; no floats, no personal data. Chain record guardian_proposal: ids, hash and counts.
+-- primary key (enforced by the app, not by Delta): proposal_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_proposal` (
+  proposal_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  attempt_n BIGINT NOT NULL,
+  proposal_json STRING NOT NULL,
+  status STRING NOT NULL,
+  proposed_at TIMESTAMP NOT NULL,
+  proposed_by STRING NOT NULL,
+  decided_by STRING,
+  decided_at TIMESTAMP,
+  note STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a guardian set, thresholds, autonomy limits and the floor, each line with the pointer that justifies it (finding, dimension status, fact, flag, classification, system record or rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status: proposed (open), accepted (a person with systems.edit accepted all or some lines; the decision, the results and the policy snippet are kept in proposal_json), rejected (a reason of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no run). note is at most 300 characters, masked. Integers only; no floats, no personal data. Chain record guardian_proposal: ids, hash and counts.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

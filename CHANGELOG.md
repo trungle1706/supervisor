@@ -37,6 +37,24 @@
   `nav_v3.py`, `console/routes.py`, `console/i18n.py`, `docs/console.md` (role matrix),
   `.gitignore`. Off: no job, every route 400 `regwatch_off`. Details: `docs/regulations.md`
   "Watcher and update package (WP-W1)".
+- WP-G4 (phase 12C): **smart guardian**, `SMART_GUARDIAN` (default `0`; needs `GOVERNANCE_ENABLED`,
+  `RISK_DIMENSIONS`; `ONBOARD_ORCHESTRATOR` adds the report inputs). New `onboard/smart_guardian.py`
+  and `config/smart_guardian.yaml` (`illustrative: true`): a deterministic rules table, no model
+  call. From the facts v1, the eight risk statuses, the newest assessment reports, the
+  classification outcome, the AI type flags and the autonomy level it PROPOSES a guardian set,
+  thresholds, autonomy limits (max level, pre-execution approval above a VND amount from the SBV
+  thresholds, session limits) and the floor, each line with a `why` pointer and a `rule_id`;
+  integers only. A person with `systems.edit` accepts all or some lines: bindings go through
+  `GuardianService` (floor and off-request rule stay), monitor thresholds into `policy_threshold`,
+  autonomy limits into the system tag `autonomy_limits`, detector settings are kept as a policy-file
+  block. Reject needs a reason of 20 characters or more. A new assessment run supersedes the open
+  proposal. The pre-deploy test (WP-O3) is the proof; nothing is scheduled. New table
+  `guardian_proposal` (appended at the end of `schema/model.yaml`; DDL and notebook regenerated),
+  chain record `guardian_proposal` (ids, hash, integers). API `GET/POST /v1/systems/{id}/
+  guardian-proposal`, `.../accept`, `.../reject`; panel on the Guardians tab and on the Guardian fit
+  step (`/console/systems/{id}/guardian-proposal`), RBAC rows, audit rows, EN and VI labels,
+  `app.yaml` commented flag. Off: routes answer HTTP 400 `smart_guardian_off`, no table read,
+  panels absent. Details: `docs/smart-guardian.md`.
 - WP-C4 (phase 12): **portfolio blocks on My overview**, `OVERVIEW_PORTFOLIO` (default `0`; needs
   `CONSOLE_OVERVIEW_V4`, `GOVERNANCE_ENABLED`). New `console/portfolio.py`: block **Classification**
   (a bar per outcome plus not classified, counts and integer percents, link to the Systems list

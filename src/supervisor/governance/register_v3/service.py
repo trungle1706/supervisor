@@ -533,6 +533,12 @@ def step_view(
         out["level"] = class_level(ctx, draft)
     elif key == "guardians":
         out["g"] = rs.guardian_view(ctx, me, draft)
+        out["sg_on"] = False
+        if sid:  # WP-G4: the smart guardian proposal (SMART_GUARDIAN)
+            from supervisor.console import smart_guardian_view
+
+            sys_row = ctx.systems.get(sid)
+            out.update(smart_guardian_view.panel_data(ctx, me, sys_row))
         out["pd"] = None
         if s.onboard_predeploy:
             from supervisor.console import predeploy_routes

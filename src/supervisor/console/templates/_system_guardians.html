@@ -1,3 +1,5 @@
+{# WP-G4: the smart guardian panel (SMART_GUARDIAN); sg_on is false or absent while it is off. #}
+{% if sg_on %}{% include "_smart_guardian_panel.html" %}{% endif %}
 {# Guardians tab of the system page (WP-UX4b), read only until WP-S1: the detectors on for each
    linked agent, the mandatory ones, and the judges and monitors that are on in this instance.
    Judges that run without a model are labelled mock. #}

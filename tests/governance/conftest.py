@@ -118,6 +118,7 @@ def mounted() -> Iterator[None]:
     from supervisor.app import app
     from supervisor.console.classify_routes import api_router as classify_api  # WP-C1
     from supervisor.console.classify_routes import router as classify_console  # WP-C1
+    from supervisor.console.smart_guardian_routes import console_router as sg_console  # WP-G4
     from supervisor.console.systems_routes import router as console_router
     from supervisor.governance.guardian_routes import console_router as guardians_console  # WP-S1
     from supervisor.governance.guardian_routes import router as guardians_router  # WP-S1
@@ -125,6 +126,7 @@ def mounted() -> Iterator[None]:
     from supervisor.governance.risk_dimension_routes import router as risk_dim_router  # WP-C2
     from supervisor.governance.routes import router as api_router
     from supervisor.governance.rules_routes import router as rules_router  # WP-G2
+    from supervisor.governance.smart_guardian_routes import router as sg_router  # WP-G4
 
     saved = list(app.router.routes)
     lifespan = app.router.lifespan_context
@@ -137,6 +139,8 @@ def mounted() -> Iterator[None]:
     app.include_router(classify_console)  # WP-C1 (400 while CLASSIFICATION_V2 is off)
     app.include_router(classify_api)
     app.include_router(orchestrator_router)  # WP-F4 (400 while ONBOARD_ORCHESTRATOR is off)
+    app.include_router(sg_router)  # WP-G4 (400 while SMART_GUARDIAN is off)
+    app.include_router(sg_console)
     try:
         yield
     finally:

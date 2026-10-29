@@ -224,6 +224,10 @@ def detail_view(
         counts["duties"] = extra["duty_score"]["open"]
         if tab == "duties":
             extra.update(systems_duties.tab_data(ctx, me, system, query or {}))
+    if tab == "guardians":  # WP-G4: the smart guardian panel (SMART_GUARDIAN)
+        from supervisor.console import smart_guardian_view
+
+        extra.update(smart_guardian_view.panel_data(ctx, me, system))
     if tab == "riskdim":  # WP-C2: the eight rows (made on the first read)
         extra.update(systems_riskdim.tab_data(ctx, me, system))
         counts["riskdim"] = systems_riskdim.open_count(extra["rd_counts"])
