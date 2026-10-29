@@ -338,3 +338,9 @@ env:
   #   value: "86400"
   # - name: REGKB_IMPORT_PUBKEY
   #   value: "FILL-ME-path-to-update-package-public-key.pem"
+  # Phase 11 WP-W2: change to re-evaluation. The law agent diffs the stored text against an
+  # imported text, a person with regkb.confirm applies the change (override under
+  # DATA_DIR/regkb/overrides), and the governance event regkb_changed re-opens duties and moves
+  # systems to re-evaluation. Needs LAWAGENT_ENABLED and GOVERNANCE_ENABLED. Off by default.
+  # - name: REGKB_CHANGE_LOOP
+  #   value: "1"

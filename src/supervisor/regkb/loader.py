@@ -9,6 +9,7 @@ or ``SemanticError`` (a RegKB rule is broken). ``error.errors`` lists all of the
 
 from __future__ import annotations
 
+import dataclasses
 import datetime as dt
 import hashlib
 import json
@@ -30,6 +31,7 @@ from supervisor.regkb.model import (
     KnowledgeBase,
     Obligation,
     Source,
+    to_plain,
 )
 from supervisor.regkb.validator import validate
 
@@ -59,6 +61,24 @@ def internal_docs_dir(settings: Any = None) -> Path | None:
     ):
         return None
     return Path(os.path.abspath(Path(settings.data_dir) / "regkb" / "internal"))
+
+
+# WP-W2: DATA_DIR/regkb/overrides/<instrument id>/override.yaml, applied on top of the committed
+# regulations/vn files when REGKB_CHANGE_LOOP is on (docs/regulations.md "Change to re-evaluation")
+OVERRIDE_FILE = "override.yaml"
+OVERRIDE_FORMAT = "regkb-override-1"
+
+
+def change_overrides_dir(settings: Any = None) -> Path | None:
+    """``DATA_DIR/regkb/overrides`` when REGKB_CHANGE_LOOP is on, else None (the loader then
+    ignores every override and the version hash is the hash of the committed files)."""
+    if settings is None:
+        from supervisor.config import load_settings
+
+        settings = load_settings()
+    if not getattr(settings, "regkb_change_loop", False):
+        return None
+    return Path(os.path.abspath(Path(settings.data_dir) / "regkb" / "overrides"))
 
 
 def _today() -> dt.date:
@@ -201,8 +221,16 @@ class _Vocab:
 
 
 class _Loader:
-    def __init__(self, root: Path, internal_dir: Path | None, docs_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        root: Path,
+        internal_dir: Path | None,
+        docs_dir: Path | None = None,
+        overrides_dir: Path | None = None,
+    ) -> None:
         self.root = root
+        self.overrides_dir = overrides_dir  # WP-W2: DATA_DIR/regkb/overrides
+        self.override_files: set[str] = set()
         self.base = root.parent  # local_path in sources is relative to this
         self.internal_dir = internal_dir
         self.docs_dir = (
@@ -223,6 +251,8 @@ class _Loader:
     def rel(self, path: Path) -> str:
         if self.docs_dir is not None and self.docs_dir in path.parents:
             return path.relative_to(self.docs_dir.parent.parent).as_posix()
+        if self.overrides_dir is not None and self.overrides_dir in path.parents:
+            return path.relative_to(self.overrides_dir.parent.parent).as_posix()
         try:
             return path.relative_to(self.base).as_posix()
         except ValueError:
@@ -243,6 +273,7 @@ class _Loader:
     def run(self) -> KnowledgeBase:
         for path, prefix, internal in self.files():
             self.load_file(path, prefix, internal)
+        self.apply_overrides()
         if self.schema_errors or self.semantic_errors:
             cls = SchemaError if self.schema_errors else SemanticError
             errors = self.schema_errors + self.semantic_errors
@@ -315,6 +346,109 @@ class _Loader:
                 )
             else:
                 self.obligations[ob.id] = ob
+
+    # ---- WP-W2 overrides ------------------------------------------------------------
+    def apply_overrides(self) -> None:
+        if self.overrides_dir is None or not self.overrides_dir.is_dir():
+            return
+        for path in sorted(self.overrides_dir.glob("*/" + OVERRIDE_FILE)):
+            self.apply_override(path)
+
+    def apply_override(self, path: Path) -> None:
+        """One instrument's override on top of the committed file: the new text of record (sha
+        checked), the obligations that are new or replaced (the same schema, the same rules, and
+        the quote must sit in the incoming text) and the obligations that were removed."""
+        from supervisor.regkb.lawagent import article_numbers, normalise_ws, split_articles
+
+        assert self.overrides_dir is not None
+        rel = self.rel(path)
+        self.override_files.add(rel)
+        try:
+            data = _load_yaml(path)
+        except (yaml.YAMLError, UnicodeDecodeError, OSError) as exc:
+            self.schema_errors.append(f"{rel}: cannot read YAML: {exc}".replace("\n", " "))
+            return
+        if not isinstance(data, dict) or data.get("format") != OVERRIDE_FORMAT:
+            self.schema_errors.append(f"{rel}: format must be {OVERRIDE_FORMAT}")
+            return
+        dates = _find_dates(data)
+        if dates:
+            self.schema_errors += [f'{rel}: {p}: quote dates (write "YYYY-MM-DD")' for p in dates]
+            return
+        iid = str(data.get("instrument_id", ""))
+        inst = self.instruments.get(iid)
+        if inst is None or path.parent.name != iid:
+            self.sem(rel, iid or "?", "override names an instrument that is not in the base files")
+            return
+        text = data.get("text")
+        obligations = data.get("obligations") or []
+        removed = data.get("removed") or []
+        if (
+            not isinstance(text, dict)
+            or not isinstance(obligations, list)
+            or not isinstance(removed, list)
+        ):
+            self.schema_errors.append(f"{rel}: text, obligations and removed are required shapes")
+            return
+        data_root = self.overrides_dir.parent.parent
+        tpath = (data_root / str(text.get("path", ""))).resolve()
+        if data_root.resolve() not in tpath.parents or not tpath.is_file():
+            self.sem(rel, iid, f"override text {text.get('path')} does not exist")
+            return
+        raw = tpath.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != text.get("sha256"):
+            self.sem(rel, iid, f"override text {text.get('path')} sha256 does not match")
+            return
+        body = raw.decode("utf-8")
+        articles = {a.number: a for a in split_articles(body)}
+        whole = normalise_ws(body)
+        new_src = Source(
+            url=str(text.get("url") or ""),
+            title=str(text.get("title") or ""),
+            fetched_at=str(text.get("fetched_at") or ""),
+            kind="primary",
+            sha256=str(text["sha256"]),
+            local_path=str(text["path"]),
+        )
+        inst = dataclasses.replace(
+            inst, sources=(new_src, *(s for s in inst.sources if s.kind != "primary"))
+        )
+        self.instruments[iid] = inst
+        header = to_plain(inst)
+        for item in obligations:
+            if not isinstance(item, dict):
+                self.schema_errors.append(f"{rel}: an obligation must be a mapping")
+                continue
+            merged = dict(item)
+            merged["instrument_id"] = iid
+            merged["instrument_kind"] = inst.kind
+            for key in HEADER_KEYS:
+                if key in header:
+                    merged[key] = header[key]
+            merged.setdefault("status", inst.status)
+            merged.setdefault("dates", header["dates"])
+            issues = validate(merged, self.schema)
+            if issues:
+                self.schema_errors += [f"{rel}: {item.get('id', '?')}: {i}" for i in issues]
+                continue
+            ob = _obligation(merged, rel)
+            self.check_obligation(ob, inst)
+            old = self.obligations.get(ob.id)
+            if old is not None and old.instrument_id != iid:
+                self.sem(rel, ob.id, f"obligation id belongs to {old.instrument_id}")
+                continue
+            quote = normalise_ws(ob.text_vi or "")
+            nums = [n for n in article_numbers(ob.article_ref) if n in articles]
+            pool = [articles[n].text for n in nums] or [whole]
+            if not quote or not any(quote in t for t in pool):
+                self.sem(rel, ob.id, "text_vi is not a quote of the incoming text")
+            self.obligations[ob.id] = ob
+        for oid in removed:
+            old = self.obligations.get(str(oid))
+            if old is None or old.instrument_id != iid:
+                self.sem(rel, str(oid), "removed obligation is not in this instrument")
+            else:
+                del self.obligations[str(oid)]
 
     # ---- rules ----------------------------------------------------------------------
     def check_timing(self, rel: str, ident: str, status: str, dates: Dates) -> None:
@@ -403,6 +537,8 @@ class _Loader:
         base = (
             self.docs_dir.parent.parent.resolve()
             if rel in self.docs and self.docs_dir is not None
+            else self.overrides_dir.parent.parent.resolve()
+            if rel in self.override_files and self.overrides_dir is not None
             else self.base.resolve()
         )
         path = (base / src.local_path).resolve()
@@ -418,13 +554,19 @@ def load_kb(
     root: Path | None = None,
     internal_dir: Path | None = None,
     docs_dir: Path | None = None,
+    overrides_dir: Path | None = None,
 ) -> KnowledgeBase:
     """Load regulations/{vn,intl}/*.yaml (and ``internal_dir``/*.yaml when given).
 
     WP-W3: with the default ``root`` and no ``docs_dir``, the internal documents under
     ``DATA_DIR/regkb/internal/<doc>/instrument.yaml`` are read too, but only when REGKB_INTERNAL
     and LAWAGENT_ENABLED are on. With the flag off they are not read and are not in the version
-    hash. Pass ``docs_dir`` to name the folder (tests)."""
+    hash. Pass ``docs_dir`` to name the folder (tests).
+
+    WP-W2: with the default ``root`` and no ``overrides_dir``, the overrides under
+    ``DATA_DIR/regkb/overrides/<instrument>/override.yaml`` are applied on top of the committed
+    files, but only when REGKB_CHANGE_LOOP is on. With the flag off none is read and the version
+    hash is the hash of the committed files. Pass ``overrides_dir`` to name the folder."""
     base = Path(os.path.abspath(root)) if root is not None else REPO_ROOT / "regulations"
     internal = Path(os.path.abspath(internal_dir)) if internal_dir is not None else None
     if not base.is_dir():
@@ -434,4 +576,7 @@ def load_kb(
     if docs_dir is None and root is None:
         docs_dir = internal_docs_dir()
     docs = Path(os.path.abspath(docs_dir)) if docs_dir is not None else None
-    return _Loader(base, internal, docs).run()
+    if overrides_dir is None and root is None:
+        overrides_dir = change_overrides_dir()
+    overrides = Path(os.path.abspath(overrides_dir)) if overrides_dir is not None else None
+    return _Loader(base, internal, docs, overrides).run()

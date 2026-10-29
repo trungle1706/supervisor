@@ -35,7 +35,7 @@ from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.intake_routes import _same_site, parse_multipart
 from supervisor.console.routes import _call, audited, render
 from supervisor.core.canonical import format_ts
-from supervisor.regkb import package, watch
+from supervisor.regkb import change, package, watch
 
 router = APIRouter(prefix="/console", tags=["console"])
 api_router = APIRouter(prefix="/v1", tags=["console"])
@@ -209,5 +209,10 @@ async def watch_page(
         me,
         "regkb_watch.html",
         section="regkb_watch",
-        rw={**runs, **pk, "now": format_ts(datetime.now(UTC))},
+        rw={
+            **runs,
+            **pk,
+            "now": format_ts(datetime.now(UTC)),
+            "change_loop": change.enabled(ctx.settings),  # WP-W2: the diff buttons
+        },
     )

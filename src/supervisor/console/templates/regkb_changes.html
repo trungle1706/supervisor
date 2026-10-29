@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rc_title') }}{% endblock %}
+{% block content %}
+{# WP-W2. Variables: ch (items, rows, banner), can_confirm. #}
+{{ ui.crumbs([('Regulations', None), (t('rc_title'), None)]) }}
+{{ ui.pagehead(t('rc_title')) }}
+<section class="card" id="regkb-changes" data-section="regkb-changes">
+  <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('rc_banner') }}</b></div>
+  <p class="hint">{{ t('rc_hint') }}</p>
+  <h3>{{ t('rc_items') }} <span class="k">{{ ch['items']|length }}</span></h3>
+  {% if ch['items'] %}
+  <div class="tablewrap flat"><table class="queue" data-table="regkb-changes">
+    <thead><tr><th scope="col">{{ t('rc_c_package') }}</th><th scope="col">{{ t('rc_c_instrument') }}</th><th scope="col">{{ t('rc_c_kinds') }}</th><th scope="col">{{ t('rc_c_status') }}</th><th scope="col">{{ t('rc_c_action') }}</th></tr></thead>
+    <tbody>
+    {% for i in ch['items'] %}
+      <tr class="row" data-package="{{ i.package_sha }}" data-instrument="{{ i.instrument_id }}" data-state="{{ i.status }}">
+        <td class="mono">{{ i.package_sha[:12] }}<div class="idline">{{ (i.imported_at or '-')[:19] }}</div></td>
+        <td class="mono">{{ i.instrument_id }}</td>
+        <td>{{ i.kinds|join(', ') }}</td>
+        <td>{{ ui.pill(t('rc_s_' ~ i.status), {'no_diff': 'warn', 'diffed': 'info', 'applied': 'ok'}.get(i.status, 'neutral'), True) }}</td>
+        <td>
+          {% if i.status != 'no_diff' %}
+          <a class="btn" data-act="open" href="/console/regkb/changes/{{ i.package_sha }}/{{ i.instrument_id }}?lang={{ lang }}">{{ t('rc_open') }}</a>
+          {% elif i.can_diff and can_confirm %}
+          <form method="post" action="/console/regkb/changes/{{ i.package_sha }}/{{ i.instrument_id }}/diff?lang={{ lang }}">
+            {% if i.texts|length > 1 %}
+            <select name="incoming" aria-label="incoming text">{% for tx in i.texts %}<option value="{{ tx }}">{{ tx }}</option>{% endfor %}</select>
+            {% endif %}
+            <button class="btn primary" data-act="diff">{{ t('rc_diff_btn') }}</button>
+          </form>
+          {% elif not i.can_diff %}
+          <span class="hint">{{ t('rc_no_text') }}</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint" data-empty="regkb-changes">{{ t('rc_none') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

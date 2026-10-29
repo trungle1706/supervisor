@@ -406,6 +406,13 @@ class Settings(BaseSettings):
     regwatch_enabled: bool = False
     regwatch_interval_s: int = Field(default=86400, ge=3600)
     regkb_import_pubkey: Path | None = None
+    # WP-W2 (phase 11): change to re-evaluation. REGKB_CHANGE_LOOP=1 (needs LAWAGENT_ENABLED and
+    # GOVERNANCE_ENABLED) turns on the law agent diff mode (--diff, the button on the watch page),
+    # the changes page /console/regkb/changes, POST /v1/regkb/changes/{sha}/{instrument}/apply,
+    # the override of the loader (DATA_DIR/regkb/overrides/<instrument>/) and the governance event
+    # regkb_changed. Off = HTTP 400 change_loop_off, no override loaded, no event. A person
+    # with regkb.confirm applies a change; nothing is applied automatically.
+    regkb_change_loop: bool = False
     # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
     # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
     assurance_data_dir: Path | None = None

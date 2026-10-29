@@ -13,6 +13,13 @@
 <p class="greet-sub" id="greet-sub">{{ t('ux4b_my_sub', systems=tot.systems, actions=d.actions_n, cases=d.cases_n) }}{% if d.clock %} {% if d.clock.overdue %}{{ t('greet_clock_over', d=dur(d.clock.secs)) }}{% else %}{{ t('greet_clock_left', d=dur(d.clock.secs)) }}{% endif %}{% endif %}</p>
 {{ v3.scope_switch('/console/', d.scope, d.scopes) }}
 
+{% if d.law_change %}{# WP-W2 #}
+<section class="card ov4-lawchange" data-law-change="1" aria-label="{{ t('rc_title') }}">
+  {% if d.law_change.pending %}<p class="ov4-why" data-law-change-state="pending"><span class="dot"></span> {{ t('rc_ov_pending', n=d.law_change.pending) }} <a class="btn" href="/console/regkb/changes?lang={{ lang }}">{{ t('rc_ov_open') }}</a></p>{% endif %}
+  {% for a in d.law_change.applied %}<p class="ov4-why" data-law-change-state="applied">{{ t('rc_ov_applied', date=a.date, n=a.systems) }} <span class="muted mono">{{ a.instrument_id }}</span></p>{% endfor %}
+</section>
+{% endif %}
+
 <div class="ov4-top">
   <div class="ov4-left">
     <section class="card ov4-banner state-{{ d.banner.state }}" data-banner="{{ d.banner.state }}" aria-labelledby="ov4-bn">

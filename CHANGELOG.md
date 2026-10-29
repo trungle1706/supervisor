@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- WP-W2 (phase 11): **law change to re-evaluation**, `REGKB_CHANGE_LOOP` (default `0`; needs
+  `LAWAGENT_ENABLED` and `GOVERNANCE_ENABLED`; off: HTTP 400 `change_loop_off`, no override loaded, no
+  event). Law agent **diff mode** (`python -m supervisor.regkb.lawagent --diff <instrument> --incoming
+  <package sha | file>`, the button on the watch page, `POST /v1/regkb/changes/{sha}/{instrument}/diff`):
+  article-by-article diff of the text of record against the incoming text (`unchanged`, `changed`,
+  `added`, `removed`, changed characters), drafts for the changed and added articles only (no model
+  call on an unchanged text), `affected_obligations`, report JSON and markdown with sha under
+  `DATA_DIR/regkb/changes/<sha>/<instrument>/`. **Apply change** by a person with `regkb.confirm`
+  (page `/console/regkb/changes/{sha}/{instrument}`, `POST .../apply`): the confirmed drafts become new or
+  updated obligations in `DATA_DIR/regkb/overrides/<instrument>/override.yaml`; the loader applies it
+  with the same validator and a quote check against the incoming text, which becomes the text of record;
+  the RegKB version hash changes; chain record `regkb_change`. Governance event `regkb_changed` (source
+  `regkb_changes`, new action `reopen_obligations`, two rules in `config/governance_actions.yaml`):
+  duty rows back to `open` with the note, WP-L3 gap tasks, owner notice, `move_to_re_evaluation` for a
+  classification article, banner on My overview. New tables `regkb_change` and `regkb_change_draft`
+  (appended, DDL regenerated). Shared files: `config.py` (flag), `app.py` (two routers), `core/rbac.py`
+  (8 rows), `regulations/schema/obligation.schema.json` (`local_path` may start `regkb/overrides/`),
+  `governance/actions_model.py`, `event_sources.py` (`attach_systems` keeps a system the source named),
+  `actions.py`, `overview_v4.py`, `ov_my_v4.html`, `regkb_watch.html`, `regwatch_routes.py`,
+  `i18n.py`, `app.yaml` (commented flag). Details: `docs/regulations.md` "Change to re-evaluation
+  (WP-W2)".
 - WP-F5 (phase 12B): **six starter assessment agents and two templates**, under `AGENT_FACTORY` (new
   flag `FACTORY_SEED_STARTERS`, default `0`). Definitions in `config/factory_agents/`:
   `model-risk-assessor`, `data-governance-assessor`, `cyber-assessor` (the one loop example: `rules`

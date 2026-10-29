@@ -588,6 +588,21 @@ class ActionRunner:
             return Outcome("failed", "not_written")
         return Outcome("done", str(row["event_id"]))
 
+    def _do_reopen_obligations(self, ev: GovernanceEvent, p: PlannedAction, _inc: str) -> Outcome:
+        """WP-W2: the duty rows of this system that map to the affected obligations go back to
+        open with the note, and their gap tasks are made (supervisor.governance.regkb_reopen)."""
+        if not getattr(self.settings, "regkb_change_loop", False):
+            return Outcome("skipped", "change_loop_off")
+        from supervisor.governance import regkb_reopen
+
+        change_id = ev.ref.split(":", 1)[1] if ev.ref.startswith("regkb_change:") else ""
+        status, counts = regkb_reopen.reopen(
+            self.ctx, self.settings, str(ev.system_id), change_id, ACTOR
+        )
+        if status == "skipped":
+            return Outcome("skipped", "no_rows")
+        return Outcome("done", f"reopened:{counts['reopened_n']}:tasks:{counts['tasks_n']}")
+
     def _controls_for(self, ev: GovernanceEvent, p: PlannedAction) -> list[str]:
         ids = set(p.controls)
         if ev.evidence is not None:

@@ -219,6 +219,22 @@ def _banner(
     return {"state": "good", "why": "ov4_why_good", "arg": ""}
 
 
+def _law_change(ctx: Any, now: dt.datetime) -> dict[str, Any] | None:
+    """WP-W2: the banner lines "law change pending review" and "law change applied on <date>: N
+    systems re-opened" (7 days). None while REGKB_CHANGE_LOOP is off or there is nothing."""
+    try:
+        from supervisor.regkb import change
+
+        if not change.enabled(ctx.settings):
+            return None
+        return change.banner(ctx.state, ctx.settings.data_dir, now)
+    except Exception:  # noqa: BLE001 - a banner never breaks My overview
+        import logging
+
+        logging.getLogger(__name__).exception("law change banner failed")
+        return None
+
+
 def my_overview(
     ctx: Any, me: Any, scope_raw: str | None, now: dt.datetime, query: Any
 ) -> dict[str, Any]:
@@ -447,6 +463,7 @@ def my_overview(
         "scope": scope,
         "scopes": SCOPES,
         "banner": banner,
+        "law_change": _law_change(ctx, now),  # WP-W2; None while REGKB_CHANGE_LOOP is off
         "pipeline": pipeline,
         "assess": assess,
         "risk_rows": risk_rows,

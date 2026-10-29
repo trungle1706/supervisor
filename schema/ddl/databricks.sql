@@ -1839,3 +1839,52 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_shadow_day` (
 USING DELTA
 COMMENT 'WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls with a finding that would act (would_act), calls where the shadow detector was skipped because the latency budget was used (skipped_budget) and findings written. Integers only. A daily job writes one guardian_shadow_day chain record per closed day (chained).'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- regkb_change (state): WP-W2 (REGKB_CHANGE_LOOP). One row per instrument and imported update package: the law agent diff of the stored text of record against the incoming text (status diffed) and the apply by a person with regkb.confirm (status applied). The counts are whole numbers. articles and obligations_affected list article numbers and RegKB obligation ids (law text ids only, no personal data). applied_at is what the governance event source reads (event regkb_changed). version_before and version_after are the RegKB version hashes around the apply. The files (diff report, incoming text copy, override) are under DATA_DIR/regkb. Not legal advice.
+-- primary key (enforced by the app, not by Delta): change_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_change` (
+  change_id STRING NOT NULL,
+  package_sha STRING NOT NULL,
+  instrument_id STRING NOT NULL,
+  status STRING NOT NULL,
+  old_sha STRING NOT NULL,
+  new_sha STRING NOT NULL,
+  incoming_name STRING NOT NULL,
+  articles_changed BIGINT NOT NULL,
+  articles_added BIGINT NOT NULL,
+  articles_removed BIGINT NOT NULL,
+  changed_chars BIGINT NOT NULL,
+  articles STRING NOT NULL,
+  obligations_affected STRING NOT NULL,
+  classification_hit BOOLEAN NOT NULL,
+  drafts_n BIGINT NOT NULL,
+  model_id STRING,
+  obligations_added BIGINT NOT NULL,
+  obligations_updated BIGINT NOT NULL,
+  obligations_removed BIGINT NOT NULL,
+  version_before STRING,
+  version_after STRING,
+  created_at TIMESTAMP NOT NULL,
+  created_by STRING NOT NULL,
+  applied_at TIMESTAMP,
+  applied_by STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-W2 (REGKB_CHANGE_LOOP). One row per instrument and imported update package: the law agent diff of the stored text of record against the incoming text (status diffed) and the apply by a person with regkb.confirm (status applied). The counts are whole numbers. articles and obligations_affected list article numbers and RegKB obligation ids (law text ids only, no personal data). applied_at is what the governance event source reads (event regkb_changed). version_before and version_after are the RegKB version hashes around the apply. The files (diff report, incoming text copy, override) are under DATA_DIR/regkb. Not legal advice.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- regkb_change_draft (state): WP-W2. Links a law agent draft (regkb_draft) to the change it was made for. change_ref is the package sha and the article ("<sha256>:Dieu 12"). One row per draft.
+-- primary key (enforced by the app, not by Delta): draft_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`regkb_change_draft` (
+  draft_id STRING NOT NULL,
+  change_id STRING NOT NULL,
+  change_ref STRING NOT NULL,
+  article STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-W2. Links a law agent draft (regkb_draft) to the change it was made for. change_ref is the package sha and the article ("<sha256>:Dieu 12"). One row per draft.'
+TBLPROPERTIES ('supervisor.kind' = 'state');

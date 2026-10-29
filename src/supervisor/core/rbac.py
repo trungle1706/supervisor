@@ -668,6 +668,15 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/v1/regkb/watch/runs"): "regkb.watch",
     ("GET", "/v1/regkb/watch/packages"): "regkb.watch",
     ("GET", "/console/regkb/watch"): "regkb.watch",
+    # --- WP-W2 --- change to re-evaluation (REGKB_CHANGE_LOOP; 400 change_loop_off)
+    ("GET", "/v1/regkb/changes"): "regkb.view",
+    ("GET", "/v1/regkb/changes/{package_sha}/{instrument_id}"): "regkb.view",
+    ("POST", "/v1/regkb/changes/{package_sha}/{instrument_id}/diff"): "regkb.confirm",
+    ("POST", "/v1/regkb/changes/{package_sha}/{instrument_id}/apply"): "regkb.confirm",
+    ("GET", "/console/regkb/changes"): "regkb.view",
+    ("GET", "/console/regkb/changes/{package_sha}/{instrument_id}"): "regkb.view",
+    ("POST", "/console/regkb/changes/{package_sha}/{instrument_id}/diff"): "regkb.confirm",
+    ("POST", "/console/regkb/changes/{package_sha}/{instrument_id}/apply"): "regkb.confirm",
     # --- WP-G6 --- MCP server, connected apps, KPIs (MCP_SERVER_ENABLED)
     ("POST", "/mcp"): AGENT,  # the credential is the HMAC signature of a connected app
     ("GET", "/v1/mcp/apps"): "mcp.apps",

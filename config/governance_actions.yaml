@@ -14,6 +14,9 @@
 #   fire_webhook             an outbound event (kind governance_action) for other systems
 #   reopen_control           the controls that map the evidence of the event become failing
 #                            for the agent (optional "controls: [CTL-...]" adds named ones)
+#   reopen_obligations       WP-W2: the duty rows of the system that map to the obligations
+#                            of a changed article go back to open with a note, and the gap tasks
+#                            are made (REGKB_CHANGE_LOOP; event kind regkb_changed only)
 # There is no action that pauses, blocks or quarantines an agent (rule R1: the gate did that).
 #
 # system_class (optional): decision33_class (list), risk_level (list, effective level),
@@ -167,6 +170,22 @@ rules:
     kind: model_version_change
     min_severity: medium
     system_class: {autonomy_level_gte: l3}
+    actions: [move_to_re_evaluation]
+
+  # ---- WP-W2: a law change was applied (event regkb_changed, one per system) -----------------
+  # severity high = a classification article changed (Law Art. 7, 9, 10; Decree 142 Art. 6, 8, 9,
+  # 11; Decision 33 incl. Appendix IV; Circular 53 Art. 4) or a full or partial duty on the
+  # classification path is affected; medium = other duties only.
+  - id: GA-REGKB-CHANGED
+    title: A law change was applied; the duties of the changed articles are open again
+    kind: regkb_changed
+    min_severity: medium
+    actions: [reopen_obligations, notify_owner, fire_webhook]
+
+  - id: GA-REGKB-CHANGED-CLASSIFICATION
+    title: A law change touches the classification; a deployed system returns to re-evaluation
+    kind: regkb_changed
+    min_severity: high
     actions: [move_to_re_evaluation]
 
   - id: GA-JUDGE-ESCALATION
