@@ -3,7 +3,7 @@
 {% import "_factory_ui.html" as fu with context %}
 <section class="card" id="factory-step-panel" data-step="golden">
   <h3>9. {{ t('fa_step_golden') }} <span class="k" data-golden-total="{{ ed.golden_total }}">{{ ed.golden_total }}</span></h3>
-  {% if ed.golden_total != ed.strat.total %}<p class="hint" data-golden-split="1">{{ t('fa_golden_split', n=ed.strat.total, k=ed.golden_total - ed.strat.total, all=ed.golden_total) }}</p>{% endif %}
+  {% if ed.golden_total != ed.checklist_total %}<p class="hint" data-golden-split="1">{{ t('fa_golden_split', n=ed.checklist_total, k=ed.golden_total - ed.checklist_total, all=ed.golden_total) }}</p>{% endif %}
   <p class="hint">{{ t('fa_golden_hint') }}</p>
   {% if ed.editable %}
   <form hx-post="/console/factory/{{ ed.agent.id }}/golden" hx-target="#factory-step" hx-swap="innerHTML" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data" class="btnrow">
@@ -27,7 +27,8 @@
   </tbody></table>
   <p class="idline" data-per-verdict="1">{% for v, n in ed.strat.per_verdict.items() %}<span class="pill">{{ v }} {{ n }}</span> {% endfor %}</p>
   {% if ed.strat.uncovered %}<p class="notice" data-uncovered="1"><span class="dot"></span>{{ t('fa_golden_uncovered', ids=ed.strat.uncovered|join(', ')) }}</p>{% endif %}
-  <p class="hint">{{ t('fa_golden_min') }}</p>
+  {% if ed.golden_total < ed.golden_min %}<p class="hint">{{ t('fa_golden_min', n=ed.golden_min) }}</p>
+  {% else %}<p class="hint" data-gate-min-met="1">{{ t('fa_golden_min_met', n=ed.golden_total) }}</p>{% endif %}
   <table class="queue" data-table="cases"><tbody>
   {% for c in ed.cases %}<tr data-case="{{ c.case_id }}"><td class="mono">{{ c.case_id }}</td><td class="mono">{{ c.checklist_id }}</td><td>{{ c.expected_verdict }}</td><td class="wrap" lang="vi">{{ c.input }}</td></tr>{% endfor %}
   </tbody></table>

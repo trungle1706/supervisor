@@ -230,8 +230,12 @@ FA: dict[str, tuple[str, str]] = {
     "fa_golden_cases": ("Cases", "Số ca"),
     "fa_golden_uncovered": ("No case yet for: {ids}", "Chưa có ca cho: {ids}"),
     "fa_golden_min": (
-        "The gate asks for at least 50 cases, spread over the checklist items.",
-        "Cổng yêu cầu ít nhất 50 ca, trải đều các mục kiểm tra.",
+        "The gate asks for at least {n} cases, spread over the checklist items.",
+        "Cổng yêu cầu ít nhất {n} ca, trải đều các mục kiểm tra.",
+    ),
+    "fa_golden_min_met": (
+        "The gate uses {n} cases. The counts above include them.",
+        "Cổng dùng {n} ca. Số liệu ở trên đã gồm các ca này.",
     ),
     "fa_h_checklist_drafter": ("Helper: checklist drafter", "Trợ lý: soạn danh mục kiểm tra"),
     "fa_h_checklist_hint": (

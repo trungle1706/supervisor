@@ -25,6 +25,18 @@
   {% elif gf.view and gf.view.state not in ('draft', 'benchmarked') %}<p class="hint" data-not-draft="1">{{ t('gf_not_draft') }}</p>{% endif %}
 
   <div id="g5-rule">
+  {% if gf.view and not gf.editable %}
+  <div data-readonly-def="1">
+    <h2>{{ t('gf_sec_describe') }}</h2>
+    <dl class="kv">
+      {% for lab, key in (('gf_name','name'),('gf_f_id','id'),('gf_owner','owner_group'),('gf_description','description'),('gf_f_type','type'),('gf_where','stage'),('gf_f_action','action_on_fail'),('gf_scope_agents','scope_agents'),('gf_scope_tools','scope_tools'),('gf_scope_data','scope_data_classes'),('gf_f_sens','sensitivity'),('gf_bench_pack','benchmark_pack'),('gf_f_tpr','min_tpr_pct'),('gf_f_fpr','max_fpr_pct'),('gf_f_p95','max_p95_ms'),('gf_f_days','shadow_days')) %}
+      <dt>{{ t(lab) }}</dt><dd>{{ v[key] if v[key] not in ('', None) else '-' }}</dd>
+      {% endfor %}
+    </dl>
+    <h2>{{ t('gf_adv_json') }}</h2>
+    <pre class="mono" data-field="config_json">{{ v.config_json }}</pre>
+  </div>
+  {% else %}
   <form method="post" action="{{ base }}/draft?lang={{ lang }}" hx-post="{{ base }}/draft?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML" id="gf-form">
     <fieldset{% if not gf.editable %} disabled{% endif %}>
       <h2>{{ t('gf_sec_describe') }}</h2>
@@ -83,13 +95,14 @@
     </div>
     {% endif %}
   </form>
+  {% endif %}
 
   {% if gf.view and gf.can_edit %}
   <div class="btnrow">
     {% if gf.view.state in ('draft', 'benchmarked') %}
     <form method="post" action="{{ base }}/retire?lang={{ lang }}" hx-post="{{ base }}/retire?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><button class="btn" data-action="retire">{{ t('gf_retire') }}</button></form>
-    {% elif gf.view.state == 'retired' %}
-    <form method="post" action="{{ base }}/reopen?lang={{ lang }}" hx-post="{{ base }}/reopen?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><button class="btn" data-action="reopen">{{ t('gf_reopen') }}</button></form>
+    {% else %}
+    {% if gf.view.state == 'retired' %}<form method="post" action="{{ base }}/reopen?lang={{ lang }}" hx-post="{{ base }}/reopen?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><button class="btn" data-action="reopen">{{ t('gf_reopen') }}</button></form>{% endif %}
     <form method="post" action="{{ base }}/new-version?lang={{ lang }}" hx-post="{{ base }}/new-version?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><button class="btn" data-action="new-version">{{ t('gf_new_version') }}</button></form>
     {% endif %}
   </div>
