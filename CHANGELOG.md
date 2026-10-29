@@ -11,6 +11,9 @@
   class needs a higher level than the system tag `autonomy_limits.max_level`, or whose amount is above
   `approval_above_vnd` (credit: `credit_approval_above_vnd`). Observe mode lifts it. Needs
   `SMART_GUARDIAN=1` and `GOVERNANCE_ENABLED=1`; off, nothing changes.
+- WP-B1 item 4: **watcher noise**. `text_changed` compares word sequences without page numbers,
+  part headings (Chuong, Muc, Phan, Tieu muc) and line breaks; such differences are `layout_only`.
+  Article headings still count.
 
 ## v0.9.0 (phases 11 and 12: compliance-first onboarding, agent factory, guardian factory, regulation watch) - 2026-10-29
 

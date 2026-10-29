@@ -11,7 +11,8 @@ For every stored Vietnamese instrument (a ``regulations/vn/*.yaml`` file with a 
   run, is not compatible with the status in the instrument file);
 * ``updated_date_newer``: ``updatedDate`` is later than the last report or ``last_checked``;
 * ``text_changed``: a primary vbpl source now has a text whose sha256 differs from the stored one
-  and whose white-space-folded text differs too (layout-only changes are counted, not reported).
+  and whose word sequence differs too (page numbers, part headings and line breaks are dropped;
+  layout-only changes are counted as ``layout_only``, not reported).
 
 New texts go to ``<sources root>/<id>/incoming/<YYYY-MM-DD>/`` with sha256 and a ``.meta.json``
 sidecar. The stored text of record is never touched. A watch report (JSON and Markdown) and a
@@ -105,6 +106,45 @@ def fold(text: str) -> str:
 
 def fold_ws(text: str) -> str:
     return " ".join(text.split())
+
+
+# WP-B1: layout noise of a fetched text. A page number is a line of its own ("12", "- 12 -",
+# "Trang 12", "Page 12", "12/40"). A part heading is a line that starts with Chuong / Muc / Phan /
+# Tieu muc and a number (the all-capitals title line after it goes too). Article headings
+# ("Dieu 3. Title") stay: an added or renamed article is a real change.
+_PAGE_LINE = re.compile(
+    r"^\W*(?:(?:trang|page|tr\.)\s*)?\d{1,4}(?:\s*(?:/|of|trên)\s*\d{1,4})?\W*$", re.IGNORECASE
+)
+_PART_HEADING = re.compile(
+    r"^(?:chương|mục|phần|tiểu\s+mục)\s+(?:[ivxlc]+|\d+)\b", re.IGNORECASE | re.UNICODE
+)
+
+
+def _is_title_line(line: str) -> bool:
+    letters = [c for c in line if c.isalpha()]
+    return bool(letters) and all(c.isupper() for c in letters)
+
+
+def words_of(text: str) -> list[str]:
+    """The word sequence of a text without page numbers, part headings and line breaks. Two texts
+    with the same sequence differ in layout only."""
+    out: list[str] = []
+    skip_title = False
+    for raw in unicodedata.normalize("NFC", text).splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if _PAGE_LINE.match(line):
+            continue
+        if _PART_HEADING.match(line):
+            skip_title = True
+            continue
+        if skip_title and _is_title_line(line):
+            skip_title = False
+            continue
+        skip_title = False
+        out.extend(line.split())
+    return out
 
 
 def sha256_hex(data: bytes) -> str:
@@ -545,7 +585,7 @@ def check_instrument(
         if old is None:  # the stored sha is of a file we cannot compare: say so, no change
             row["unverifiable"].append(vid)
             continue
-        if fold_ws(old) == fold_ws(text):
+        if fold_ws(old) == fold_ws(text) or words_of(old) == words_of(text):
             row["layout_only"].append(vid)
             continue
         inc = _incoming_item(inst, today, now, vid, data, text)
