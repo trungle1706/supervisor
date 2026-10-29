@@ -113,3 +113,21 @@ def test_every_compliance_route_is_get_only_and_in_rbac() -> None:
 def test_all_roles_can_view(on: Console) -> None:
     for user in ("auditor.dung", "reviewer.an"):
         assert on.get("/console/compliance", user=user).status_code == 200
+
+
+def test_counts_card_says_what_it_counts_and_adds_up_to_the_table(on: Console) -> None:
+    """UX5-BUG: the status card counts rows that apply; the table also holds the rows that wait
+    for an answer. The card states both and the table total."""
+    import re
+
+    from supervisor.console import compliance_view
+
+    m = compliance_view.matrix_for(on.ctx.settings, "payments")
+    yes = m["summary"]["by_applies"].get("yes", 0)
+    na = m["summary"]["needs_answer"]
+    total = len(m["rows"])
+    html = on.get("/console/compliance/payments?lang=en").text
+    assert f"Rows that apply ({yes}), by status" in html
+    flat = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+    assert f"{yes} apply + {na} need an answer = {total} rows in the table below" in flat
+    assert f"Showing {total} of {total} rows" in flat

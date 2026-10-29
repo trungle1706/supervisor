@@ -939,7 +939,15 @@ _T: dict[str, tuple[str, str]] = {
     "cp_d33": ("Decision 33 (suggestion)", "Quyết định 33 (gợi ý)"),
     "cp_open": ("Open matrix", "Mở ma trận"),
     "cp_back": ("All agents", "Tất cả tác tử"),
-    "cp_counts": ("Rows that apply, by status", "Dòng áp dụng, theo trạng thái"),
+    "cp_counts": (
+        "Rows that apply ({n}), by status",
+        "Dòng áp dụng ({n}), theo trạng thái",
+    ),
+    "cp_rows_no": ("{k} more rows do not apply", "{k} dòng khác không áp dụng"),
+    "cp_rows_split": (
+        "{yes} apply + {na} need an answer = {n} rows in the table below",
+        "{yes} áp dụng + {na} cần trả lời = {n} dòng trong bảng bên dưới",
+    ),
     "cp_filters": ("Filters", "Bộ lọc"),
     "cp_instrument": ("Instrument", "Văn bản"),
     "cp_duty": ("Duty", "Nhiệm vụ"),
