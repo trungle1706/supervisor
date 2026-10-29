@@ -64,3 +64,8 @@ users:
     name: "Đỗ Văn Sơn"
     roles: [approver]
     groups: [platform]
+  # Data Office lead (showcase, WP-D3): owner lead of the data group (data agents and guardians).
+  lead.data:
+    name: "Lý Thanh Tâm"
+    roles: [approver]
+    groups: [data]

@@ -179,13 +179,22 @@ class GateEnv:
         return cls.from_console(build_context(runtime), chat)
 
 
+def _json_safe(row: Mapping[str, Any]) -> dict[str, Any]:
+    """A stored row as plain JSON values: a timestamp column comes back as a datetime, and the
+    simulation and shadow runs write the inputs they read to disk (WP-D3 fix)."""
+    return {
+        k: (format_ts(v) if hasattr(v, "isoformat") and hasattr(v, "utcoffset") else v)
+        for k, v in row.items()
+    }
+
+
 def system_inputs(ctx: Any, system_id: str, dimension_id: str) -> dict[str, Any]:
     """The run inputs of a stored onboarding: the system record, the facts v1 export and the pack
     results of the rule proposal. Raises for a system that does not exist."""
     from supervisor.governance import risk_dimensions as rd
     from supervisor.onboard import orchestrator as orch
 
-    system = orch.system_row(ctx, system_id)
+    system = _json_safe(orch.system_row(ctx, system_id))
     out: dict[str, Any] = {
         "system_id": system_id,
         "system": system,
