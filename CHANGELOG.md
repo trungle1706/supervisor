@@ -17,6 +17,8 @@
 - WP-B1 item 3: **Law changes tab** under Risks & controls (v3 nav, `REGKB_CHANGE_LOOP` with
   `LAWAGENT_ENABLED` and `GOVERNANCE_ENABLED`; `regkb.view`), and a link on the system Duties tab from
   a row to the law change that re-opened it (the note's package sha8 is matched to the applied change).
+- WP-B1 item 5: **user groups**. Every user in `config/users.yaml` has an explicit `groups:` list;
+  `docs/factory.md` "Groups of a user" has the table. The role mapping stays the fallback.
 
 ## v0.9.0 (phases 11 and 12: compliance-first onboarding, agent factory, guardian factory, regulation watch) - 2026-10-29
 

@@ -430,7 +430,11 @@ def test_the_shipped_users_file_has_leads_with_groups() -> None:
     users = DevHeaderPrincipal.from_file(REPO_ROOT / "config" / "users.yaml").users
     assert users["lead.model"].groups == frozenset({"model_risk"})
     assert users["second.line"].groups == frozenset({"platform"})
-    assert users["reviewer.an"].groups == frozenset()  # no groups: the role mapping applies
+    # WP-B1: every user has an explicit list; a reviewer holds the six reviewer groups, not platform
+    assert users["reviewer.an"].groups == frozenset(
+        {"model_risk", "data", "cyber", "legal", "third_party", "ethics"}
+    )
+    assert users["viewer.hoa"].groups == frozenset()  # empty: the role mapping applies (no match)
     assert caps.SECOND_LINE_GROUPS == ("platform",)
 
 

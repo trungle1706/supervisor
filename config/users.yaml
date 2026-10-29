@@ -13,6 +13,11 @@
 #   auditor   read pages, verify case and chain, mark inbox read, audit-pack and chain export
 #   admin     everything a reviewer can do + quarantine / release
 #
+# Groups (docs/factory.md "Groups of a user"): every user has an explicit `groups:` list of ids of
+# config/factory_groups.yaml. A user with groups belongs to exactly those groups. An empty list
+# means no group; then the role mapping of the group applies (the fallback, kept for users
+# without a `groups:` key, for example in a user file of an older install).
+#
 # Resume needs the agent owner (agent.owner_user) and a reviewer listed in
 # policies/baseline.yaml (reviewers:). The ids below match those files.
 
@@ -22,36 +27,45 @@ users:
   reviewer.an:
     name: "Nguyễn Văn An"
     roles: [reviewer]
+    groups: [model_risk, data, cyber, legal, third_party, ethics]
   reviewer.binh:
     name: "Trần Thị Bình"
     roles: [reviewer, approver]
+    groups: [model_risk, data, cyber, legal, third_party, ethics]
   approver.em:
     name: "Phạm Minh Em"
     roles: [approver]
+    groups: [model_risk, legal]
   auditor.dung:
     name: "Lê Thu Dung"
     roles: [auditor]
+    groups: []
   admin.chi:
     name: "Hoàng Văn Chí"
     roles: [admin, reviewer]
+    groups: [model_risk, data, cyber, legal, third_party, ethics, platform]
   viewer.hoa:
     name: "Đặng Thu Hoa"
     roles: [viewer]
+    groups: []
   operator.khanh:
     name: "Vũ Quốc Khánh"
     roles: [operator]
+    groups: []
   payops-lead@example.invalid:
     name: "Payments Ops lead (owner)"
     roles: [owner]
+    groups: []
   cc-lead@example.invalid:
     name: "Customer Care lead (owner)"
     roles: [owner]
+    groups: []
   lending-lead@example.invalid:
     name: "Consumer Lending lead (owner)"
     roles: [owner]
-  # Agent factory leads (WP-F3). `groups:` is optional. With it the user belongs to exactly those
-  # factory groups (config/factory_groups.yaml) whatever the role mapping says; without it the
-  # role mapping applies. `platform` is the second line for the approval of a high-tier agent.
+    groups: []
+  # Agent factory leads (WP-F3). Each belongs to exactly one factory group (config/factory_groups.yaml)
+  # whatever the role mapping says. `platform` is the second line for the approval of a high-tier agent.
   lead.model:
     name: "Bùi Quang Minh"
     roles: [approver]
