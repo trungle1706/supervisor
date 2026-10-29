@@ -18,14 +18,14 @@
   {% else %}
   {% if ux5 %}
   <div class="g5-kpis" role="group" aria-label="{{ t('gf_s_numbers') }}" data-shadow-numbers="1">
-    <div><b data-n="days">{{ S.days_elapsed }} / {{ S.days_total }}</b><span>{{ x5.gf_s_k_days }}</span></div>
-    <div><b data-n="calls">{{ S.calls_seen }}</b><span>{{ x5.gf_s_k_calls }}</span></div>
-    <div><b data-n="would_act">{{ S.would_act }}</b><span>{{ x5.gf_s_k_act }}</span></div>
-    <div><b data-n="correct">{{ S.reviewed_correct }}</b><span>{{ x5.gf_s_k_ok }}</span></div>
-    <div><b data-n="false">{{ S.reviewed_false }}</b><span>{{ x5.gf_s_k_false }}</span></div>
-    {% if S.pending_n %}<div><b data-n="pending">{{ S.pending_n }}</b><span>{{ x5.gf_s_k_pending }}</span></div>{% endif %}
-    {% if S.skipped_budget %}<div><b data-n="skipped">{{ S.skipped_budget }}</b><span>{{ x5.gf_s_k_skipped }}</span></div>{% endif %}
-    <div><b data-n="rate">{{ S.false_rate_pct }}% / {{ S.max_fpr_pct }}%</b><span>{{ x5.gf_s_k_rate }}</span></div>
+    <div><b data-n="days">{{ S.days_elapsed }} / {{ S.days_total }}</b><span>{{ t('gf_s_k_days') }}</span></div>
+    <div><b data-n="calls">{{ S.calls_seen }}</b><span>{{ t('gf_s_k_calls') }}</span></div>
+    <div><b data-n="would_act">{{ S.would_act }}</b><span>{{ t('gf_s_k_act') }}</span></div>
+    <div><b data-n="correct">{{ S.reviewed_correct }}</b><span>{{ t('gf_s_k_ok') }}</span></div>
+    <div><b data-n="false">{{ S.reviewed_false }}</b><span>{{ t('gf_s_k_false') }}</span></div>
+    {% if S.pending_n %}<div><b data-n="pending">{{ S.pending_n }}</b><span>{{ t('gf_s_k_pending') }}</span></div>{% endif %}
+    {% if S.skipped_budget %}<div><b data-n="skipped">{{ S.skipped_budget }}</b><span>{{ t('gf_s_k_skipped') }}</span></div>{% endif %}
+    <div><b data-n="rate">{{ S.false_rate_pct }}% / {{ S.max_fpr_pct }}%</b><span>{{ t('gf_s_k_rate') }}</span></div>
   </div>
   {% else %}
   <div class="tiles" role="group" aria-label="{{ t('gf_s_numbers') }}" data-shadow-numbers="1">
@@ -73,11 +73,11 @@
   {% set ordered = (gs.findings|selectattr('reviewed', 'equalto', 'false')|list) + (gs.findings|rejectattr('reviewed')|list) + (gs.findings|selectattr('reviewed', 'equalto', 'correct')|list) %}
   <div class="tablewrap">
   <table class="tbl" data-findings="{{ gs.findings|length }}">
-    <thead><tr><th>{{ t('gf_s_agent') }}</th><th>{{ x5.gf_s_c_rule }}</th><th>{{ t('gf_s_count') }}</th><th>{{ t('gf_s_would') }}</th><th>{{ t('gf_s_call') }}</th><th>{{ t('gf_s_mark') }}</th></tr></thead>
+    <thead><tr><th>{{ t('gf_s_agent') }}</th><th>{{ t('gf_s_c_rule') }}</th><th>{{ t('gf_s_count') }}</th><th>{{ t('gf_s_would') }}</th><th>{{ t('gf_s_call') }}</th><th>{{ t('gf_s_mark') }}</th></tr></thead>
     <tbody>{% for f in ordered[:5] %}{{ frow(f) }}{% endfor %}</tbody>
   </table>
   {% if ordered|length > 5 %}
-  <details class="g5-adv"><summary>{{ x5.gf_s_show_all.format(n=ordered|length) }}</summary>
+  <details class="g5-adv"><summary>{{ t('gf_s_show_all', n=ordered|length) }}</summary>
   <table class="tbl"><tbody>{% for f in ordered[5:] %}{{ frow(f) }}{% endfor %}</tbody></table></details>
   {% endif %}
   </div>

@@ -11,7 +11,7 @@
   <select id="f-status" name="status"><option value="">{{ t('status') }}: {{ t('all') }}</option>{% for v, l in status_opts %}<option value="{{ v }}" {{ 'selected' if params.status == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
   <label class="sr" for="f-range">{{ t('time_range') }}</label>
   <select id="f-range" name="range"><option value="">{{ t('time_range') }}: {{ t('all') }}</option>{% for v, l in range_opts %}<option value="{{ v }}" {{ 'selected' if params.range == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
-  <details class="g5-adv" style="margin:0"{% if params.q or params.corr %} open{% endif %}><summary>{{ x5.tr_more_filters }}</summary>
+  <details class="g5-adv" style="margin:0"{% if params.q or params.corr %} open{% endif %}><summary>{{ t('tr_more_filters') }}</summary>
     <div class="g5-filters">
       <label class="sr" for="f-q">{{ t('trace_id') }}</label>
       <input id="f-q" type="search" name="q" value="{{ params.q }}" placeholder="{{ t('trace_id') }}" maxlength="64" autocomplete="off">

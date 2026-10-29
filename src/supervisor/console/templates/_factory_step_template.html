@@ -19,7 +19,7 @@
       <input id="g6-name" type="text" name="name" data-field="name" value="{{ ed.defn.name }}" maxlength="{{ ed.caps.NAME_MAX }}" {{ '' if ed.editable else 'disabled' }}>
       <label class="g6-lab" for="g6-desc">{{ t('fa_f_description') }}</label>
       <textarea id="g6-desc" name="description" data-field="description" rows="3" maxlength="{{ ed.caps.DESCRIPTION_MAX }}" {{ '' if ed.editable else 'disabled' }}>{{ ed.defn.description }}</textarea>
-      <label class="g6-lab" for="g6-pack">{{ t('fa_f_eval_pack') }}<span class="g6-help">{{ tx('u6_eval_pack_help') }}</span></label>
+      <label class="g6-lab" for="g6-pack">{{ t('fa_f_eval_pack') }}<span class="g6-help">{{ t('u6_eval_pack_help') }}</span></label>
       <input id="g6-pack" type="text" name="eval_pack" data-field="eval_pack" value="{{ ed.defn.eval_pack }}" {{ '' if ed.editable else 'disabled' }}>
     </div>
     {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}

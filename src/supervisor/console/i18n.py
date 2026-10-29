@@ -200,12 +200,12 @@ _T: dict[str, tuple[str, str]] = {
     "greet_cases_1": ("1 case needs a decision.", "1 vụ việc cần quyết định."),
     "greet_cases_n": ("{n} cases need a decision.", "{n} vụ việc cần quyết định."),
     "greet_clock_left": (
-        "The nearest SBV 24-hour report clock has {d} left.",
-        "Hạn báo cáo NHNN 24 giờ gần nhất còn {d}.",
+        "Next report to SBV is due in {d}.",
+        "Báo cáo gần nhất gửi NHNN còn {d}.",
     ),
     "greet_clock_over": (
-        "The nearest SBV 24-hour report is overdue by {d}.",
-        "Báo cáo NHNN 24 giờ gần nhất đã quá hạn {d}.",
+        "Next report to SBV is overdue by {d}.",
+        "Báo cáo gần nhất gửi NHNN đã quá hạn {d}.",
     ),
     "what_is_lead": (
         "Supervisor watches the AI agents your bank runs.",
@@ -4930,3 +4930,11 @@ _T.update(
 from supervisor.console.i18n_ux5_g1 import NEW as _U5G1  # noqa: E402
 
 _T.update(_U5G1)
+
+# --- UX5 G5 / G6 --- new keys, merged here like every other package (templates use t('key'))
+from supervisor.console.i18n_ux5_g5 import NEW as _U5G5  # noqa: E402
+
+_T.update(_U5G5)
+from supervisor.console.i18n_ux5_g6 import ALL as _U5G6  # noqa: E402
+
+_T.update(_U5G6)

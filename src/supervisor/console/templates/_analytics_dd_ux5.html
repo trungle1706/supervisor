@@ -17,14 +17,14 @@
     <caption class="sr">{{ title }}</caption>
     <thead><tr>
       <th scope="col">{{ key_label }}</th><th scope="col" class="n">{{ t('dd_requests') }}</th>
-      <th scope="col" class="n">{{ x5.an_c_reported }}</th><th scope="col" class="n">{{ x5.an_c_masked }}</th>
-      <th scope="col" class="n">{{ x5.an_c_paused }}</th><th scope="col" class="n">{{ x5.an_c_blocked }}</th>
-      <th scope="col" class="n">{{ x5.an_c_skipped }}</th><th scope="col" class="n">{{ x5.an_c_notchk }}</th>
+      <th scope="col" class="n">{{ t('an_c_reported') }}</th><th scope="col" class="n">{{ t('an_c_masked') }}</th>
+      <th scope="col" class="n">{{ t('an_c_paused') }}</th><th scope="col" class="n">{{ t('an_c_blocked') }}</th>
+      <th scope="col" class="n">{{ t('an_c_skipped') }}</th><th scope="col" class="n">{{ t('an_c_notchk') }}</th>
     </tr></thead>
     <tbody>{% for r in rows[:10] %}{{ drow(r, link_agent, two_keys, plain) }}{% endfor %}</tbody>
   </table>
   {% if rows|length > 10 %}
-  <details class="g5-adv" style="padding:0 12px"><summary>{{ x5.an_show_all.format(n=rows|length) }}</summary>
+  <details class="g5-adv" style="padding:0 12px"><summary>{{ t('an_show_all', n=rows|length) }}</summary>
   <table><tbody>{% for r in rows[10:] %}{{ drow(r, link_agent, two_keys, plain) }}{% endfor %}</tbody></table></details>
   {% endif %}</div>
   {% else %}
@@ -42,14 +42,14 @@
   {% for c in ['reports', 'transforms', 'pauses', 'blocks'] %}
     {% set vals = dd_series[c]['values'] %}{% set top = ([vals|max, 1]|max) %}
     <div class="stat" data-series="{{ c }}">
-      <div class="sub">{{ x5['an_c_' ~ {'reports': 'reported', 'transforms': 'masked', 'pauses': 'paused', 'blocks': 'blocked'}[c]] }}</div>
+      <div class="sub">{{ t('an_c_' ~ {'reports': 'reported', 'transforms': 'masked', 'pauses': 'paused', 'blocks': 'blocked'}[c]) }}</div>
       <div class="bignum">{{ dd_series[c].total }}</div>
       <div class="g5-bars" role="img" aria-label="{{ dd_series[c].total }}">{% for v in vals %}<i style="height:{{ [(v * 100 // top), 4]|max if v else 2 }}%" title="{{ dd_days[loop.index0] }}: {{ v }}"></i>{% endfor %}</div>
       <div class="g5-axis"><span>{{ dd_days[0][5:] }}</span><span>{{ dd_days[-1][5:] }}</span></div>
     </div>
   {% endfor %}
   </div>
-  <details class="g5-adv" id="dd-series-note"><summary>{{ x5.an_how }}</summary><div>{{ x5.an_totals_differ }} {{ t('dd_series_note') }}</div></details>
+  <details class="g5-adv" id="dd-series-note"><summary>{{ t('an_how') }}</summary><div>{{ t('an_totals_differ') }} {{ t('dd_series_note') }}</div></details>
 </section>
 {{ dd_table('dd-agent', t('dd_per_agent'), dd_tables.agent, t('agent'), link_agent=True) }}
 {{ dd_table('dd-consumer', t('dd_per_consumer'), dd_tables.consumer, t('consumer')) }}

@@ -2,8 +2,7 @@
 """UX5 text for group G6 (CONSOLE_UX5): agent factory, cases, decisions, evidence, assurance.
 
 ``UX5`` shortens existing keys (a test checks that every key exists). ``NEW`` holds keys that only
-the UX5 templates use; they are added to the base table when this module loads (prefix ``u6_``),
-so they never exist on the off path. Both have English and Vietnamese text."""
+the UX5 templates use (prefix ``u6_``); ``ALL`` is merged into the base table by i18n.py. Both have English and Vietnamese text."""
 
 from __future__ import annotations
 
@@ -293,15 +292,5 @@ NEW: dict[str, tuple[str, str]] = {
 }
 
 
-def _register() -> None:
-    """Add ``NEW`` and the plain labels to the base table (UX5 templates only read them)."""
-    from supervisor.console import i18n
-
-    base = i18n._T  # noqa: SLF001 - the shared table; this is how page packages add keys
-    for k, v in NEW.items():
-        base.setdefault(k, v)
-    for name, pair in _X.items():
-        base.setdefault("u6_x_" + name, pair)
-
-
-_register()
+# What i18n.py merges into the base table: NEW and the plain labels (prefix ``u6_x_``).
+ALL: dict[str, tuple[str, str]] = {**NEW, **{"u6_x_" + k: v for k, v in _X.items()}}

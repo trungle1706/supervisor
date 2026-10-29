@@ -306,11 +306,16 @@ def my_overview(ctx: Any, me: Any, scope_raw: str | None, now: dt.datetime) -> d
 
 
 def _nearest_clock(ctx: Any, now: dt.datetime) -> dict[str, Any] | None:
-    cases = [c for c in readmodels.open_cases(ctx) if c.get("report_due_at") is not None]
-    if not cases:
+    """The countdown of the open case whose report deadline in force is nearest (UX5-S: the
+    Decree 142 clock from ``readmodels.incident_clock``, not the deprecated 24 h clock)."""
+    clocks = [
+        clk
+        for c in readmodels.open_cases(ctx)
+        if (clk := readmodels.incident_clock(c, now)) is not None
+    ]
+    if not clocks:
         return None
-    nearest = min(cases, key=lambda c: c["report_due_at"])
-    return views.countdown(nearest["report_due_at"], now, severity=nearest["severity"])
+    return min(clocks, key=lambda k: (not k["overdue"], -k["secs"] if k["overdue"] else k["secs"]))
 
 
 def actions_count(ctx: Any, me: Any) -> int:

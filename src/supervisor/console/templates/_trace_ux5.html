@@ -4,9 +4,9 @@
 {% import "_ux5.html" as u5 with context %}
 <link rel="stylesheet" href="/console/static/ux5_g5.css">
 {% set status_chip %}{{ u5.status_chip({'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[head.status], t('trace_' ~ head.status)) }}{% endset %}
-{% set case_btns %}{% for c in head.case_ids %}<a class="btn primary" href="/console/cases/{{ c }}?lang={{ lang }}">{{ x5.tr_view_case }} {{ c }}</a>{% endfor %}{% endset %}
+{% set case_btns %}{% for c in head.case_ids %}<a class="btn primary" href="/console/cases/{{ c }}?lang={{ lang }}">{{ t('tr_view_case') }} {{ c }}</a>{% endfor %}{% endset %}
 {{ u5.page_head(head.agent_id ~ ' - ' ~ (head.started|u5when(true)), status_chip, actions=case_btns) }}
-<p class="hint">{{ x5.tr_meta.format(n=head.spans, ms=head.duration_ms) }}</p>
+<p class="hint">{{ t('tr_meta', n=head.spans, ms=head.duration_ms) }}</p>
 {% if truncated or extra %}<p class="hint">{{ t('trace_capped', n=extra) }}</p>{% endif %}
 <div class="{{ 'tracegrid' if nodes|length > 1 else '' }}">
   {% if nodes|length > 1 %}
@@ -20,7 +20,7 @@
           <span class="muted">{{ n.ts|hhmmss }}{% if n.latency_ms %} · {{ n.latency_ms }} ms{% endif %}</span>
           {% if n.mark %}{{ u5.status_chip({'P': 'warn', 'B': 'bad', 'A': 'warn'}[n.mark], t('act_' ~ n.stop)) }}{% endif %}
           {% if v2 and n.finding_codes %}{{ u5.status_chip('info', t('findings_chip', n=n.finding_codes|length)) }}{% endif %}
-          {% if n.judge %}{{ u5.status_chip('na', x5.tr_ai_judge) }}{% endif %}
+          {% if n.judge %}{{ u5.status_chip('na', t('tr_ai_judge')) }}{% endif %}
         </a>
       </li>
     {% endfor %}

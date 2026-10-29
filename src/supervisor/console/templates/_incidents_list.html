@@ -27,7 +27,7 @@
     <td>{{ i.agent_id }}</td>
     <td{% if not ux5 %} class="mono"{% endif %}>{{ i.system_id or '-' }}</td>
     <td>{% if i.case_id %}<a href="/console/cases/{{ i.case_id }}?lang={{ lang }}"{% if ux5 %} class="g6-plain"{% endif %}>{% if ux5 %}{{ t('case') }} {{ i.case_id|replace('shw_case_', '') }}{% else %}{{ i.case_id }}{% endif %}</a>{% else %}-{% endif %}</td>
-    <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}{% if i.closed_by %}<div class="idline">{% if ux5 %}{{ tx('u6_by', who=i.closed_by) }}{% else %}{{ i.closed_by }}{% endif %}</div>{% endif %}</td>
+    <td>{{ ui.pill(t('inc_st_' ~ i.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(i.status, 'neutral'), True) }}{% if i.closed_by %}<div class="idline">{% if ux5 %}{{ t('u6_by', who=i.closed_by) }}{% else %}{{ i.closed_by }}{% endif %}</div>{% endif %}</td>
     <td><a class="chipbtn" href="/console/incidents?{{ list_qs }}&amp;drawer={{ i.incident_id }}&amp;lang={{ lang }}" hx-get="/console/incidents/{{ i.incident_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ i.incident_id }}">{{ t('details') }}</a></td>
   </tr>
   {% endfor %}

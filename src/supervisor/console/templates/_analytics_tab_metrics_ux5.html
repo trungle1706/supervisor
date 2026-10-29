@@ -18,11 +18,11 @@
 </div>
 <section class="u5-panel" id="monitor-status">
   <h3>{{ t('monitor_status') }}</h3>
-  <p class="muted" style="margin:0 0 8px">{{ x5.an_mon_purpose }}</p>
+  <p class="muted" style="margin:0 0 8px">{{ t('an_mon_purpose') }}</p>
   {% if mon_total %}
   <div class="g5-kpis">
     {% for m in monitor_order %}{% set sm = mon_summary[m] %}
-    <div><b>{{ t('cat_' ~ m) }}</b><span>{{ x5.an_mon_line.format(ok=sm.ok, nd=sm.no_data, na=sm.not_applicable) }}</span></div>
+    <div><b>{{ t('cat_' ~ m) }}</b><span>{{ t('an_mon_line', ok=sm.ok, nd=sm.no_data, na=sm.not_applicable) }}</span></div>
     {% endfor %}
   </div>
   {% if mon_active %}
@@ -36,13 +36,13 @@
       {% endfor %}
       </tr>
     {% endfor %}
-    {% if mon_hidden %}{{ u5.fold(mon_hidden, x5.an_mon_fold, 1 + monitor_order|length) }}{% endif %}
+    {% if mon_hidden %}{{ u5.fold(mon_hidden, t('an_mon_fold'), 1 + monitor_order|length) }}{% endif %}
     </tbody>
   </table></div>
-  {% elif mon_hidden %}{{ u5.fold(mon_hidden, x5.an_mon_fold) }}
+  {% elif mon_hidden %}{{ u5.fold(mon_hidden, t('an_mon_fold')) }}
   {% endif %}
   {% else %}
-  <p class="muted">{{ x5.an_no_data }}</p>
+  <p class="muted">{{ t('an_no_data') }}</p>
   {% endif %}
 </section>
 <section class="u5-panel" style="margin-top:16px;padding:16px 0 0">
@@ -54,16 +54,16 @@
     <tbody>{% for s in summary[:10] %}{{ mrow(s) }}{% endfor %}</tbody>
   </table>
   {% if summary|length > 10 %}
-  <details class="g5-adv" style="padding:0 12px"><summary>{{ x5.an_show_all.format(n=summary|length) }}</summary>
+  <details class="g5-adv" style="padding:0 12px"><summary>{{ t('an_show_all', n=summary|length) }}</summary>
   <table><tbody>{% for s in summary[10:] %}{{ mrow(s) }}{% endfor %}</tbody></table></details>
   {% endif %}</div>
   {% else %}
-  <p class="muted" style="padding:0 20px 16px">{{ x5.an_no_data }}</p>
+  <p class="muted" style="padding:0 20px 16px">{{ t('an_no_data') }}</p>
   {% endif %}
 </section>
 <section class="u5-panel" style="margin-top:16px">
-  <h3>{{ x5.an_chain }}</h3>
-  <p style="margin:0 0 8px">{{ x5.an_chain_line.format(lanes=heads|length, entries=entries) }} <a href="/console/evidence?lang={{ lang }}">{{ x5.an_chain_open }}</a></p>
+  <h3>{{ t('an_chain') }}</h3>
+  <p style="margin:0 0 8px">{{ t('an_chain_line', lanes=heads|length, entries=entries) }} <a href="/console/evidence?lang={{ lang }}">{{ t('an_chain_open') }}</a></p>
   {% if 'admin' in me.roles %}
   <details class="g5-adv"><summary>{{ t('ux5_technical') }}</summary><div>
     <div class="tablewrap flat"><table><tr><th>Lane</th><th class="n">Seq</th><th>{{ t('head') }}</th></tr>

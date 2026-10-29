@@ -13,7 +13,7 @@
       <td class="mono">{{ e.ts|hhmmss }}</td>
       <td>{{ e.event_type }}{% if e.tool_name %} · {{ e.tool_name }}{% endif %}{% if e.amount_minor %}<div class="idline">{{ e.amount_minor|vnd }} {{ e.currency or 'VND' }}</div>{% endif %}</td>
       <td>{{ ui.pill(e.status or '-', {'denied': 'bad', 'blocked': 'bad', 'paused': 'warn', 'error': 'bad'}.get(e.status, 'neutral')) }}</td>
-      <td>{% if e.args_masked or e.result_masked %}<details><summary>{{ tx('u6_show_masked') }}</summary><div class="mono wrap" style="font-size:12px">{{ (e.args_masked or '')[:600] }}{% if e.result_masked %}<div class="muted">=&gt; {{ e.result_masked[:600] }}</div>{% endif %}</div></details>{% else %}—{% endif %}</td>
+      <td>{% if e.args_masked or e.result_masked %}<details><summary>{{ t('u6_show_masked') }}</summary><div class="mono wrap" style="font-size:12px">{{ (e.args_masked or '')[:600] }}{% if e.result_masked %}<div class="muted">=&gt; {{ e.result_masked[:600] }}</div>{% endif %}</div></details>{% else %}—{% endif %}</td>
     </tr>
     {% endfor %}
     </tbody>

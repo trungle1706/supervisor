@@ -25,10 +25,10 @@
     <textarea id="pg-args" name="args" rows="6" spellcheck="false" class="mono">{{ prefill.args if prefill else '{}' }}</textarea>
     <p class="btnrow"><button class="btn primary" type="submit">{{ t('pg_check') }}</button></p>
     <p class="hint" id="pg-note">{{ t('pg_note') }}</p>
-    <details class="g5-adv"><summary>{{ x5.pg_advanced }}</summary><div>
+    <details class="g5-adv"><summary>{{ t('pg_advanced') }}</summary><div>
       <label for="pg-context">{{ t('pg_context') }}</label>
       <textarea id="pg-context" name="context" rows="3" spellcheck="false" class="mono">{{ prefill.context if prefill else '{}' }}</textarea>
-      <label for="pg-version">{{ x5.pg_version }}</label>
+      <label for="pg-version">{{ t('pg_version') }}</label>
       <input id="pg-version" type="text" name="version" value="playground" maxlength="64" autocomplete="off">
       <label for="pg-consumer">{{ t('pg_consumer') }}</label>
       <input id="pg-consumer" type="text" name="consumer_id" maxlength="128" autocomplete="off" value="{{ prefill.consumer_id if prefill else '' }}">

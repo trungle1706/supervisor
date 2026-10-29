@@ -14,13 +14,13 @@
       {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       <th scope="col">{{ t('what_happened') }}</th>
-      {{ tb.th('clock', t('sbv_clock'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      {{ tb.th('clock', t('report_due_col'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       {{ tb.th('assignee', t('assignee'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       <th scope="col"><span class="sr">{{ t('details') }}</span></th>
       {% else %}
       <th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('what_happened') }}</th>
-      <th scope="col">{{ t('sbv_clock') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('assignee') }}</th>
+      <th scope="col">{{ t('report_due_col') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('assignee') }}</th>
       {% endif %}
     </tr>
   </thead>
@@ -36,7 +36,7 @@
       </td>
       <td>{% if c.status == 'closed' %}<span class="muted">{{ t('closed') }} {{ c.closed_at|day }}</span>{% else %}{{ ui.clock(c.clock) }}{% endif %}</td>
       <td><span class="pill neutral" data-status="{{ c.status }}">{{ t(c.status) }}</span></td>
-      <td>{{ c.assignee or tx('u6_unassigned') }}</td>
+      <td>{{ c.assignee or t('u6_unassigned') }}</td>
       {% if sortable %}<td><a class="chipbtn" href="/console/cases?{{ (list_qs ~ '&') if list_qs else '' }}drawer={{ c.case_id }}&amp;lang={{ lang }}" hx-get="/console/cases/{{ c.case_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ c.case_id }}">{{ t('details') }}</a></td>{% endif %}
     </tr>
   {% else %}

@@ -46,5 +46,5 @@
 </table></div>
 {% if not ux5 or page.pages > 1 %}{{ tb.pager(page, '/console/alerts', '/console/alerts/rows', list_qs) }}{% endif %}
 {% else %}
-{% if ux5 %}{{ ui.empty(tx('u6_no_alerts'), tx('u6_no_alerts_line')) }}{% else %}{{ ui.empty(t('no_alerts'), t('no_alerts_line')) }}{% endif %}
+{% if ux5 %}{{ ui.empty(t('u6_no_alerts'), t('u6_no_alerts_line')) }}{% else %}{{ ui.empty(t('no_alerts'), t('no_alerts_line')) }}{% endif %}
 {% endif %}

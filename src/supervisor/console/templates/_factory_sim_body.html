@@ -5,7 +5,7 @@
 {% set ns = namespace(n=0) %}
 <link rel="stylesheet" href="/console/static/ux5_g6.css">
 <p class="idline" data-sim-counts="1">
-  {% for m, n in sim.counts.items() %}<span class="pill" data-count="{{ m }}" data-n="{{ n }}">{{ tx('u6_mark_' ~ m) }} {{ n }}</span> {% endfor %}
+  {% for m, n in sim.counts.items() %}<span class="pill" data-count="{{ m }}" data-n="{{ n }}">{{ t('u6_mark_' ~ m) }} {{ n }}</span> {% endfor %}
   <span class="pill warn" data-unmarked="{{ sim.unmarked }}">{{ t('fg_unmarked') }} {{ sim.unmarked }}</span>
 </p>
 {% if can_mark %}<form hx-post="/console/factory/{{ aid }}/simulation/{{ sim.run.run_id }}/marks" hx-target="#sim-review" hx-swap="innerHTML" method="post">{% endif %}
@@ -18,18 +18,18 @@
     {% if mk %}<details><summary>{% else %}<div>{% endif %}
     <span class="g6-q"><span class="mono">{{ f.checklist_id }}</span> {{ questions.get(f.checklist_id) or f.checklist_id }}</span>
     {{ ui.pill(f.verdict, {'pass': 'ok', 'fail': 'bad'}.get(f.verdict, 'neutral'), True) }}
-    {% if mk %}<span class="muted" data-mark-note="1">{{ tx('u6_marked', mark=tx('u6_mark_' ~ mk), who=f.mark.by) }}{% if f.mark.correct_verdict %} -> {{ f.mark.correct_verdict }}{% endif %}</span></summary>{% endif %}
+    {% if mk %}<span class="muted" data-mark-note="1">{{ t('u6_marked', mark=t('u6_mark_' ~ mk), who=f.mark.by) }}{% if f.mark.correct_verdict %} -> {{ f.mark.correct_verdict }}{% endif %}</span></summary>{% endif %}
     <p class="wrap" data-rationale="1">{{ f.rationale|replace('fake model: ', '') }}</p>
-    {% if f.evidence %}<details><summary>{{ tx('u6_evidence_n', n=f.evidence|length) }}</summary><ul data-evidence="1">
+    {% if f.evidence %}<details><summary>{{ t('u6_evidence_n', n=f.evidence|length) }}</summary><ul data-evidence="1">
     {% for e in f.evidence %}<li data-evidence-ref="{{ e.ref }}"><span class="muted">{{ e.kind }}</span> {{ e.file or e.ref }}{% if e.line %}:{{ e.line }}{% endif %}<br><span class="wrap" lang="vi">{{ e.text }}</span></li>{% endfor %}
     </ul></details>{% else %}<p class="hint">{{ t('fg_no_evidence') }}</p>{% endif %}
     {% if can_mark %}
     <input type="hidden" name="sys_{{ n }}" value="{{ s.name }}"><input type="hidden" name="fid_{{ n }}" value="{{ f.finding_id }}">
     <input type="hidden" name="orig_{{ n }}" value="{{ mk }}|{{ f.mark.get('correct_verdict', '') }}|{{ f.mark.get('note', '') }}">
-    <div class="g6-radios" role="radiogroup" aria-label="{{ tx('u6_mark_label') }}">
-      {% for v in ('agree', 'disagree', 'unsure') %}<label><input type="radio" name="mark_{{ n }}" value="{{ v }}" {{ 'checked' if mk == v }}> {{ tx('u6_mark_' ~ v) }}</label>{% endfor %}
-      <select name="cv_{{ n }}" aria-label="{{ tx('u6_correct_verdict') }}"><option value="">{{ tx('u6_correct_verdict') }}</option>{% for v in verdicts %}<option value="{{ v }}" {{ 'selected' if f.mark.get('correct_verdict') == v }}>{{ v }}</option>{% endfor %}</select>
-      <input name="note_{{ n }}" maxlength="300" value="{{ f.mark.get('note', '') }}" placeholder="{{ tx('u6_note_ph') }}">
+    <div class="g6-radios" role="radiogroup" aria-label="{{ t('u6_mark_label') }}">
+      {% for v in ('agree', 'disagree', 'unsure') %}<label><input type="radio" name="mark_{{ n }}" value="{{ v }}" {{ 'checked' if mk == v }}> {{ t('u6_mark_' ~ v) }}</label>{% endfor %}
+      <select name="cv_{{ n }}" aria-label="{{ t('u6_correct_verdict') }}"><option value="">{{ t('u6_correct_verdict') }}</option>{% for v in verdicts %}<option value="{{ v }}" {{ 'selected' if f.mark.get('correct_verdict') == v }}>{{ v }}</option>{% endfor %}</select>
+      <input name="note_{{ n }}" maxlength="300" value="{{ f.mark.get('note', '') }}" placeholder="{{ t('u6_note_ph') }}">
     </div>
     {% endif %}
     {% if mk %}</details>{% else %}</div>{% endif %}
@@ -37,7 +37,7 @@
   {% endfor %}
 </section>
 {% endfor %}
-{% if can_mark %}<div class="g6-savebar"><button class="btn primary" data-act="mark">{{ tx('u6_save_marks') }}</button></div></form>{% endif %}
+{% if can_mark %}<div class="g6-savebar"><button class="btn primary" data-act="mark">{{ t('u6_save_marks') }}</button></div></form>{% endif %}
 {% else %}
 {# Body of the simulation review (WP-F3): systems, findings, evidence, marks. #}
 {% import "_ui.html" as ui with context %}

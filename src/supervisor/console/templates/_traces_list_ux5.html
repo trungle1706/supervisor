@@ -10,9 +10,9 @@
   <thead>
     <tr>
       {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs) }}
-      {{ tb.th('started', x5.tr_trace, sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs) }}
-      {{ tb.th('spans', x5.tr_steps, sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs, numeric=True) }}
-      <th scope="col">{{ x5.tr_checks }}</th>
+      {{ tb.th('started', t('tr_trace'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs) }}
+      {{ tb.th('spans', t('tr_steps'), sort_col, sort_dir, '/console/traces', '/console/traces/rows', base_qs, numeric=True) }}
+      <th scope="col">{{ t('tr_checks') }}</th>
     </tr>
   </thead>
   <tbody id="rows">
@@ -21,7 +21,7 @@
       <td>{{ u5.status_chip({'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[r.status], t('trace_' ~ r.status)) }}</td>
       <td><a class="head rowlink" href="/console/traces/{{ r.trace_id }}?lang={{ lang }}" title="{{ r.trace_id }}">{{ r.started|day }}:{{ '%02d' % r.started.second }} - {{ r.agent_id }}</a><div class="idline">{{ r.trace_id[:12] }}…</div></td>
       <td class="n">{{ r.spans }}</td>
-      <td>{% if 'block' in r.labels and 'pause' in r.labels %}{{ x5.tr_blocked_paused }}{% elif 'pause' in r.labels %}{{ x5.tr_paused }}{% elif 'block' in r.labels %}{{ x5.tr_blocked }}{% elif r.labels %}{{ x5.tr_alert }}{% endif %}{% if r.judge_n %}{% if r.labels %}; {% endif %}{{ x5.tr_judge.format(n=r.judge_n) }}{% endif %}{% if not r.labels and not r.judge_n %}<span class="muted">-</span>{% endif %}</td>
+      <td>{% if 'block' in r.labels and 'pause' in r.labels %}{{ t('tr_blocked_paused') }}{% elif 'pause' in r.labels %}{{ t('tr_paused') }}{% elif 'block' in r.labels %}{{ t('tr_blocked') }}{% elif r.labels %}{{ t('tr_alert') }}{% endif %}{% if r.judge_n %}{% if r.labels %}; {% endif %}{{ t('tr_judge', n=r.judge_n) }}{% endif %}{% if not r.labels and not r.judge_n %}<span class="muted">-</span>{% endif %}</td>
     </tr>
   {% else %}
     <tr><td colspan="4">{{ ui.empty(t('traces_no_match'), t('traces_no_match_line')) }}</td></tr>

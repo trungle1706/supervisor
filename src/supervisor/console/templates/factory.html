@@ -31,8 +31,8 @@
     <div class="g6-grid">
       <label for="g6-new-dim">{{ t('fa_f_dimension') }}</label>
       <select id="g6-new-dim" name="dimension_id" data-field="dimension_id">{% for c in fa.creatable %}<option value="{{ c.dimension_id }}">{{ t('fa_dim_' ~ c.dimension_id) }}</option>{% endfor %}</select>
-      <label for="g6-new-id">{{ t('fa_f_id') }}<span class="g6-help">{{ tx('u6_id_help') }}</span></label>
-      <input id="g6-new-id" type="text" name="id" data-field="id" maxlength="64" pattern="[a-z0-9][a-z0-9-]*" placeholder="{{ tx('u6_id_ph') }}" required>
+      <label for="g6-new-id">{{ t('fa_f_id') }}<span class="g6-help">{{ t('u6_id_help') }}</span></label>
+      <input id="g6-new-id" type="text" name="id" data-field="id" maxlength="64" pattern="[a-z0-9][a-z0-9-]*" placeholder="{{ t('u6_id_ph') }}" required>
       <label for="g6-new-name">{{ t('fa_f_name') }}</label>
       <input id="g6-new-name" type="text" name="name" data-field="name" maxlength="64">
     </div>
@@ -51,7 +51,7 @@
 
 {% if fa.cards %}
 <div class="tablewrap"><table class="queue" data-table="agents">
-  <thead><tr><th>{{ tx('u6_col_agent') }}</th><th>{{ t('fa_f_dimension') }}</th><th>{{ t('fa_f_state') }}</th><th class="n">{{ t('fa_checklist_size') }}</th><th>{{ t('fa_last_gate') }}</th><th>{{ t('fg_live_version') }}</th></tr></thead>
+  <thead><tr><th>{{ t('u6_col_agent') }}</th><th>{{ t('fa_f_dimension') }}</th><th>{{ t('fa_f_state') }}</th><th class="n">{{ t('fa_checklist_size') }}</th><th>{{ t('fa_last_gate') }}</th><th>{{ t('fg_live_version') }}</th></tr></thead>
   <tbody>
   {% for c in fa.cards %}
   <tr data-agent="{{ c.id }}" data-state="{{ c.state }}">
@@ -59,7 +59,7 @@
     <td>{{ t('fa_dim_' ~ c.dimension_id) }}</td>
     <td>{{ ui.pill(c.state, c.state_pill, True) }} <span class="muted">v{{ c.version }}</span></td>
     <td class="n" data-checklist-size="{{ c.checklist_size }}">{{ c.checklist_size }}</td>
-    {% if c.last_gate %}<td data-last-gate="{{ c.last_gate.verdict }}" data-gate-kind="{{ c.last_gate.kind }}">{{ ui.pill(c.last_gate.verdict, {'pass': 'ok', 'fail': 'bad'}.get(c.last_gate.verdict, 'neutral'), True) }} <span class="hint">{{ tx('u6_rule_checks') }} {{ c.last_gate.layer1_percent }} %</span></td>
+    {% if c.last_gate %}<td data-last-gate="{{ c.last_gate.verdict }}" data-gate-kind="{{ c.last_gate.kind }}">{{ ui.pill(c.last_gate.verdict, {'pass': 'ok', 'fail': 'bad'}.get(c.last_gate.verdict, 'neutral'), True) }} <span class="hint">{{ t('u6_rule_checks') }} {{ c.last_gate.layer1_percent }} %</span></td>
     {% else %}<td data-last-gate="none"><span class="muted">{{ t('fa_gate_later') }}</span></td>{% endif %}
     <td{% if c.live_version %} data-live-version="{{ c.live_version }}"{% endif %}>{% if c.live_version %}{{ ui.pill('v' ~ c.live_version, 'ok', True) }}{% else %}<span class="muted">-</span>{% endif %}</td>
   </tr>

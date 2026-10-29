@@ -148,6 +148,12 @@
 .ux5 .u5-legend i.closed { height: 6px; background: var(--u5-closed); }
 
 /* ---- segmented sidebar (v3): brand | home | Govern | Supervise | settings, 1px lines ---------- */
+/* UX5-S: the sidebar panel and its right line run the full page height. The old .side rule is
+   100vh high and sticky, so the page-high backdrop is drawn on .shell (wide screens only). */
+@media (min-width: 1101px) {
+  .ux5 .shell { background: linear-gradient(to right, var(--u5-panel) 247px, var(--u5-line) 247px 248px, transparent 248px) no-repeat; }
+  html[data-side="collapsed"].ux5 .shell { background: linear-gradient(to right, var(--u5-panel) 67px, var(--u5-line) 67px 68px, transparent 68px) no-repeat; }
+}
 .ux5 .side-v3 { padding: 0; gap: 0; background: var(--u5-panel); border-right: 1px solid var(--u5-line); }
 .ux5 .side-v3 .side-head { min-height: 64px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--u5-line); box-sizing: border-box; }
 .ux5 .side-v3 .brand { font-size: 16px; font-weight: 700; color: var(--u5-ink); }

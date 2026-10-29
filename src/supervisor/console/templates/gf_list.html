@@ -4,7 +4,7 @@
 {% block title %}{{ t('gf_title') }}{% endblock %}
 {% block content %}
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g5.css">
-{{ u5.page_head(t('gf_title'), t('gf_purpose'), about=x5.gf_about_full) }}
+{{ u5.page_head(t('gf_title'), t('gf_purpose'), about=t('gf_about_full')) }}
 <div class="g5-note">{{ t('gf_why') }}</div>
 {% else %}
 {{ ui.crumbs([(t('gf_title'), None)]) }}

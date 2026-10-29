@@ -9,16 +9,16 @@
 <section id="gf-editor" data-section="guardian-editor" data-def="{{ gf.id }}">
   {% if gf.view %}
   <div class="g5-note" data-state="{{ gf.view.state }}">
-    {{ u5.status_chip('ok' if gf.view.state == 'live' else ('na' if gf.view.state in ('draft', 'retired') else 'warn'), x5['gf_step_' ~ gf.view.state]) }}
-    <span>{{ x5.gf_status_line.format(state=x5['gf_step_' ~ gf.view.state], v=gf.view.version, owner=gf.view.owner_group, when=gf.view.updated_at|u5when) }}</span>
+    {{ u5.status_chip('ok' if gf.view.state == 'live' else ('na' if gf.view.state in ('draft', 'retired') else 'warn'), t('gf_step_' ~ gf.view.state)) }}
+    <span>{{ t('gf_status_line', state=t('gf_step_' ~ gf.view.state), v=gf.view.version, owner=gf.view.owner_group, when=gf.view.updated_at|u5when) }}</span>
   </div>
   {% if gp is defined and gp %}
   <ol class="steps" data-steps="1">
-    {% for s in gp.steps %}<li data-step="{{ s.state }}" data-done="{{ '1' if s.done else '0' }}"{% if s.current %} aria-current="step"{% endif %}>{{ x5['gf_step_' ~ s.state] }}</li>{% endfor %}
+    {% for s in gp.steps %}<li data-step="{{ s.state }}" data-done="{{ '1' if s.done else '0' }}"{% if s.current %} aria-current="step"{% endif %}>{{ t('gf_step_' ~ s.state) }}</li>{% endfor %}
   </ol>
   {% endif %}
   <nav class="g5-secnav" aria-label="{{ t('gf_title') }}">
-    <a href="#g5-rule">{{ x5.gf_nav_rule }}</a><a href="#g5-test">{{ x5.gf_nav_test }}</a><a href="#g5-trial">{{ x5.gf_nav_trial }}</a><a href="#g5-approval">{{ x5.gf_nav_approval }}</a>{% if gf.events %}<a href="#g5-history">{{ x5.gf_nav_history }}</a>{% endif %}
+    <a href="#g5-rule">{{ t('gf_nav_rule') }}</a><a href="#g5-test">{{ t('gf_nav_test') }}</a><a href="#g5-trial">{{ t('gf_nav_trial') }}</a><a href="#g5-approval">{{ t('gf_nav_approval') }}</a>{% if gf.events %}<a href="#g5-history">{{ t('gf_nav_history') }}</a>{% endif %}
   </nav>
   {% endif %}
   {% if not gf.can_edit %}<p class="hint" data-view-only="1">{{ t('gf_view_only') }}</p>
@@ -27,11 +27,11 @@
   <div id="g5-rule">
   <form method="post" action="{{ base }}/draft?lang={{ lang }}" hx-post="{{ base }}/draft?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML" id="gf-form">
     <fieldset{% if not gf.editable %} disabled{% endif %}>
-      <h2>{{ x5.gf_sec_describe }}</h2>
+      <h2>{{ t('gf_sec_describe') }}</h2>
       <div class="g5-grid2">
         <label>{{ t('gf_name') }} <input name="name" value="{{ v.name }}" maxlength="64"></label>
-        <label>{{ x5.gf_f_id }} <input name="id" value="{{ v.id }}" maxlength="64"{% if not gf.is_new %} readonly{% endif %}></label>
-        <label>{{ x5.gf_owner }} <select name="owner_group">{% for g in gf.groups %}<option value="{{ g }}" {{ 'selected' if v.owner_group == g else '' }}>{{ g }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_f_id') }} <input name="id" value="{{ v.id }}" maxlength="64"{% if not gf.is_new %} readonly{% endif %}></label>
+        <label>{{ t('gf_owner') }} <select name="owner_group">{% for g in gf.groups %}<option value="{{ g }}" {{ 'selected' if v.owner_group == g else '' }}>{{ g }}</option>{% endfor %}</select></label>
         <label class="wide">{{ t('gf_description') }} <textarea name="description" rows="2" maxlength="1024">{{ v.description }}</textarea></label>
       </div>
 
@@ -47,11 +47,11 @@
       {% if gf.draft.over_broad %}<div class="msg msg-error" data-over-broad="{{ gf.draft.match_pct }}" role="alert">{{ t('gf_over_broad', n=gf.draft.match_pct) }}</div>{% endif %}
       {% endif %}
 
-      <h2>{{ x5.gf_f_does }}</h2>
+      <h2>{{ t('gf_f_does') }}</h2>
       <div class="g5-grid2">
-        <label>{{ x5.gf_f_type }} <select name="type">{% for x in gf.types %}<option value="{{ x }}" {{ 'selected' if v.type == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
-        <label>{{ x5.gf_where }} <select name="stage">{% for x in gf.stages %}<option value="{{ x }}" {{ 'selected' if v.stage == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
-        <label>{{ x5.gf_f_action }} <select name="action_on_fail">{% for x in gf.all_actions %}<option value="{{ x }}" {{ 'selected' if v.action_on_fail == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_f_type') }} <select name="type">{% for x in gf.types %}<option value="{{ x }}" {{ 'selected' if v.type == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_where') }} <select name="stage">{% for x in gf.stages %}<option value="{{ x }}" {{ 'selected' if v.stage == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_f_action') }} <select name="action_on_fail">{% for x in gf.all_actions %}<option value="{{ x }}" {{ 'selected' if v.action_on_fail == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
       </div>
       <p class="hint">{{ t('gf_action_hint') }}</p>
       <h3>{{ t('gf_scope') }}</h3>
@@ -62,18 +62,18 @@
       </div>
 
       <details class="g5-adv" data-advanced="1">
-        <summary>{{ x5.gf_adv }}</summary>
+        <summary>{{ t('gf_adv') }}</summary>
         <div>
           <div class="g5-grid2">
-            <label>{{ x5.gf_f_sens }} <input name="sensitivity" value="{{ v.sensitivity }}" inputmode="numeric" maxlength="1"></label>
+            <label>{{ t('gf_f_sens') }} <input name="sensitivity" value="{{ v.sensitivity }}" inputmode="numeric" maxlength="1"></label>
             <label>{{ t('gf_bench_pack') }} <input name="benchmark_pack" value="{{ v.benchmark_pack }}" maxlength="64"></label>
-            <label>{{ x5.gf_f_tpr }} <input name="min_tpr_pct" value="{{ v.min_tpr_pct }}" inputmode="numeric"></label>
-            <label>{{ x5.gf_f_fpr }} <input name="max_fpr_pct" value="{{ v.max_fpr_pct }}" inputmode="numeric"></label>
-            <label>{{ x5.gf_f_p95 }} <input name="max_p95_ms" value="{{ v.max_p95_ms }}" inputmode="numeric"></label>
-            <label>{{ x5.gf_f_days }} <input name="shadow_days" value="{{ v.shadow_days }}" inputmode="numeric"></label>
+            <label>{{ t('gf_f_tpr') }} <input name="min_tpr_pct" value="{{ v.min_tpr_pct }}" inputmode="numeric"></label>
+            <label>{{ t('gf_f_fpr') }} <input name="max_fpr_pct" value="{{ v.max_fpr_pct }}" inputmode="numeric"></label>
+            <label>{{ t('gf_f_p95') }} <input name="max_p95_ms" value="{{ v.max_p95_ms }}" inputmode="numeric"></label>
+            <label>{{ t('gf_f_days') }} <input name="shadow_days" value="{{ v.shadow_days }}" inputmode="numeric"></label>
           </div>
-          <h3>{{ x5.gf_adv_json }}</h3>
-          <textarea name="config_json" rows="12" class="mono" data-field="config_json" aria-label="{{ x5.gf_adv_json }}">{{ v.config_json }}</textarea>
+          <h3>{{ t('gf_adv_json') }}</h3>
+          <textarea name="config_json" rows="12" class="mono" data-field="config_json" aria-label="{{ t('gf_adv_json') }}">{{ v.config_json }}</textarea>
         </div>
       </details>
     </fieldset>
@@ -97,22 +97,22 @@
   </div>
 
   {% if gf.is_new %}
-  <p class="hint" data-panel="benchmark">{{ x5.gf_steps_new }}</p>
+  <p class="hint" data-panel="benchmark">{{ t('gf_steps_new') }}</p>
   {% else %}
-  <section id="g5-test"><h2>{{ x5.gf_nav_test }}</h2>
+  <section id="g5-test"><h2>{{ t('gf_nav_test') }}</h2>
   {% if gb is defined and gb %}{% include "_gf_bench.html" %}
   {% else %}<p class="hint" data-panel="benchmark">{{ t('gf_b_save_first') }}</p>{% endif %}</section>
-  <section id="g5-trial"><h2>{{ x5.gf_nav_trial }}</h2>
+  <section id="g5-trial"><h2>{{ t('gf_nav_trial') }}</h2>
   {% if gs is defined and gs %}{% include "_gf_shadow.html" %}
   {% else %}<p class="hint" data-panel="shadow">{{ t('gf_b_save_first') }}</p>{% endif %}</section>
-  <section id="g5-approval"><h2>{{ x5.gf_nav_approval }}</h2>
+  <section id="g5-approval"><h2>{{ t('gf_nav_approval') }}</h2>
   {% if gp is defined and gp %}{% include "_gf_promo.html" %}{% else %}<p class="hint">{{ t('gf_b_save_first') }}</p>{% endif %}</section>
 
   {% if gf.events %}
-  <section id="g5-history"><h2>{{ x5.gf_nav_history }}</h2>
+  <section id="g5-history"><h2>{{ t('gf_nav_history') }}</h2>
   <ul class="g5-tl" data-history="1">
     {% for e in gf.events|reverse %}{% if not e.action.startswith('bench_pack') %}
-    <li><time>{{ e.at|u5when(true) }}</time>{{ e.actor }} {{ x5.get('gfe_' ~ e.action, e.action|replace('_', ' ')) }}{% if e.action == 'approval' or e.from_state != e.to_state %}<span class="idline"> ({{ x5.get('gf_step_' ~ e.to_state, e.to_state) }})</span>{% endif %}</li>
+    <li><time>{{ e.at|u5when(true) }}</time>{{ e.actor }} {{ (t('gfe_' ~ e.action) if t('gfe_' ~ e.action) != 'gfe_' ~ e.action else e.action|replace('_', ' ')) }}{% if e.action == 'approval' or e.from_state != e.to_state %}<span class="idline"> ({{ (t('gf_step_' ~ e.to_state) if t('gf_step_' ~ e.to_state) != 'gf_step_' ~ e.to_state else e.to_state) }})</span>{% endif %}</li>
     {% endif %}{% endfor %}
   </ul></section>
   {% endif %}
