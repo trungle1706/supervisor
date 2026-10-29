@@ -2017,3 +2017,28 @@ tables:
       signature: string?       # base64 Ed25519 signature of the evidence signer
       definition_sha256: string  # sha256 of the definition that was tested
       created_by: string
+
+  # --- WP-W1 (phase 11) the regulation watcher ---------------------------------------------------
+  regwatch_run:
+    kind: state
+    description: >
+      WP-W1 (phase 11, REGWATCH_ENABLED). One run of the scheduler job regwatch (laptop mode): the
+      watcher asked vbpl.vn about the stored Vietnamese instruments and wrote a watch report and a
+      signed update package under DATA_DIR/regwatch/. status: running, ok, partial (some queries
+      failed) or error. instruments_checked and changes_found are counts; report_sha256 and
+      package_sha256 are SHA-256 hex of the report JSON and of the zip. Nothing in a run is applied
+      to RegKB: the changes wait for review (WP-W2). error is a short text, no secret, no path.
+      Integers, hashes and short texts only.
+    primary_key: [run_id]
+    indexes:
+      - [started_at]
+    columns:
+      run_id: string
+      started_at: timestamp
+      finished_at: timestamp?
+      status: string           # running | ok | partial | error
+      instruments_checked: int
+      changes_found: int
+      report_sha256: string?
+      package_sha256: string?
+      error: string?           # at most 300 characters

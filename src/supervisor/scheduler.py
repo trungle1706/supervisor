@@ -19,6 +19,8 @@ quality        QUALITY_ENABLED        groundedness / guideline scores (sampled)
 retention      RETENTION_ENABLED      null personal-data columns past their TTL (ADR D13)
 tool_analytics TOOL_ANALYTICS_ENABLED daily ``tool_usage_daily`` rollup + least-privilege
                                       suggestion files (WP22; never applied)
+regwatch       REGWATCH_ENABLED       ask vbpl.vn about the stored instruments, write a watch report
+                                      and a signed update package (laptop mode only; WP-W1)
 siem           SIEM_ENABLED           send new evidence-chain events to the SIEM sink (WP21)
 notify         NOTIFY_WEBHOOK_ENABLED send queued webhook notices (WP21; needs a URL)
 alerts         ALERTS_ENABLED         evaluate config/alerts.yaml, raise and route alerts (WP21)
@@ -550,6 +552,16 @@ def build_jobs(settings: Any, runtime: Any, ctx: MonitorContext) -> list[JobSpec
                 "duty_evidence_sweep",
                 settings.duty_evidence_sweep_s,
                 lambda: duty_evidence_sweep_job.run(ctx, settings),
+            )
+        )
+    from supervisor.jobs import regwatch as regwatch_job  # WP-W1
+
+    if regwatch_job.enabled(settings):  # WP-W1: laptop mode only; refused (logged) in the App
+        jobs.append(
+            JobSpec(
+                "regwatch",
+                settings.regwatch_interval_s,
+                lambda: regwatch_job.run(ctx, settings),
             )
         )
     return jobs

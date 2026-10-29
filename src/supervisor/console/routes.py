@@ -191,6 +191,7 @@ def render(
                 ),
                 "guardian_factory": bool(ctx.settings.guardian_factory),
                 "regkb_internal": bool(ctx.settings.regkb_internal),
+                "regkb_watch": bool(ctx.settings.regwatch_enabled),  # WP-W1
             }
         return cache["v"]
 

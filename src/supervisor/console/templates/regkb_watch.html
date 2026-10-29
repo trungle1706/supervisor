@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rw_title') }}{% endblock %}
+{% macro changes_table(changes) %}
+  {% if changes %}
+  <div class="tablewrap flat"><table class="queue" data-table="regwatch-changes">
+    <thead><tr><th scope="col">{{ t('rw_c_instrument') }}</th><th scope="col">{{ t('rw_c_kind') }}</th><th scope="col">{{ t('rw_c_detail') }}</th><th scope="col">{{ t('rw_c_date') }}</th><th scope="col">sha256</th><th scope="col">{{ t('rw_c_review') }}</th></tr></thead>
+    <tbody>
+    {% for c in changes %}
+      <tr class="row" data-change="{{ c.kind }}">
+        <td class="mono">{{ c.instrument_id }}</td>
+        <td>{{ c.kind }}</td>
+        <td>{{ c.detail }}{% if c.url %}<div class="idline mono">{{ c.url }}</div>{% endif %}</td>
+        <td class="mono">{{ c.date or '-' }}</td>
+        <td class="mono">{{ (c.sha256 or '-')[:12] }}</td>
+        <td>{{ ui.pill(t('rw_pending'), 'warn', True) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint">{{ t('rw_no_changes') }}</p>
+  {% endif %}
+{% endmacro %}
+{% block content %}
+{{ ui.crumbs([('Regulations', None), (t('rw_title'), None)]) }}
+{{ ui.pagehead(t('rw_title')) }}
+<section class="card" id="regwatch-panel" data-section="regwatch">
+  <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('rw_banner') }}</b></div>
+  <p class="hint">{{ t('rw_hint') }}</p>
+
+  <h3>{{ t('rw_runs') }} <span class="k">{{ rw.runs|length }}</span></h3>
+  {% if rw.runs %}
+  <div class="tablewrap flat"><table class="queue" data-table="regwatch-runs">
+    <thead><tr><th scope="col">{{ t('rw_c_run') }}</th><th scope="col">{{ t('rw_c_started') }}</th><th scope="col">{{ t('rw_c_status') }}</th><th scope="col">{{ t('rw_c_checked') }}</th><th scope="col">{{ t('rw_c_changes') }}</th><th scope="col">report / package</th></tr></thead>
+    <tbody>
+    {% for r in rw.runs %}
+      <tr class="row" data-run="{{ r.run_id }}">
+        <td class="mono">{{ r.run_id }}</td>
+        <td class="mono">{{ (r.started_at or '-')[:19] }}</td>
+        <td>{{ r.status }}{% if r.error %}<div class="idline">{{ r.error }}</div>{% endif %}</td>
+        <td class="mono">{{ r.instruments_checked }}</td>
+        <td class="mono">{{ r.changes_found }}</td>
+        <td class="mono">{{ (r.report_sha256 or '-')[:12] }} / {{ (r.package_sha256 or '-')[:12] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint" data-empty="regwatch-runs">{{ t('rw_no_runs') }}</p>
+  {% endif %}
+
+  <h3>{{ t('rw_reports') }} <span class="k">{{ rw.reports|length }}</span></h3>
+  {% for rep in rw.reports %}
+  <details class="intake-form" data-report="{{ rep.file }}">
+    <summary class="btn">{{ rep.file }} · {{ rep.report.summary.changes_found }} {{ t('rw_c_changes') }} · {{ rep.report.summary.new_candidates }} {{ t('rw_candidates') }}</summary>
+    <div class="idline mono">{{ rep.sha256[:12] }}</div>
+    {{ changes_table(rep.changes) }}
+  </details>
+  {% else %}
+  <p class="hint">{{ t('rw_no_reports') }}</p>
+  {% endfor %}
+
+  <h3>{{ t('rw_packages') }} <span class="k">{{ rw.packages|length }}</span></h3>
+  {% for p in rw.packages %}
+  <details class="intake-form" data-package="{{ p.package_sha256 }}">
+    <summary class="btn">{{ p.package_sha256[:12] }} · {{ p.run_id }} · {{ (p.imported_at or '-')[:19] }} · {{ p.imported_by }}</summary>
+    <div class="idline">{{ t('rw_not_applied') }}</div>
+    {{ changes_table(p.changes) }}
+  </details>
+  {% else %}
+  <p class="hint" data-empty="regwatch-packages">{{ t('rw_no_packages') }}</p>
+  {% endfor %}
+</section>
+{% endblock %}

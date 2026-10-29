@@ -220,6 +220,15 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         ("reviewer", "owner", "approver", "admin"),
         "Upload an internal document to RegKB and ask the law agent to draft its duties (WP-W3)",
     ),
+    # --- WP-W1 --- regulation watcher (REGWATCH_ENABLED; 400 regwatch_off)
+    "regkb.import": (
+        ("admin",),
+        "Import a signed regulation update package; it is stored, not applied (WP-W1)",
+    ),
+    "regkb.watch": (
+        ("admin",),
+        "Regulation watch page: runs, reports and imported packages (WP-W1)",
+    ),
 }
 
 # Permissions a non-person caller (service principal, system) keeps: they are the read-only
@@ -619,6 +628,10 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/regkb/internal"): "regkb.view",
     ("POST", "/console/regkb/internal"): "regkb.upload",
     ("POST", "/console/regkb/internal/{doc_id}/draft"): "regkb.upload",
+    ("POST", "/v1/regkb/import"): "regkb.import",
+    ("GET", "/v1/regkb/watch/runs"): "regkb.watch",
+    ("GET", "/v1/regkb/watch/packages"): "regkb.watch",
+    ("GET", "/console/regkb/watch"): "regkb.watch",
     # --- WP-G6 --- MCP server, connected apps, KPIs (MCP_SERVER_ENABLED)
     ("POST", "/mcp"): AGENT,  # the credential is the HMAC signature of a connected app
     ("GET", "/v1/mcp/apps"): "mcp.apps",

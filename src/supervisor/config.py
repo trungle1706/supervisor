@@ -398,6 +398,14 @@ class Settings(BaseSettings):
     # Off = upload refused (400 regkb_internal_off) and the loader ignores internal files.
     regkb_internal: bool = False
     regkb_internal_max_mb: int = Field(default=10, ge=1, le=50)
+    # WP-W1 (phase 11): the regulation watcher. REGWATCH_ENABLED=1 turns on the scheduler job
+    # `regwatch` (laptop mode only: the App has no internet), the import route
+    # POST /v1/regkb/import and the page /console/regkb/watch. Off = 400 regwatch_off. The
+    # interval is at least 3600 s. REGKB_IMPORT_PUBKEY: PEM file of the Ed25519 public key that
+    # signs update packages (empty = the evidence signer of this install). Nothing is applied.
+    regwatch_enabled: bool = False
+    regwatch_interval_s: int = Field(default=86400, ge=3600)
+    regkb_import_pubkey: Path | None = None
     # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
     # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
     assurance_data_dir: Path | None = None
@@ -934,6 +942,7 @@ class Settings(BaseSettings):
         "classification_config",
         "transparency_dir",
         "transparency_backlog_file",
+        "regkb_import_pubkey",
         mode="after",
     )
     @classmethod

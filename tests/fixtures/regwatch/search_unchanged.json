@@ -1,0 +1,29 @@
+{
+ "_note": "Synthetic vbpl.vn search result: nothing changed.",
+ "result": {
+  "total": 1,
+  "items": [
+   {
+    "id": "u-own-0001",
+    "title": "Thông tư số 99/2026/TT-NHNN Quy định mẫu về mô hình thử nghiệm",
+    "docNum": "99/2026/TT-NHNN",
+    "docType": {
+     "code": "TT",
+     "name": "Thông tư"
+    },
+    "issueDate": "2026-03-01T00:00:00",
+    "effFrom": "2026-03-01T00:00:00",
+    "effTo": null,
+    "updatedDate": null,
+    "effStatus": {
+     "code": "CHL",
+     "name": "Còn hiệu lực"
+    },
+    "agencyName": "Ngân hàng Nhà nước Việt Nam",
+    "agencyIds": [
+     "62"
+    ]
+   }
+  ]
+ }
+}

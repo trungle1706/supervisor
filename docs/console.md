@@ -139,7 +139,7 @@ The section routes below answer `302` to the first tab that is on (or to the tab
 | Governance, Overview | `/console/governance` | none |
 | Governance, Systems | `/console/systems` (route and page owned by WP-G0) | The item shows only with `console_systems_enabled`. The Onboard, Integration, Transparency and Tasks pages carry a Systems tab strip meanwhile |
 | Governance, Catalogues | `/console/catalogues` | Agents (`/console/agents`), Models, Tools, Datasets, MCP servers (inventory nodes, read only), Unmanaged (`/console/inventory`) |
-| Governance, Risks and controls | `/console/risks-controls` (302) | Risks, Controls, Policies (the Compliance page), Internal documents (`/console/regkb/internal`, WP-C4; shows only with `REGKB_INTERNAL=1`, permission `regkb.view`) |
+| Governance, Risks and controls | `/console/risks-controls` (302) | Risks, Controls, Policies (the Compliance page), Internal documents (`/console/regkb/internal`, WP-C4; shows only with `REGKB_INTERNAL=1`, permission `regkb.view`), Regulation watch (`/console/regkb/watch`, WP-W1; shows only with `REGWATCH_ENABLED=1`, permission `regkb.watch`, admin) |
 | Governance, Factory (WP-C4) | `/console/factory` | none. Shows only with `AGENT_FACTORY=1` (and `GOVERNANCE_ENABLED`); permission `systems.view` |
 | Governance, Workflows | `/console/workflows` | none |
 | Supervisor, Overview | `/console/supervisor` | none |
@@ -598,6 +598,8 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `regkb.view` | Law agent drafts page: duties drafted from the stored official text (WP-L1) | x | x | x | x | x | x | x |
 | `regkb.confirm` | Confirm or drop a law agent draft; the compliance sign-off role (WP-L1) |  |  | x |  | x |  |  |
 | `regkb.upload` | Upload an internal document to RegKB and ask the law agent to draft its duties (WP-W3) |  | x | x | x | x |  |  |
+| `regkb.import` | Import a signed regulation update package; it is stored, not applied (WP-W1) |  |  |  |  | x |  |  |
+| `regkb.watch` | Regulation watch page: runs, reports and imported packages (WP-W1) |  |  |  |  | x |  |  |
 <!-- ROLE-MATRIX:END -->
 
 Every console route and every `/gate` human route has a permission in `ROUTES` (same file).

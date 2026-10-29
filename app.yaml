@@ -318,3 +318,14 @@ env:
   # volume is needed on Databricks). Off by default (docs/regulations.md).
   # - name: REGKB_INTERNAL
   #   value: "1"
+  # Phase 11 WP-W1: regulation watcher. The scheduler job `regwatch` runs on a laptop only (the App
+  # has no internet; it is refused here with a log line). In the App the flag turns on the import
+  # of a signed update package (POST /v1/regkb/import, admin) and the page /console/regkb/watch.
+  # REGKB_IMPORT_PUBKEY: PEM file of the key that signs the packages (empty = this install's
+  # evidence signer). Nothing is applied by an import. Off by default (docs/regulations.md).
+  # - name: REGWATCH_ENABLED
+  #   value: "1"
+  # - name: REGWATCH_INTERVAL_S
+  #   value: "86400"
+  # - name: REGKB_IMPORT_PUBKEY
+  #   value: "FILL-ME-path-to-update-package-public-key.pem"

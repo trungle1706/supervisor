@@ -536,6 +536,98 @@ Result on 2026-10-28: exact 46 of 53, noise-tolerant 53 of 53, fail 0 of 53. The
 are not exact have OCR noise (a letter read as a digit, a dropped or added letter); none has a
 different wording. A made-up sentence does not match, so the fold is not a blank check.
 
+## Watcher and update package (WP-W1)
+
+The watcher asks vbpl.vn whether a stored Vietnamese instrument changed. It runs on a developer
+host or a laptop, never in the Databricks App (the App has no internet). It only finds and
+stores: **nothing is applied to RegKB**. Not legal advice. Bank counsel must confirm.
+
+```
+dev host / laptop                                       the App (offline)
+  python -m supervisor.regkb watch                        POST /v1/regkb/import (admin)
+    -> vbpl.vn (tools/regkb_fetch.py)                       check signature + every sha
+    -> sources/<id>/incoming/<date>/*.txt + sidecar         store regkb/incoming/<sha>/
+    -> watch-<date>.json / .md                              list on /console/regkb/watch
+    -> update-package-<date>.zip (signed)  --copy-->        "pending review (WP-W2)"
+```
+
+### Run it
+
+```
+python -m supervisor.regkb watch --dry-run --instrument VN-TT53-2026   (query, print, write nothing)
+python -m supervisor.regkb watch --out C:\bank\regwatch                  (all instruments)
+```
+
+`--out` defaults to `DATA_DIR/regwatch`. New texts go to
+`regulations/sources/<id>/incoming/<YYYY-MM-DD>/` (git-ignored; `--sources-root` changes the
+base folder). The stored text of record is never changed. All network calls use the functions of
+`tools/regkb_fetch.py` (search action id rediscovery included). Downloaded content is data: it
+is written as bytes and never imported or executed.
+
+### What it detects
+
+| Kind | Rule |
+|---|---|
+| `amendment`, `replacement`, `repeal` | Another document whose title names the full number with "sửa đổi", "thay thế" or "bãi bỏ" (the first word found wins: repeal, then replacement, then amendment). A longer number (199/2026 for 99/2026) does not match. A number named in the instrument file or in the last report is known, not new. |
+| `effect_status_change` | vbpl effect status code differs from the last report. In the first run: not compatible with the `status` in the file. |
+| `updated_date_newer` | `updatedDate` is later than the last report, or than `last_checked` in the first run. |
+| `text_changed` | A primary vbpl source now gives a text whose sha256 and white-space-folded text differ from the stored one. A layout-only difference is counted (`layout_only`), not reported. |
+
+Also once per full run: the keywords "trí tuệ nhân tạo" and "AI" for the SBV, the Government,
+the MST and the MPS (new instrument candidates), the Decree 142 Art. 46 interim channel
+("cổng thông tin một cửa trí tuệ nhân tạo", "cơ chế tạm thời") on the Government and MST (a
+note with the hits), and the open items M-01 to M-10 of `REGULATOR_MAP.md` (numbers are
+searched exactly; items without a number list candidates).
+
+### Files
+
+`watch-<date>.json` (format `regwatch-report-1`: per instrument `record`, `observed`, `changes`;
+`new_candidates`, `interim_channel`, `open_items`, `errors`) and `watch-<date>.md` for people.
+The update package is `update-package-<date>.zip` (50 MB at most):
+
+| Member | Content |
+|---|---|
+| `manifest.json` | `format regwatch-package-1`, `run_id`, `created_at`, every other member with `sha256` and `size` |
+| `signature` | JSON: `key_id`, `key_kind`, `signed` (sha256 of `manifest.json`), base64 Ed25519 `signature` over `supervisor-regwatch-package/v1 ` + that sha, `public_key` |
+| `watch-<date>.json`, `watch-<date>.md` | the report |
+| `proposed_changes.yaml` | empty placeholder (`proposed: []`) for WP-W2 |
+| `incoming/<id>/<date>/<name>.txt` and `<name>.meta.json` | new texts; sidecar has url, fetched_at, sha256, vbpl record fields |
+
+### Import (App, admin)
+
+`POST /v1/regkb/import` with multipart field `file`. The signature is checked against
+`REGKB_IMPORT_PUBKEY` (a PEM file) or, when empty, the public key of this install's evidence
+signer; the key id in the package must match. Then every member is checked against the manifest.
+Stored under `DATA_DIR/regkb/incoming/<package sha256>/`; the same package twice answers 200
+`already_imported`. Refusals are HTTP 400 with a code at the start of the message:
+
+| Code | Meaning |
+|---|---|
+| `regwatch_off` | `REGWATCH_ENABLED` is off (every route) |
+| `nothing_to_import` | no file in the form |
+| `too_large` | over 50 MB, over 600 members or over 200 MB unpacked |
+| `bad_zip` | not a zip, or a member cannot be read |
+| `path_traversal` | a member path with `..`, a leading `/`, a backslash or a colon |
+| `unknown_member` | a member name outside the allowed set, or listed twice |
+| `bad_manifest` | manifest or signature missing or not valid; not exactly one report |
+| `bad_signature` | the signature does not cover the manifest or does not verify |
+| `untrusted_key` | the key id is not the trusted key |
+| `sha_mismatch` | a member differs from the manifest, or members and manifest differ |
+
+Read: `GET /v1/regkb/watch/runs` (runs and reports), `GET /v1/regkb/watch/packages`, page
+`/console/regkb/watch` (Risks and controls, admin). Each change shows "pending review (WP-W2)".
+Permissions `regkb.import` and `regkb.watch` are admin only. Each import writes two
+`console_action` rows and one `regkb_import` chain record (hashes and counts).
+
+### Scheduler job
+
+`REGWATCH_ENABLED=1` and `REGWATCH_INTERVAL_S` (default 86400, minimum 3600) add the job
+`regwatch` in laptop mode (`python -m supervisor.jobs.regwatch` runs it once). In
+`databricks_app` mode the job is refused with a log line. Output goes to `DATA_DIR/regwatch/`
+(new texts under `sources/<id>/incoming/`). One `regwatch_run` row per run and one
+`regwatch_run` chain record (counts and the two sha256 values). A laptop carries the zip to the
+App by a file transfer approved by the bank.
+
 ## Open points for counsel
 
 - Whether the Decision 33 transition date for banks is 2027-09-01 ("finance", AI Law Art. 35)
