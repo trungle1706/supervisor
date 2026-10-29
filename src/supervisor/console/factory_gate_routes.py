@@ -228,7 +228,7 @@ async def simulation_mark(
 ) -> Response:
     _on(ctx)
     f = await form(request)
-    if any(k.startswith("mark_") for k in f):  # UX5 G6: the page's single Save
+    if ctx.settings.console_ux5 and any(k.startswith("mark_") for k in f):  # UX5 G6: one Save
         data, n = await _call(_bulk_marks, ctx, me, agent_id, run_id, f)
         request.state.audit_detail = f"marks {n}"[:200]
         return render(request, ctx, me, "_factory_sim_body.html", **data)
