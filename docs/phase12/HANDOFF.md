@@ -18,8 +18,11 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
     618 obligations.
   * Wave 3 part one merged 2026-10-29: WP-C4 (portfolio, nav), WP-G2 (guardian benchmark),
     WP-C3 (nine-step workflow), WP-F3 (gate and promotion); fix 93dfdae. Schema: 79 tables.
-  * Wave 3 part two workers started 2026-10-29: WP-F5 (starter agents), WP-G3 (shadow and
-    promotion), WP-G4 (smart guardian), WP-W1 (watcher). Still to start: WP-W2 (after W1).
+  * Wave 3 part two merged 2026-10-29: WP-F5 (starter agents), WP-W1 (watcher and update
+    package), WP-G4 (smart guardian), WP-G3 (shadow and promotion); main 322cd05. Schema: 83
+    tables. Full suite after part one: 8,663 passed, 0 failed.
+  * Last worker started 2026-10-29: WP-W2 (change to re-evaluation). After its merge: full
+    suite, then release v0.9.0.
   * Merge lesson: every WP appends a table and a CHANGELOG entry, so a merge conflicts in
     schema/model.yaml, the two DDL files, the notebook and CHANGELOG.md. Keep both appends, take
     either side of the generated files, then regenerate; add new /v1/systems routers to the
@@ -101,8 +104,8 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
 
 ## 7. Next actions in order
 
-1. Merge any wave 3 branch on GitHub (F5, G3, G4, W1) with the merge lesson above.
-2. Start WP-W2 (after W1). Brief the worker as section 2 says.
+1. Merge the WP-W2 branch on GitHub with the merge lesson above.
+2. Nothing else to start in phase 12; the plan's section 5 is complete after W2.
 3. Full suite, then release v0.9.0 (section 4).
 4. Report to the owner in the controlled style (short sentences, tables, diagrams; see the
    owner's `ste-communication` skill note in the memory file when local).
