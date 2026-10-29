@@ -7,6 +7,10 @@
   (the policy block stays as an export). The gate reads the rows under the policy file (a key the
   policy names wins; `keep_args` never) and only when `SMART_GUARDIAN=1` and `DETECTORS_ENABLED=1`.
   Chain record `detector_override` (ids, value hash, actor ref).
+- WP-B1 item 2: **autonomy cap at the gate**. Rule `GATE-AUTONOMY-CAP` pauses a call whose tool
+  class needs a higher level than the system tag `autonomy_limits.max_level`, or whose amount is above
+  `approval_above_vnd` (credit: `credit_approval_above_vnd`). Observe mode lifts it. Needs
+  `SMART_GUARDIAN=1` and `GOVERNANCE_ENABLED=1`; off, nothing changes.
 
 ## v0.9.0 (phases 11 and 12: compliance-first onboarding, agent factory, guardian factory, regulation watch) - 2026-10-29
 
