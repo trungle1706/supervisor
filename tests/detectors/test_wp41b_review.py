@@ -204,7 +204,10 @@ def test_dlp_vn_off_masks_the_full_text_byte_for_byte_as_wp24b(
     args = {"customer_id": "C-1", "n": HUGE}
     want, n = redact_args(masker, args)
     gw = make_gateway(
-        gate=make_gate(masker, config_text=ONLY_REGEX), masker=masker, inline_redaction=True
+        gate=make_gate(masker, config_text=ONLY_REGEX),
+        masker=masker,
+        inline_redaction=True,
+        timeout_s=30.0,  # not a timing test (slow CI runner)
     )
     r = gw.check("credit_prequal", "1", "fetch_application", args)
     # dlp_vn off: nothing limits the masker; the call is still refused by the cut (D31) and the

@@ -298,6 +298,7 @@ def test_max_windows_caps_the_calls(masker: VnRegexMasker) -> None:
         det(masker, port),
         {"tool_results": [" ".join(f"w{i}" for i in range(20_000))], "meta": {}},
         max_windows=4,
+        _budget_ms=60_000,  # not a timing test: a slow CI runner must not run out of budget
     )
     assert len(port.sent) == 4
 

@@ -157,6 +157,7 @@ def test_inline_redaction_without_detectors_still_masks_the_full_text(
         state_cache_ttl_s=0,
         masker=masker,
         inline_redaction=True,
+        timeout_s=30.0,  # not a timing test: masking ~100 kB on a slow CI runner takes > 2 s
     )
     r = gw.check("credit_prequal", "1", "fetch_application", {"customer_id": "C-1", "n": HUGE})
     assert r["allow"] is True and "001203004567" not in r["transformed_args"]["n"]
