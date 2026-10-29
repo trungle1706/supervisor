@@ -7,7 +7,7 @@
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g6.css">{% endif %}
 {{ ui.pagehead(ed.agent.name|replace(' demo:showcase', '') if ux5 else ed.agent.name, ui.pill(ed.agent.state, ed.agent.state_pill, True) ~ ' ' ~ ui.pill('v' ~ ed.version, 'neutral')) }}
 {% if not ux5 %}<p class="hint">{{ ed.agent.description }}</p>{% endif %}
-<p class="idline">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} &middot; {% if ux5 %}{{ tx('u6_owner') }}: {% endif %}{{ ed.agent.owner_label }}
+<p class="idline">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} &middot; {% if ux5 %}{{ t('u6_owner') }}: {% endif %}{{ ed.agent.owner_label }}
   {% for v in ed.versions %}<a href="/console/factory/{{ ed.agent.id }}?v={{ v.version }}" data-version="{{ v.version }}">{{ ui.pill('v' ~ v.version ~ ' ' ~ v.state, 'info' if v.version == ed.version else 'neutral') }}</a>{% endfor %}
 </p>
 {% if ed.agent.state == 'retired' %}<p class="notice" data-retired="1"><span class="dot"></span>{{ t('fa_retired_note') }}</p>
@@ -15,7 +15,7 @@
 {% if ux5 %}
 <nav class="g6-steps" aria-label="{{ t('fa_steps') }}" data-steps="1">
 {% for st in ed.stages %}
-  <div class="g6-stage"><span class="g6-stage-name">{{ tx(st.name) }}</span>
+  <div class="g6-stage"><span class="g6-stage-name">{{ t(st.name) }}</span>
   {% for s in st.steps %}
     <a class="g6-step tab {{ 'current active' if s == ed.step }}" data-step-link="{{ s }}" href="/console/factory/{{ ed.agent.id }}?v={{ ed.version }}&amp;step={{ s }}"
      hx-get="/console/factory/{{ ed.agent.id }}/step/{{ s }}?v={{ ed.version }}" hx-target="#factory-step" hx-swap="innerHTML"{% if s == ed.step %} aria-current="step"{% endif %}>{{ t('fa_step_' ~ s) }}</a>
@@ -41,7 +41,7 @@
 <details class="card" data-section="events">
   <summary><b>{{ t('fa_events') }}</b> ({{ ed.ux_events|length }})</summary>
   <table class="queue" data-table="events"><tbody>
-  {% for e in ed.ux_events[:10] %}<tr data-event="{{ e.kind }}"><td>{{ tx('u6_ev_' ~ e.kind) if e.kind in ('live','approved','approval','submitted','tested','gate_run','simulation','retired','created','new_version') else e.kind }}</td><td>{{ e.actor }}</td><td class="wrap">{% if e.kind == 'simulation' %}{{ tx('u6_ev_sim_line', agree=e.counts.get('agree', 0), disagree=e.counts.get('disagree', 0), unsure=e.counts.get('unsure', 0), n=e.n) }}{% else %}{{ e.text }}{% endif %}</td></tr>
+  {% for e in ed.ux_events[:10] %}<tr data-event="{{ e.kind }}"><td>{{ t('u6_ev_' ~ e.kind) if e.kind in ('live','approved','approval','submitted','tested','gate_run','simulation','retired','created','new_version') else e.kind }}</td><td>{{ e.actor }}</td><td class="wrap">{% if e.kind == 'simulation' %}{{ t('u6_ev_sim_line', agree=e.counts.get('agree', 0), disagree=e.counts.get('disagree', 0), unsure=e.counts.get('unsure', 0), n=e.n) }}{% else %}{{ e.text }}{% endif %}</td></tr>
   {% else %}<tr><td class="hint">{{ t('fa_no_events') }}</td></tr>{% endfor %}
   </tbody></table>
   {% if ed.ux_events|length > 10 %}<p class="hint">{{ t("ux5_shown_of", shown=10, total=ed.ux_events|length) }}</p>{% endif %}

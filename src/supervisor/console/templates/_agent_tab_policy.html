@@ -5,7 +5,7 @@
   <h3>{{ t('policy_rules') }} <span class="k">{{ rules|length }}</span></h3>
   <p class="muted" style="margin:0 0 8px">
     {% if shadow %}{{ ui.pill(t('shadow_word'), 'teal') }} {{ t('policy_shadow_note') }}{% else %}{{ ui.pill(t('enforced_word'), 'ok') }}{% endif %}
-    {% if ux5 %}{% if policy.version %} · {{ t('policy_version') }} {{ policy.version }}{% endif %}{% if policy.hash %} <span class="muted" title="{{ t('policy_hash') }} {{ policy.hash }}">(<a href="#" onclick="return false">{{ t('g4_details') }}</a>)</span>{% endif %}
+    {% if ux5 %}{% if policy.version %} · {{ t('policy_version') }} {{ policy.version }}{% endif %}{% if policy.hash %} <span class="muted" title="{{ t('policy_hash') }} {{ policy.hash }}">(<span class="muted">{{ t('g4_details') }}</span>)</span>{% endif %}
     {% else %}
     {% if policy.hash %} · {{ t('policy_hash') }} <span class="mono" title="{{ policy.hash }}">{{ policy.hash[:12] }}…</span>{% endif %}
     {% if policy.version %} · {{ t('policy_version') }} {{ policy.version }}{% endif %}

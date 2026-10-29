@@ -3,7 +3,7 @@
   <h3>{{ t('tab_casefile') }}</h3>
   <p class="hint" style="margin-top:0">{{ t('casefile_why') }}</p>
   <dl class="kv">
-    <dt>{{ t('sbv_clock') }}</dt><dd>{{ cf.sbv.report_due_at|ict }}</dd>
+    <dt>{{ t('report_due_col') }}</dt><dd>{% if incident is defined and incident and incident.clocked %}{% if not incident.prelim_sent_at %}{{ incident.prelim_due_at|ict }}{% elif not incident.formal_sent_at %}{{ incident.formal_due_at|ict }}{% else %}-{% endif %}{% else %}-{% endif %}</dd>
     <dt>{{ t('sbv_remediation') }}</dt><dd>{{ cf.sbv.remediation_due_at|ict }} <span class="muted">({{ cf.sbv.remediation_basis }})</span></dd>
     <dt>{{ t('d33_label') }}</dt><dd>{{ d33 or t('d33_pending') }}</dd>
     <dt>{{ t('regulation') }}</dt><dd>{{ cf.regulation_refs|join('; ') or '-' }}</dd>

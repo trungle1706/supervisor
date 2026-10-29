@@ -8,7 +8,7 @@
 <section id="gf-list" data-section="guardian-factory">
   <div class="g5-chips" role="group" aria-label="{{ t('gf_state') }}">
     {% set total = namespace(n=0) %}{% for s in gl.states %}{% set total.n = total.n + gl.counts[s] %}{% endfor %}
-    <a class="{{ 'on' if not f.state else '' }}" href="{{ gl.base }}{{ qs }}&amp;state=" hx-get="{{ gl.base }}{{ qs }}&amp;state=" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false">{{ x5.cat_all }} {{ total.n }}</a>
+    <a class="{{ 'on' if not f.state else '' }}" href="{{ gl.base }}{{ qs }}&amp;state=" hx-get="{{ gl.base }}{{ qs }}&amp;state=" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false">{{ t('cat_all') }} {{ total.n }}</a>
     {% for s in gl.states %}{% if gl.counts[s] or f.state == s %}
     <a class="{{ 'on' if f.state == s else '' }}" href="{{ gl.base }}{{ qs }}&amp;state={{ s }}" hx-get="{{ gl.base }}{{ qs }}&amp;state={{ s }}" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false" data-state="{{ s }}">{{ t('gf_state_' ~ s)|capitalize }} {{ gl.counts[s] }}</a>
     {% endif %}{% endfor %}
@@ -16,9 +16,9 @@
   <form class="g5-filters" role="search" action="{{ gl.base }}" method="get" hx-get="{{ gl.base }}" hx-target="#gf-list" hx-swap="outerHTML" hx-trigger="change, submit" hx-push-url="false">
     <input type="hidden" name="lang" value="{{ lang }}"><input type="hidden" name="state" value="{{ f.state }}">
     <label class="sr" for="f-owner_group">{{ t('gf_group') }}</label>
-    <select id="f-owner_group" name="owner_group"><option value="">{{ x5.gf_owner }}: {{ t('gf_all') }}</option>{% for g in gl.groups %}<option value="{{ g }}" {{ 'selected' if f.owner_group == g else '' }}>{{ g }}</option>{% endfor %}</select>
+    <select id="f-owner_group" name="owner_group"><option value="">{{ t('gf_owner') }}: {{ t('gf_all') }}</option>{% for g in gl.groups %}<option value="{{ g }}" {{ 'selected' if f.owner_group == g else '' }}>{{ g }}</option>{% endfor %}</select>
     <label class="sr" for="f-stage">{{ t('gf_stage') }}</label>
-    <select id="f-stage" name="stage"><option value="">{{ x5.gf_where }}: {{ t('gf_all') }}</option>{% for g in gl.stages %}<option value="{{ g }}" {{ 'selected' if f.stage == g else '' }}>{{ g }}</option>{% endfor %}</select>
+    <select id="f-stage" name="stage"><option value="">{{ t('gf_where') }}: {{ t('gf_all') }}</option>{% for g in gl.stages %}<option value="{{ g }}" {{ 'selected' if f.stage == g else '' }}>{{ g }}</option>{% endfor %}</select>
     <label class="sr" for="f-type">{{ t('gf_type') }}</label>
     <select id="f-type" name="type"><option value="">{{ t('gf_type') }}: {{ t('gf_all') }}</option>{% for g in gl.types %}<option value="{{ g }}" {{ 'selected' if f.type == g else '' }}>{{ g }}</option>{% endfor %}</select>
     <noscript><button class="btn" type="submit">{{ t('gf_filter') }}</button></noscript>
@@ -28,7 +28,7 @@
   <div class="u5-panel" style="padding:0">
   <table class="queue u5-sticky">
     <caption class="sr">{{ t('gf_title') }}</caption>
-    <thead><tr><th scope="col">{{ t('gf_name') }}</th><th scope="col">{{ t('gf_state') }}</th><th scope="col">{{ x5.gf_owner }}</th><th scope="col">{{ x5.gf_where }}</th><th scope="col">{{ t('gf_type') }}</th><th scope="col" class="n">{{ t('gf_col_live') }}</th></tr></thead>
+    <thead><tr><th scope="col">{{ t('gf_name') }}</th><th scope="col">{{ t('gf_state') }}</th><th scope="col">{{ t('gf_owner') }}</th><th scope="col">{{ t('gf_where') }}</th><th scope="col">{{ t('gf_type') }}</th><th scope="col" class="n">{{ t('gf_col_live') }}</th></tr></thead>
     <tbody>
     {% for g in gl.rows %}
       <tr data-def="{{ g.id }}" data-state="{{ g.state }}"><td><a href="{{ gl.base }}/{{ g.id }}?lang={{ lang }}">{{ g.name }}</a><div class="idline">{{ g.id }}</div></td><td>{{ u5.status_chip('ok' if g.state == 'live' else ('na' if g.state in ('draft', 'retired') else 'warn'), t('gf_state_' ~ g.state)) }}</td><td>{{ g.owner_group }}</td><td>{{ g.stage }}</td><td>{{ g.type }}</td><td class="n" data-col="live">{{ g.live_version if g.live_version else '-' }}</td></tr>

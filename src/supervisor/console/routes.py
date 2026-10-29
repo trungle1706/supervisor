@@ -60,7 +60,6 @@ from supervisor.console import (
     decisions,
     decisions_v2,
     health,
-    i18n_ux5_g5,
     inbox_list,  # --- WP-UX2 ---
     integration_reports,
     integrations_view,
@@ -230,9 +229,7 @@ def render(
     integration_on = bool(ctx.settings.console_integration_enabled)
     body = _env.get_template(template).render(
         t=_t,
-        tx=_t,  # UX5 G6: the same translator; templates call it for keys that exist only under UX5
         ux5=bool(ctx.settings.console_ux5),
-        x5=i18n_ux5_g5.texts(lang),  # UX5 G5: text without a base key
         dur=lambda secs: views.duration_text(secs, lang),
         shell=shell,
         side_nav=ctx.settings.console_nav != "top",  # CONSOLE_NAV=top is the rollback

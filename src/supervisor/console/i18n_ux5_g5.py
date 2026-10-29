@@ -2,8 +2,8 @@
 tabs, metrics, traces.
 
 ``UX5`` overrides existing keys (a test checks the keys exist). ``NEW`` holds text that has no
-base key; templates read it as ``x.<name>`` (see :func:`texts`). Both carry real English and
-Vietnamese."""
+base key; i18n.py merges it into the base table and templates read it with ``t('<name>')``.
+Both carry real English and Vietnamese."""
 
 from __future__ import annotations
 
@@ -422,9 +422,3 @@ NEW.update(
         "tr_meta": ("Steps: {n}. Duration: {ms} ms.", "Số bước: {n}. Thời lượng: {ms} ms."),
     }
 )
-
-
-def texts(lang: str) -> dict[str, str]:
-    """``NEW`` for one language, as a plain dict a template reads (``x.cat_all``)."""
-    i = 1 if lang == "vi" else 0
-    return {k: v[i] for k, v in NEW.items()}

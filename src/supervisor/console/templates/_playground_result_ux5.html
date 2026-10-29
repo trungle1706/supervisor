@@ -45,7 +45,7 @@
     <thead><tr><th scope="col">#</th><th scope="col">{{ t('pg_doc_type') }}</th><th scope="col">{{ t('pg_doc_size') }}</th><th scope="col">{{ t('pg_doc_status') }}</th><th scope="col">{{ t('pg_doc_reason') }}</th></tr></thead>
     <tbody>
     {% for d in res.documents %}
-      <tr><td>{{ d.index + 1 }}</td><td class="mono">{{ d.media_type }}</td><td>{{ d.size }}</td><td>{{ d.status }}</td><td class="mono">{{ d.get('reason') or '-' }}</td></tr>
+      <tr><td>{{ d.index + 1 }}</td><td class="mono">{{ d.media_type }}</td><td>{{ d.size }}</td><td>{{ d.status }}</td><td>{{ d.get('reason') or '-' }}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>

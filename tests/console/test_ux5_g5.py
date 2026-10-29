@@ -46,8 +46,8 @@ def test_new_text_has_both_languages_and_matching_placeholders() -> None:
     for key, (en, vi) in i18n_ux5_g5.NEW.items():
         assert en.strip() and vi.strip(), key
         assert set(re.findall(r"{(\w+)}", en)) == set(re.findall(r"{(\w+)}", vi)), key
-        assert key not in i18n.table(), f"{key} duplicates a base key"
-    assert i18n_ux5_g5.texts("vi")["cat_title"] != i18n_ux5_g5.texts("en")["cat_title"]
+        assert i18n.table()[key] == (en, vi), f"{key} is merged into the base table"
+    assert i18n.translator("vi")("cat_title") != i18n.translator("en")("cat_title")
 
 
 def test_g5_module_is_registered_and_overrides_real_keys() -> None:

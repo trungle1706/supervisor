@@ -61,11 +61,11 @@
     {% for f in du_filters %}<a class="{% if f == du_filter %}on{% endif %}" href="{{ dub }}?tab=duties&amp;f={{ f }}&amp;lang={{ lang }}" data-filter="{{ f }}"{% if f == du_filter %} aria-current="true"{% endif %}>{{ t('du_f_' ~ f) }} <span>{{ du_counts[f] }}</span></a>{% endfor %}
   </div>
   <input type="hidden" name="f" value="{{ du_filter }}">
-  <select name="cov" aria-label="{{ t('g2_du_cov') }}" onchange="this.form.submit()">
+  <select name="cov" aria-label="{{ t('g2_du_cov') }}">
     {% for c in du_cov_opts %}<option value="{{ c }}"{% if c == du_cov %} selected{% endif %}>{{ t('g2_du_cov') }}: {{ t('g2_du_cov_' ~ c) }}</option>{% endfor %}
   </select>
   <input type="search" name="q" value="{{ du_q }}" maxlength="80" placeholder="{{ t('g2_du_search') }}" aria-label="{{ t('g2_du_search') }}">
-  <noscript><button class="btn sm" type="submit">{{ t('apply') }}</button></noscript>
+  <button class="btn sm" type="submit">{{ t('apply') }}</button>
 </form>
 
 {% if du_can_edit %}

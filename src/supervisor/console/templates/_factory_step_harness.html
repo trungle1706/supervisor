@@ -9,8 +9,8 @@
 <label class="g6-lab" for="{{ fid }}">{{ label }}{% if help %}<span class="g6-help">{{ help }}</span>{% endif %}</label>
 <div class="g6-field">{{ caller() }}</div>
 {% endmacro %}
-{% macro lbl(prefix, name) %}{% set x = tx(prefix ~ name) %}{{ name if x == prefix ~ name else x }}{% endmacro %}
-{% macro rng(a, b) %}{{ tx('u6_range', a='{:,}'.format(a), b='{:,}'.format(b)) }}{% endmacro %}
+{% macro lbl(prefix, name) %}{% set x = t(prefix ~ name) %}{{ name if x == prefix ~ name else x }}{% endmacro %}
+{% macro rng(a, b) %}{{ t('u6_range', a='{:,}'.format(a), b='{:,}'.format(b)) }}{% endmacro %}
 <section class="card" id="factory-step-panel" data-step="harness">
   <h3>{{ t('fa_step_harness') }}</h3>
   <p class="hint">{{ t('fa_harness_hint') }}</p>
@@ -18,7 +18,7 @@
     {{ fu.hid(ed) }}
 
     <details class="g6-block" data-component="system_prompt" {{ op }}>
-      <summary>{{ t('fa_hc_system_prompt') }} <span class="muted">- {{ tx('u6_hs_system_prompt') }}</span></summary>
+      <summary>{{ t('fa_hc_system_prompt') }} <span class="muted">- {{ t('u6_hs_system_prompt') }}</span></summary>
       <div class="g6-grid">
         {% call frow(t('fa_default'), 'g6-sp-d') %}<span id="g6-sp-d">{{ t('fa_hd_system_prompt', name=ed.caps.PREAMBLE) }}</span>{% endcall %}
         {% call frow(t('fa_editable'), 'g6-sp-e') %}<span id="g6-sp-e">{{ t('fa_he_system_prompt', max=ed.caps.INSTRUCTIONS_MAX_TOKENS) }}</span>{% endcall %}
@@ -26,38 +26,38 @@
     </details>
 
     <details class="g6-block" data-component="context" {{ op }}>
-      <summary>{{ t('fa_hc_context') }} <span class="muted">- {{ tx('u6_hs_context', n=h.context.sources|length) }}</span></summary>
+      <summary>{{ t('fa_hc_context') }} <span class="muted">- {{ t('u6_hs_context', n=h.context.sources|length) }}</span></summary>
       <div class="g6-grid">
-        {% call frow(tx('u6_ctx_sources'), 'g6-src', t('fa_hd_context')) %}
+        {% call frow(t('u6_ctx_sources'), 'g6-src', t('fa_hd_context')) %}
         {% for s in ed.caps.CONTEXT_SOURCES %}
         <div{% if loop.first %} id="g6-src"{% endif %}><label><input type="checkbox" name="src_{{ s }}" {{ 'checked' if s in h.context.sources }} {{ dis }}> {{ lbl('u6_x_', s) }}</label>
-        <label>{{ tx('u6_order') }} <input type="number" name="order_{{ s }}" min="1" max="9" style="width:3.5em" value="{{ (h.context.sources.index(s) + 1) if s in h.context.sources else '' }}" {{ dis }}></label></div>
+        <label>{{ t('u6_order') }} <input type="number" name="order_{{ s }}" min="1" max="9" style="width:3.5em" value="{{ (h.context.sources.index(s) + 1) if s in h.context.sources else '' }}" {{ dis }}></label></div>
         {% endfor %}
         {% endcall %}
         {% call frow(t('fa_f_budget'), 'g6-budget', rng(ed.caps.CONTEXT_BUDGET_MIN, ed.caps.CONTEXT_BUDGET_MAX)) %}<input id="g6-budget" type="number" name="budget_tokens" data-field="budget_tokens" min="{{ ed.caps.CONTEXT_BUDGET_MIN }}" max="{{ ed.caps.CONTEXT_BUDGET_MAX }}" value="{{ h.context.budget_tokens }}" {{ dis }}>{% endcall %}
         {% call frow(t('fa_f_max_doc'), 'g6-maxdoc', rng(0, ed.caps.MAX_DOCUMENT_CHARS_MAX)) %}<input id="g6-maxdoc" type="number" name="max_document_chars" data-field="max_document_chars" min="0" max="{{ ed.caps.MAX_DOCUMENT_CHARS_MAX }}" value="{{ h.context.max_document_chars }}" {{ dis }}>{% endcall %}
       </div>
-      <p class="hint">{{ tx('u6_locked_context') }}</p>
+      <p class="hint">{{ t('u6_locked_context') }}</p>
     </details>
 
     <details class="g6-block" data-component="memory" {{ op }}>
-      <summary>{{ t('fa_hc_memory') }} <span class="muted">- {{ tx('u6_hs_memory_on' if h.memory.system_memory else 'u6_hs_memory_off') }}</span></summary>
+      <summary>{{ t('fa_hc_memory') }} <span class="muted">- {{ t('u6_hs_memory_on' if h.memory.system_memory else 'u6_hs_memory_off') }}</span></summary>
       <div class="g6-grid">
         {% call frow(t('fa_f_system_memory'), 'g6-sysmem', t('fa_hd_memory')) %}<input id="g6-sysmem" type="checkbox" name="system_memory" {{ 'checked' if h.memory.system_memory }} {{ dis }}>{% endcall %}
         {% call frow(t('fa_f_retention'), 'g6-ret', rng(1, ed.caps.MEMORY_RETENTION_MAX_DAYS)) %}<input id="g6-ret" type="number" name="retention_days" data-field="retention_days" min="1" max="{{ ed.caps.MEMORY_RETENTION_MAX_DAYS }}" value="{{ h.memory.retention_days or '' }}" {{ dis }}>{% endcall %}
-        {% call frow(tx('u6_remember'), 'g6-memf') %}{% for m in ed.caps.MEMORY_FIELDS %}<label {% if loop.first %}id="g6-memf"{% endif %}><input type="checkbox" name="memf_{{ m }}" {{ 'checked' if m in h.memory.fields }} {{ dis }}> {{ lbl('u6_x_', m) }}</label> {% endfor %}{% endcall %}
+        {% call frow(t('u6_remember'), 'g6-memf') %}{% for m in ed.caps.MEMORY_FIELDS %}<label {% if loop.first %}id="g6-memf"{% endif %}><input type="checkbox" name="memf_{{ m }}" {{ 'checked' if m in h.memory.fields }} {{ dis }}> {{ lbl('u6_x_', m) }}</label> {% endfor %}{% endcall %}
       </div>
-      <p class="hint">{{ tx('u6_locked_memory') }}</p>
+      <p class="hint">{{ t('u6_locked_memory') }}</p>
     </details>
 
     <details class="g6-block" data-component="hitl" {{ op }}>
-      <summary>{{ t('fa_hc_hitl') }} <span class="muted">- {{ tx('u6_hs_hitl', n=h.hitl.approval_points|length) }}</span></summary>
+      <summary>{{ t('fa_hc_hitl') }} <span class="muted">- {{ t('u6_hs_hitl', n=h.hitl.approval_points|length) }}</span></summary>
       <div class="g6-grid">
         {% call frow(t('fa_f_approval_points'), 'g6-appr', t('fa_approval_hint', max=ed.caps.APPROVAL_POINTS_MAX)) %}<textarea id="g6-appr" name="approval_points" data-field="approval_points" rows="3" {{ dis }}>{% for a in h.hitl.approval_points %}{{ a.kind }}:{{ a.ref }}
 {% endfor %}</textarea>{% endcall %}
         {% for tl in ed.defn.tools %}
         {% set cur = ed.perm_of.get(tl.tool_id, '') %}
-        {% call frow(tl.tool_id, 'g6-perm-' ~ loop.index) %}<select id="g6-perm-{{ loop.index }}" name="perm_{{ tl.tool_id }}" {{ dis }}><option value="" {{ 'selected' if not cur }}>{{ t('fa_perm_default') }}</option><option value="read" {{ 'selected' if cur == 'read' }}>{{ tx('u6_perm_read') }}</option>{% if tl.mode == 'propose' %}<option value="propose" {{ 'selected' if cur == 'propose' }}>{{ tx('u6_perm_propose') }}</option>{% endif %}</select>{% endcall %}
+        {% call frow(tl.tool_id, 'g6-perm-' ~ loop.index) %}<select id="g6-perm-{{ loop.index }}" name="perm_{{ tl.tool_id }}" {{ dis }}><option value="" {{ 'selected' if not cur }}>{{ t('fa_perm_default') }}</option><option value="read" {{ 'selected' if cur == 'read' }}>{{ t('u6_perm_read') }}</option>{% if tl.mode == 'propose' %}<option value="propose" {{ 'selected' if cur == 'propose' }}>{{ t('u6_perm_propose') }}</option>{% endif %}</select>{% endcall %}
         {% endfor %}
       </div>
       <p class="hint">{{ t('fa_hl_hitl') }}</p>
@@ -68,16 +68,16 @@
       <div class="g6-grid">
         {% call frow(t('fa_default'), 'g6-ver-d') %}<span id="g6-ver-d">{{ t('fa_hd_verification') }}</span>{% endcall %}
         {% call frow(t('fa_f_verifier'), 'g6-ver') %}<select id="g6-ver" name="verifier" data-field="verifier" {{ dis }}>{% for v in ed.caps.VERIFIERS %}<option value="{{ v }}" {{ 'selected' if v == h.verification.verifier }}>{{ lbl('u6_x_', v) }}</option>{% endfor %}</select>{% endcall %}
-        {% call frow(tx('u6_extra_checks'), 'g6-val') %}{% for v in ed.caps.EXTRA_VALIDATORS %}<label {% if loop.first %}id="g6-val"{% endif %}><input type="checkbox" name="val_{{ v }}" {{ 'checked' if v in h.verification.validators }} {{ dis }}> {{ lbl('u6_x_', v) }}</label><br>{% endfor %}{% endcall %}
+        {% call frow(t('u6_extra_checks'), 'g6-val') %}{% for v in ed.caps.EXTRA_VALIDATORS %}<label {% if loop.first %}id="g6-val"{% endif %}><input type="checkbox" name="val_{{ v }}" {{ 'checked' if v in h.verification.validators }} {{ dis }}> {{ lbl('u6_x_', v) }}</label><br>{% endfor %}{% endcall %}
       </div>
     </details>
 
     <details class="g6-block" data-component="loop" {{ op }}>
-      <summary>{{ t('fa_hc_loop') }} <span class="muted">- {{ lbl('u6_x_', h.loop.mode) }}, {{ tx('u6_hs_loop', n=h.loop.max_iterations) }}</span></summary>
+      <summary>{{ t('fa_hc_loop') }} <span class="muted">- {{ lbl('u6_x_', h.loop.mode) }}, {{ t('u6_hs_loop', n=h.loop.max_iterations) }}</span></summary>
       <div class="g6-grid">
         {% call frow(t('fa_f_mode'), 'g6-mode', t('fa_hd_loop')) %}<select id="g6-mode" name="loop_mode" data-field="loop_mode" {{ dis }}>{% for m in ed.caps.LOOP_MODES %}<option value="{{ m }}" {{ 'selected' if m == h.loop.mode }}>{{ lbl('u6_x_', m) }}</option>{% endfor %}</select>{% endcall %}
         {% call frow(t('fa_f_max_iter'), 'g6-iter', rng(1, ed.caps.LOOP_MAX_ITERATIONS)) %}<input id="g6-iter" type="number" name="max_iterations" data-field="max_iterations" min="1" max="{{ ed.caps.LOOP_MAX_ITERATIONS }}" value="{{ h.loop.max_iterations }}" {{ dis }}>{% endcall %}
-        {% call frow(tx('u6_stop_when'), 'g6-stop') %}{% for s in ed.caps.STOP_WHEN %}<label {% if loop.first %}id="g6-stop"{% endif %}><input type="checkbox" name="stop_{{ s }}" {{ 'checked' if s in h.loop.stop_when }} {{ dis }}> {{ lbl('u6_x_', s) }}</label><br>{% endfor %}{% endcall %}
+        {% call frow(t('u6_stop_when'), 'g6-stop') %}{% for s in ed.caps.STOP_WHEN %}<label {% if loop.first %}id="g6-stop"{% endif %}><input type="checkbox" name="stop_{{ s }}" {{ 'checked' if s in h.loop.stop_when }} {{ dis }}> {{ lbl('u6_x_', s) }}</label><br>{% endfor %}{% endcall %}
         {% call frow(t('fa_f_evaluator'), 'g6-eval') %}<select id="g6-eval" name="loop_evaluator" data-field="loop_evaluator" {{ dis }}>{% for v in ed.caps.LOOP_EVALUATORS %}<option value="{{ v }}" {{ 'selected' if v == h.loop.loop_evaluator }}>{{ lbl('u6_x_', v) }}</option>{% endfor %}</select>{% endcall %}
         {% call frow(t('fa_f_min_score'), 'g6-minscore', rng(0, ed.caps.MIN_SCORE_MAX)) %}<input id="g6-minscore" type="number" name="min_score" data-field="min_score" min="0" max="{{ ed.caps.MIN_SCORE_MAX }}" value="{{ h.loop.min_score if h.loop.min_score is not none else '' }}" {{ dis }}>{% endcall %}
         {% call frow(t('fa_f_loop_budget'), 'g6-lbudget', rng(ed.caps.CONTEXT_BUDGET_MIN, ed.caps.LOOP_BUDGET_MAX)) %}<input id="g6-lbudget" type="number" name="loop_budget_tokens" data-field="loop_budget_tokens" min="{{ ed.caps.CONTEXT_BUDGET_MIN }}" max="{{ ed.caps.LOOP_BUDGET_MAX }}" value="{{ h.loop.budget_tokens }}" {{ dis }}>{% endcall %}

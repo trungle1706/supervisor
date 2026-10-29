@@ -43,9 +43,9 @@
     {% if it.result %}<h4 class="sec">{{ t('result_masked') }}</h4><pre class="mono wrap payload">{{ it.result }}</pre>{% endif %}
   {% endif %}
   <p class="btnrow">
-    {% if v2 and e.event_type == 'gate_decision' %}<a class="btn" href="/console/decisions?event={{ e.event_id|urlencode }}&amp;lang={{ lang }}">{{ x5.tr_view_decision if ux5 else t('open_decision') }}</a>{% endif %}
-    {% if it.case_id %}<a class="btn" href="/console/cases/{{ it.case_id }}?lang={{ lang }}">{% if ux5 %}{{ x5.tr_view_case }}{% else %}{{ t('open_case') }} {{ it.case_id }}{% endif %}</a>{% endif %}
-    {% if it.chain %}<a class="btn" href="/console/evidence?lang={{ lang }}"{% if ux5 %} title="{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}"{% endif %}>{% if ux5 %}{{ x5.tr_view_chain }}{% else %}{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}{% endif %}</a>{% endif %}
+    {% if v2 and e.event_type == 'gate_decision' %}<a class="btn" href="/console/decisions?event={{ e.event_id|urlencode }}&amp;lang={{ lang }}">{{ t('tr_view_decision') if ux5 else t('open_decision') }}</a>{% endif %}
+    {% if it.case_id %}<a class="btn" href="/console/cases/{{ it.case_id }}?lang={{ lang }}">{% if ux5 %}{{ t('tr_view_case') }}{% else %}{{ t('open_case') }} {{ it.case_id }}{% endif %}</a>{% endif %}
+    {% if it.chain %}<a class="btn" href="/console/evidence?lang={{ lang }}"{% if ux5 %} title="{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}"{% endif %}>{% if ux5 %}{{ t('tr_view_chain') }}{% else %}{{ t('chain_lane') }} {{ it.chain.lane }} · {{ t('chain_seq') }} {{ it.chain.seq }}{% endif %}</a>{% endif %}
   </p>
 {% endfor %}
 <h3 class="sec">{{ t('verdicts') }}</h3>

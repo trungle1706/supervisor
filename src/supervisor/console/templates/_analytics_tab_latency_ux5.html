@@ -2,16 +2,16 @@
 {% import "_ui.html" as ui with context %}
 {% set lat = gate.get('latency_us') or {} %}
 {% if not gate.get('samples') %}
-{{ ui.empty(x5.an_lat_none, x5.an_lat_none_line) }}
+{{ ui.empty(t('an_lat_none'), t('an_lat_none_line')) }}
 {% else %}
 <section class="u5-panel">
   <h3>{{ t('gate_latency') }}</h3>
   <div class="g5-kpis" id="latency-table">
-    <div><b>{{ gate.get('samples') }}</b><span>{{ x5.an_lat_calls }}</span></div>
-    <div><b>{{ ((lat.get('p50') or 0) / 1000)|round(2) }}</b><span>{{ x5.an_lat_p50 }}</span></div>
-    <div><b>{{ ((lat.get('p95') or 0) / 1000)|round(2) }}</b><span>{{ x5.an_lat_p95 }}</span></div>
-    <div><b>{{ ((lat.get('p99') or 0) / 1000)|round(2) }}</b><span>{{ x5.an_lat_p99 }}</span></div>
-    <div><b>{{ ((lat.get('max') or 0) / 1000)|round(2) }}</b><span>{{ x5.an_lat_max }}</span></div>
+    <div><b>{{ gate.get('samples') }}</b><span>{{ t('an_lat_calls') }}</span></div>
+    <div><b>{{ ((lat.get('p50') or 0) / 1000)|round(2) }}</b><span>{{ t('an_lat_p50') }}</span></div>
+    <div><b>{{ ((lat.get('p95') or 0) / 1000)|round(2) }}</b><span>{{ t('an_lat_p95') }}</span></div>
+    <div><b>{{ ((lat.get('p99') or 0) / 1000)|round(2) }}</b><span>{{ t('an_lat_p99') }}</span></div>
+    <div><b>{{ ((lat.get('max') or 0) / 1000)|round(2) }}</b><span>{{ t('an_lat_max') }}</span></div>
   </div>
 </section>
 {% endif %}

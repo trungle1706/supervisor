@@ -4,9 +4,9 @@
 {% set nx = [] %}{% for n in next_steps %}{% set _ = nx.append(t('next_' ~ n)) %}{% endfor %}
 {% if case.status != 'closed' %}
 <section class="card g6-next" data-key="waiting">
-  <h3>{{ tx('u6_next') }}</h3>
+  <h3>{{ t('u6_next') }}</h3>
   <p class="g6-next-line">{{ t('st_waiting', next=nx|join(', ') or '-') }}</p>
-  <p class="muted">{{ tx('u6_stops_line', n=g6.stops) }}</p>
+  <p class="muted">{{ t('u6_stops_line', n=g6.stops) }}</p>
 </section>
 {% endif %}
 <section class="card">
@@ -18,13 +18,13 @@
       <span>
       {% if g.grouped %}
         <details class="g6-group"><summary>
-        {% if i.key in ('st_rule_pause', 'st_rule_block') %}<strong>{{ tx('u6_grp_rule', rule=i.params.rule, n=g.count, a=g.ts_from|hhmmss, b=g.ts_to|hhmmss) }}</strong> {{ tx('u6_act_pause' if i.key == 'st_rule_pause' else 'u6_act_block') }}
-        {% elif i.key == 'ev_join' %}{{ tx('u6_grp_join', n=g.count) }}
-        {% elif i.key == 'st_t0b' %}{{ tx('u6_grp_t0b', n=g.count, a=g.ts_from|hhmmss, b=g.ts_to|hhmmss) }}
-        {% else %}{{ t(i.key, **i.params) }} <span class="muted">{{ tx('u6_times', n=g.count) }}, {{ g.ts_from|hhmmss }}-{{ g.ts_to|hhmmss }}</span>{% endif %}
+        {% if i.key in ('st_rule_pause', 'st_rule_block') %}<strong>{{ t('u6_grp_rule', rule=i.params.rule, n=g.count, a=g.ts_from|hhmmss, b=g.ts_to|hhmmss) }}</strong> {{ t('u6_act_pause' if i.key == 'st_rule_pause' else 'u6_act_block') }}
+        {% elif i.key == 'ev_join' %}{{ t('u6_grp_join', n=g.count) }}
+        {% elif i.key == 'st_t0b' %}{{ t('u6_grp_t0b', n=g.count, a=g.ts_from|hhmmss, b=g.ts_to|hhmmss) }}
+        {% else %}{{ t(i.key, **i.params) }} <span class="muted">{{ t('u6_times', n=g.count) }}, {{ g.ts_from|hhmmss }}-{{ g.ts_to|hhmmss }}</span>{% endif %}
         </summary>
         {% if i.key in ('st_rule_pause', 'st_rule_block') %}<div class="muted">{{ i.params.desc }}</div>{% endif %}
-        <ul class="g6-sub">{% for x in g['items'] %}<li><span class="t">{{ x.ts|hhmmss }}</span> {% if x.key in ('st_rule_pause', 'st_rule_block') %}{{ tx('u6_act_pause' if x.key == 'st_rule_pause' else 'u6_act_block') }}{% else %}{{ t(x.key, **x.params) }}{% endif %}{% if x.amount %} {{ t('st_amount', amount=x.amount|vnd, cur=x.currency) }}{% endif %}{% if x.latency_ms is not none %} <span class="muted">{{ t('st_latency', ms=x.latency_ms) }}</span>{% endif %}</li>{% endfor %}</ul>
+        <ul class="g6-sub">{% for x in g['items'] %}<li><span class="t">{{ x.ts|hhmmss }}</span> {% if x.key in ('st_rule_pause', 'st_rule_block') %}{{ t('u6_act_pause' if x.key == 'st_rule_pause' else 'u6_act_block') }}{% else %}{{ t(x.key, **x.params) }}{% endif %}{% if x.amount %} {{ t('st_amount', amount=x.amount|vnd, cur=x.currency) }}{% endif %}{% if x.latency_ms is not none %} <span class="muted">{{ t('st_latency', ms=x.latency_ms) }}</span>{% endif %}</li>{% endfor %}</ul>
         </details>
       {% else %}
         {% if i.strong %}<strong>{% endif %}{{ t(i.key, **i.params) }}{% if i.strong %}</strong>{% endif %}

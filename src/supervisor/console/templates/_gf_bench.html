@@ -5,7 +5,7 @@
 <div id="gf-bench" data-panel="benchmark" data-def="{{ gb.id }}"{% if gb.active %} hx-get="{{ b }}/benchmark?lang={{ lang }}" hx-trigger="every 2s" hx-target="#gf-bench" hx-swap="outerHTML" data-polling="1"{% endif %}>
   <p class="hint">{{ t('gf_b_purpose') }}</p>
 
-  {% if ux5 %}<details class="g5-adv"><summary>{{ x5.gf_b_manage }}</summary><div>{% endif %}
+  {% if ux5 %}<details class="g5-adv"><summary>{{ t('gf_b_manage') }}</summary><div>{% endif %}
   <h5>{{ t('gf_b_packs') }}</h5>
   {% if gb.packs %}
   <table class="tbl" data-packs="{{ gb.packs|length }}">
@@ -52,8 +52,8 @@
   {% if not L %}<p class="hint" data-no-run="1">{{ t('gf_b_no_run') }}</p>
   {% else %}
   {% if ux5 %}
-  <div data-run="{{ L.run_id }}" data-status="{{ L.status }}">{{ x5.gf_b_latest.format(status=L.status) }}
-    <details class="g5-adv"><summary>{{ x5.gf_b_details }}</summary><div><span class="mono">{{ L.run_id }}</span> - {{ t('gf_b_pack') }} <span class="mono">{{ L.pack_id }}</span> - {{ t('gf_version') }} {{ L.version }}</div></details></div>
+  <div data-run="{{ L.run_id }}" data-status="{{ L.status }}">{{ t('gf_b_latest', status=L.status) }}
+    <details class="g5-adv"><summary>{{ t('gf_b_details') }}</summary><div><span class="mono">{{ L.run_id }}</span> - {{ t('gf_b_pack') }} <span class="mono">{{ L.pack_id }}</span> - {{ t('gf_version') }} {{ L.version }}</div></details></div>
   {% else %}
   <div class="idline" data-run="{{ L.run_id }}" data-status="{{ L.status }}">
     <span class="mono">{{ L.run_id }}</span> - {{ t('gf_b_pack') }} <span class="mono">{{ L.pack_id }}</span> - {{ t('gf_version') }} {{ L.version }} - {{ t('gf_b_status') }}: {{ L.status }}
@@ -66,11 +66,11 @@
   {% if ux5 %}
   {% set ch = (R.levels|selectattr('sensitivity', 'equalto', R.chosen_sensitivity)|list|first) if (R.levels|selectattr('sensitivity', 'equalto', R.chosen_sensitivity)|list) else R.levels[0] %}
   <div class="msg {{ 'msg-ok' if L.gate == 'pass' else 'msg-error' }}" data-gate="{{ L.gate }}" role="status">
-    {{ (x5.gf_b_pass_line if L.gate == 'pass' else x5.gf_b_fail_line).format(tpr=ch.tpr_pct, mtpr=R.gate.thresholds.min_tpr_pct, fpr=ch.fpr_pct, mfpr=R.gate.thresholds.max_fpr_pct) }}{% if L.failing_threshold %} <span class="mono" data-failing="{{ L.failing_threshold }}">{{ L.failing_threshold }}</span>{% endif %}
+    {{ (t('gf_b_pass_line') if L.gate == 'pass' else t('gf_b_fail_line')).format(tpr=ch.tpr_pct, mtpr=R.gate.thresholds.min_tpr_pct, fpr=ch.fpr_pct, mfpr=R.gate.thresholds.max_fpr_pct) }}{% if L.failing_threshold %} <span class="mono" data-failing="{{ L.failing_threshold }}">{{ L.failing_threshold }}</span>{% endif %}
   </div>
-  <details class="g5-adv"><summary>{{ x5.gf_b_all_levels }}</summary><div class="tablewrap">
+  <details class="g5-adv"><summary>{{ t('gf_b_all_levels') }}</summary><div class="tablewrap">
   <table class="tbl" data-results="1">
-    <thead><tr><th>{{ x5.gf_b_c_level }}</th><th>{{ x5.gf_b_c_caught }}</th><th>{{ x5.gf_b_c_missed }}</th><th>{{ x5.gf_b_c_false }}</th><th>{{ x5.gf_b_c_ok }}</th><th>{{ x5.gf_b_c_rate }}</th><th>{{ x5.gf_b_c_frate }}</th><th>{{ x5.gf_b_c_speed }}</th></tr></thead>
+    <thead><tr><th>{{ t('gf_b_c_level') }}</th><th>{{ t('gf_b_c_caught') }}</th><th>{{ t('gf_b_c_missed') }}</th><th>{{ t('gf_b_c_false') }}</th><th>{{ t('gf_b_c_ok') }}</th><th>{{ t('gf_b_c_rate') }}</th><th>{{ t('gf_b_c_frate') }}</th><th>{{ t('gf_b_c_speed') }}</th></tr></thead>
     <tbody>
     {% for x in R.levels %}
       <tr data-level="{{ x.sensitivity }}"{% if x.sensitivity == R.chosen_sensitivity %} data-chosen="1"{% endif %}>

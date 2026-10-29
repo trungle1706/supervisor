@@ -79,3 +79,5 @@
 .ux5 .monitor-status .idline, .ux5 .traces-tbl .idline { font-family: var(--f-body); }
 .ux5 .traces-tbl .idline { font-family: var(--f-mono); }
 .ux5 .tracegrid .spanlink { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.ux5 .pg-samples { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 13px; }
+.ux5 .pg-samples a[aria-current] { font-weight: 600; text-decoration: underline; }

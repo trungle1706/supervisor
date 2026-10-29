@@ -1,1 +1,1 @@
-<div class="notice" data-compliance-advisory="1"><span class="dot"></span><b>{{ t('cp_advisory') }}.</b> {{ t('cp_disclaimer') }}</div>
+{% if ux5 is defined and ux5 %}{% import "_ux5.html" as u5 with context %}{{ u5.disclaimer(t('cp_disclaimer')) }}{% else %}<div class="notice" data-compliance-advisory="1"><span class="dot"></span><b>{{ t('cp_advisory') }}.</b> {{ t('cp_disclaimer') }}</div>{% endif %}

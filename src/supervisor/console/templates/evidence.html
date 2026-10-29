@@ -42,8 +42,8 @@
   <h3>{{ t('lanes') }}</h3>
   <form class="g6-lanes-search" method="get" action="/console/evidence">
     <input type="hidden" name="lang" value="{{ lang }}">
-    <input type="search" name="q" value="{{ q }}" placeholder="{{ tx('u6_lane_search') }}" aria-label="{{ tx('u6_lane_search') }}">
-    <button class="btn sm" type="submit">{{ tx('u6_search') }}</button>
+    <input type="search" name="q" value="{{ q }}" placeholder="{{ t('u6_lane_search') }}" aria-label="{{ t('u6_lane_search') }}">
+    <button class="btn sm" type="submit">{{ t('u6_search') }}</button>
   </form>
   <div class="lanes" id="lanes">
     {% for l in lanes %}
@@ -56,7 +56,7 @@
       <span class="count">{% if l.lane == 'root' %}{{ ui.pill(t('signed_n', n=signed_n), 'gold') }}{% elif l.verify %}{{ ui.pill(t('ok_word') if l.verify.ok else t('verify_fail'), 'ok' if l.verify.ok else 'bad') }}{% else %}<span class="mono muted">{{ l.count }}</span>{% endif %}</span>
     </div>
     {% else %}
-    <p class="muted">{{ t('no_chain') if not q else tx('u6_no_lane') }}</p>
+    <p class="muted">{{ t('no_chain') if not q else t('u6_no_lane') }}</p>
     {% endfor %}
   </div>
   {{ u5.pager(lane_page, lane_pages, '/console/evidence?lang=' ~ lang ~ ('&q=' ~ q|urlencode if q else '')) }}
@@ -67,7 +67,7 @@
     <span><i class="b human"></i>{{ t('lg_human') }}</span>
     <span><i class="b signed"></i>{{ t('lg_signed') }}</span>
   </div>
-  <div class="hint">{{ tx('u6_lanes_hint', cap=60) }}</div>
+  <div class="hint">{{ t('u6_lanes_hint', cap=60) }}</div>
 </section>
 
 {% if me.has('admin', 'auditor') %}
