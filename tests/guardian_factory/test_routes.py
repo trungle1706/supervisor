@@ -283,7 +283,8 @@ def test_editor_page_new_and_existing(gf: Any) -> None:
     assert "<html" not in r.text and "&lt;ACCOUNT&gt;" in r.text and 'data-state="draft"' in r.text
     assert gf.get("/console/guardian-factory/missing").status_code == 404
     r = gf.get("/console/guardian-factory/account-numbers", user=HOA, headers=HX)
-    assert 'data-view-only="1"' in r.text and "<fieldset disabled>" in r.text.replace("\n", "")
+    assert 'data-view-only="1"' in r.text and "data-readonly-def" in r.text
+    assert 'id="gf-form"' not in r.text
 
 
 def test_console_draft_fills_the_artifact_box_and_saves_nothing(gf: Any) -> None:
@@ -374,3 +375,24 @@ def test_i18n_keys_exist_in_both_languages(gf: Any) -> None:
     assert GF and all(len(v) == 2 and v[0] and v[1] for v in GF.values())
     r = gf.get("/console/guardian-factory/new?lang=vi")
     assert "Xưởng tạo guardian" in r.text and "Soạn bản nháp" in r.text
+
+
+def test_live_guardian_page_is_read_only_with_new_version(gf: Any) -> None:
+    """UX5-BUG: a version that is not a draft shows no edit form; the server also refuses it."""
+    make(gf)
+    url = "/console/guardian-factory/account-numbers"
+    draft = gf.get(url, headers=HX).text
+    assert 'id="gf-form"' in draft and "data-readonly-def" not in draft
+    key = {"def_id": "account-numbers", "version": 1}
+    row = gf.ctx.state.get("guardian_def", key)
+    gf.ctx.state.update("guardian_def", key, {"state": "live"}, row["row_version"])
+    page = gf.get(url, headers=HX).text
+    assert 'data-state="live"' in page and "data-readonly-def" in page
+    assert 'id="gf-form"' not in page and 'data-action="save"' not in page
+    assert 'data-action="new-version"' in page and 'data-history="1"' in page
+    # server side: a save of a live version is refused
+    assert gf.post(url, {**FORM}).status_code == 400
+    assert api(gf, "POST", "/v1/guardian-defs/account-numbers", regex_def()).status_code == 400
+    # the New version action starts a draft through the existing route
+    r = gf.post(url + "/new-version", {})
+    assert r.status_code == 200 and 'data-state="draft"' in r.text and 'id="gf-form"' in r.text
