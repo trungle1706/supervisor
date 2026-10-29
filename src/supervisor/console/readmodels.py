@@ -710,7 +710,6 @@ def incident_clock(c: Mapping[str, Any], now: dt.datetime) -> dict | None:
 
 
 def case_rows(ctx: Any, cases: Sequence[Mapping[str, Any]], now: dt.datetime) -> list[dict]:
-    from supervisor.console import views
 
     rules = rules_index(ctx)
     classes = tool_classes(ctx)
