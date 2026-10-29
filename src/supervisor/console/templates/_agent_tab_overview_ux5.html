@@ -1,0 +1,35 @@
+{# Overview tab under UX5: one column. The agent card (state, the one action), four gate numbers,
+   one audit-trail line, open cases only when there are some, a link to Register. #}
+{% import "_ui.html" as ui with context %}
+<div class="g4-stack">
+  <div id="agents-table" class="grid" style="gap:12px">
+{% include "_agents_table.html" %}
+  </div>
+  <section aria-label="{{ t('gate_24h') }}" data-section="gate24">
+    <h3>{{ t('gate_24h') }}</h3>
+    <div class="g4-stats">
+      <div class="g4-stat"><b data-num="checked">{{ gate24.checked }}</b><span>{{ t('gate_checked') }}</span></div>
+      <div class="g4-stat"><b data-num="blocked">{{ gate24.blocked }}</b><span>{{ t('gate_blocked') }}</span></div>
+      <div class="g4-stat"><b data-num="paused">{{ gate24.paused }}</b><span>{{ t('gate_paused') }}</span></div>
+      <div class="g4-stat"><b>{{ gate24.median_ms ~ ' ms' if gate24.median_ms is not none else '-' }}</b><span>{{ t('gate_median') }}</span></div>
+    </div>
+  </section>
+  <p class="g4-line" data-section="lane">
+    <span>{{ t('g4_audit_trail', n=lane.entries) }}</span>
+    {{ ui.verify_pill(lane.verify) }}
+    <a href="/console/evidence?lang={{ lang }}">{{ t('nav_evidence') }}</a>
+    <span aria-hidden="true">&middot;</span>
+    <a href="/console/agents/{{ a.agent_id }}?tab=register&amp;lang={{ lang }}">{{ t('atab_register') }}</a>
+  </p>
+  {% if open_cases %}
+  <section class="card" data-section="open-cases" aria-label="{{ t('open_cases') }}">
+    <h3>{{ t('open_cases') }} <span class="k">{{ a.open_cases }}</span></h3>
+    <ul class="drawer-list">
+      {% for c in open_cases %}
+      <li><a href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{{ c.case_id }}</a> {{ ui.sev(c.severity) }} <span class="pill neutral">{{ t(c.status) }}</span>
+        <div class="idline">{% set h = c.head %}{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</div></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>

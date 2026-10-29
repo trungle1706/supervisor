@@ -83,6 +83,7 @@ from supervisor.console import (
     traces,
     transparency_views,  # --- WP31 ---
     users_view,
+    ux5_g4,
     views,
 )
 from supervisor.console import (
@@ -115,6 +116,7 @@ STATIC = {
     "ux5_g1.css": "text/css",  # UX5 G1 (overview family)
     "ux5_g3.css": "text/css",  # UX5 group G3 (compliance, risks, regkb pages)
     "ux5_g6.css": "text/css",  # UX5 G6 page styles
+    "ux5_g4.css": "text/css",  # UX5-G4: agent page, catalogues, settings pages (ux5 only)
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -917,7 +919,14 @@ def _agents_page_data(
     sys_col = systems_views.agents_system_col(ctx)  # --- WP-UX4b --- System column and filter
     if sys_col:
         systems_views.annotate_agents(ctx, me, data["agents"])
-    data.update(agents_list.list_view(data["agents"], query, sys_col))
+    data.update(
+        agents_list.list_view(
+            data["agents"],
+            query,
+            sys_col,
+            25 if ctx.settings.console_ux5 else agents_list.PAGE_SIZE,
+        )
+    )
     data["sys_col"] = sys_col
     data["sys_page"] = bool(ctx.settings.console_systems_enabled)
     return data
@@ -2289,6 +2298,8 @@ async def users_page(
 ) -> Response:
     _ux3_off(ctx, "users")
     data = await _call(users_view.page, ctx)
+    if ctx.settings.console_ux5:  # UX5-G4: no work-package ids in the permission texts
+        data["matrix"] = [{**m, "text": ux5_g4.strip_wp(m["text"])} for m in data["matrix"]]
     return render(request, ctx, me, "users.html", section="users", **data)
 
 
@@ -2332,6 +2343,8 @@ async def integrations_page(
         if selected:
             _check_id(selected, "agent id")
         data = await _call(collectors_view.page, ctx, selected or None)
+        if ctx.settings.console_ux5:  # UX5-G4: fold the identical agent rows
+            data["ux"] = ux5_g4.integration_agents(data["agents"], query)
         opened = query.get("drawer")
         if opened:
             _check_id(opened, "agent id")
@@ -2599,7 +2612,13 @@ async def agent_tab(
     data = await _call(_agent_detail_data, ctx, me, agent_id, tab, dict(request.query_params))
     comp = _compliance_ctx(request, ctx)
     comp.pop("section")
-    return render(request, ctx, me, f"_agent_tab_{data['tab']}.html", **comp, **data)
+    name = f"_agent_tab_{data['tab']}.html"
+    if (
+        ctx.settings.console_ux5
+        and (HERE / "templates" / name.replace(".html", "_ux5.html")).exists()
+    ):
+        name = name.replace(".html", "_ux5.html")  # UX5-G4: the tab body of the new look
+    return render(request, ctx, me, name, **comp, **data)
 
 
 # ---- Alerts (moved out of Metrics)
@@ -2856,6 +2875,9 @@ async def catalogues_page(
     if away:
         return _v3_go(request, tab.path)
     data = await _call(overview_v3.asset_page, ctx, tab.key)
+    if ctx.settings.console_ux5:  # UX5-G4: search, status filter, 25 rows a page
+        data = ux5_g4.asset_view(data, dict(request.query_params))
+        return render(request, ctx, me, "cat_assets_ux5.html", section=f"cat_{tab.key}", d=data)
     return render(request, ctx, me, "cat_assets.html", section=f"cat_{tab.key}", d=data)
 
 

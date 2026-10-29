@@ -15,7 +15,7 @@
     <tr class="row">
       <td>{{ u.kind }}</td>
       <td class="mono">{{ u.display_name }}</td>
-      <td class="mono">{% for e in u.evidence[:2] %}{{ e.source }}: {{ e.ref }}{% if not loop.last %}; {% endif %}{% endfor %}</td>
+      <td class="mono">{% if ux5 %}<details><summary>{{ t('g4_evidence_n', n=u.evidence|length) }}</summary>{% for e in u.evidence %}<div>{{ e.source }}: {{ e.ref }}</div>{% endfor %}</details>{% else %}{% for e in u.evidence[:2] %}{{ e.source }}: {{ e.ref }}{% if not loop.last %}; {% endif %}{% endfor %}{% endif %}</td>
       <td>{% if u.case_id %}<a class="head mono" href="/console/cases/{{ u.case_id }}?lang={{ lang }}">{{ u.case_id }}</a>{% else %}-{% endif %}</td>
     </tr>
   {% else %}

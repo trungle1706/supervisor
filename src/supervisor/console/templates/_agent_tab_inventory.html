@@ -3,10 +3,12 @@
 {% if inv_missing %}
 {{ ui.empty(t('inv_not_listed'), t('inv_not_listed_line'), '/console/inventory?lang=' ~ lang, t('nav_inventory')) }}
 {% else %}
+{% if not ux5 %}
 <section class="card" data-section="inventory-tree">
   <h3>{{ t('inv_tree') }}</h3>
   <pre class="excerpt" id="inv-tree">{{ tree }}</pre>
 </section>
+{% endif %}
 <section class="card" data-section="inventory-nodes">
   <h3>{{ t('inv_nodes') }} <span class="k">{{ node_rows|length }}</span></h3>
   <div class="tablewrap flat"><table class="queue" id="inv-nodes">
@@ -22,5 +24,6 @@
     </tbody>
   </table></div>
 </section>
+{% if ux5 %}<details class="g4-fold" data-section="inventory-tree"><summary>{{ t('inv_tree') }}</summary><pre class="excerpt" id="inv-tree">{{ tree }}</pre></details>{% endif %}
 <p class="hint"><a href="/console/inventory?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('inv_all_link') }}</a></p>
 {% endif %}

@@ -2,9 +2,17 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('sch_title') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g4.css">
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('sch_title'), None)]) }}
+{% set badge %}{{ ui.pill(t('read_only'), 'neutral') }}{% endset %}
+{{ u5.page_head(t('sch_title'), t('sch_purpose'), about=t('sch_why'), actions=badge) }}
+{% else %}
 {{ ui.crumbs([(t('nav_g_settings'), None), (t('sch_title'), None)]) }}
 {{ ui.pagehead(t('sch_title'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('sch_purpose'), t('sch_why')) }}
+{% endif %}
 <div class="tiles">
   {% set unchecked = check.status in ('off', 'unknown') %}
   {{ ui.stat(t('sch_status'), t('sch_status_' ~ check.status), '', 'sch-status') }}

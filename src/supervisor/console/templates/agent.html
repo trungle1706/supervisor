@@ -4,6 +4,21 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ a.agent_id }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_g4.html" as g4 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g4.css">
+{{ ui.crumbs([(t('nv3_catalogues'), '/console/catalogues?lang=' ~ lang), (t('agents'), '/console/agents?lang=' ~ lang), (a.get('name') or a.agent_id, None)]) }}
+<header class="g4-head">
+  <h1>{{ a.get('name') or a.agent_id }}<span class="g4-id">{{ a.agent_id }}</span></h1>
+  <span class="pills" id="agent-pills">{% include "_agent_pills.html" %}</span>
+  <span class="g4-spacer"></span>
+  {% if a.open_cases %}<a class="btn" href="/console/cases?agent={{ a.agent_id }}&amp;lang={{ lang }}">{{ t('open_cases_n', n=a.open_cases) }}</a>{% endif %}
+</header>
+{{ g4.agent_tabs(a, tabs, tab, tab_counts) }}
+<div id="tab-body" class="tabpanel" role="tabpanel">
+{% include ["_agent_tab_" ~ tab ~ "_ux5.html", "_agent_tab_" ~ tab ~ ".html"] %}
+</div>
+{% else %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('agents'), '/console/agents?lang=' ~ lang), (a.agent_id, None)]) }}
 {% set pills %}<span id="agent-pills">{% include "_agent_pills.html" %}</span>{% endset %}
 {% call ui.pagehead(a.agent_id, pills) %}
@@ -20,4 +35,5 @@
 <div id="tab-body" class="tabpanel" role="tabpanel">
 {% include "_agent_tab_" ~ tab ~ ".html" %}
 </div>
+{% endif %}
 {% endblock %}

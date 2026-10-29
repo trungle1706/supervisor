@@ -1,0 +1,29 @@
+{# UX5 group G4 macros (call only when ux5 is true). Import: {% import "_g4.html" as g4 with context %} #}
+
+{% macro agent_tabs(a, tabs, current, counts) -%}
+{# Six primary tabs and one "More" menu; the open tab is marked, also inside the menu. #}
+{% set primary = ['overview', 'register', 'guardians', 'policy', 'tools', 'cases'] %}
+{% set review = ['inventory', 'traces', 'assurance', 'compliance', 'risks', 'controls', 'tasks', 'transparency'] %}
+{% set flow = ['source', 'facts', 'predeploy', 'attach', 'postdeploy'] %}
+{% set base = '/console/agents/' ~ a.agent_id ~ '?tab=' %}
+<nav class="g4-tabs" aria-label="{{ t('tabs_label') }}">
+{% for k in primary if k in tabs %}<a href="{{ base ~ k ~ '&lang=' ~ lang }}" class="{{ 'on' if k == current else '' }}"{% if k == current %} aria-current="page"{% endif %}>{{ t('atab_' ~ k) }}{% if counts and counts.get(k) and k == 'cases' %}<span class="k">{{ counts[k] }}</span>{% endif %}</a>{% endfor %}
+{% set in_more = current in review or current in flow %}
+<details class="g4-more{{ ' on' if in_more else '' }}"><summary>{{ t('atab_' ~ current) if in_more else t('g4_more') }}</summary>
+  <div class="g4-menu">
+    <h4>{{ t('g4_grp_review') }}</h4>
+    {% for k in review if k in tabs %}<a href="{{ base ~ k ~ '&lang=' ~ lang }}" class="{{ 'on' if k == current else '' }}">{{ t('atab_' ~ k) }}</a>{% endfor %}
+    <h4>{{ t('g4_grp_flow') }}</h4>
+    {% for k in flow if k in tabs %}<a href="{{ base ~ k ~ '&lang=' ~ lang }}" class="{{ 'on' if k == current else '' }}">{{ t('atab_' ~ k) }}</a>{% endfor %}
+  </div>
+</details>
+</nav>
+{%- endmacro %}
+
+{% macro empty(text, href=None, label=None) -%}
+<div class="g4-empty">{{ text }}{% if href %}<a href="{{ href }}">{{ label }}</a>{% endif %}</div>
+{%- endmacro %}
+
+{% macro fold_block(summary, open=False) -%}
+<details class="g4-fold"{% if open %} open{% endif %}><summary>{{ summary }}</summary>{{ caller() }}</details>
+{%- endmacro %}

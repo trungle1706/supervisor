@@ -1,0 +1,67 @@
+/* UX5 group G4 (CONSOLE_UX5): agent page, catalogues, inventory, tools, credentials, integrations,
+   users, audit. Linked only under ux5; every rule sits under .ux5. */
+
+/* agent page head and tabs */
+.ux5 .g4-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 10px; }
+.ux5 .g4-head h1 { margin: 0; font-size: 24px; line-height: 1.25; overflow-wrap: anywhere; }
+.ux5 .g4-id { font-size: 13px; font-weight: 400; color: var(--u5-muted); font-family: var(--f-mono, monospace); margin-left: 6px; }
+.ux5 .g4-head .pills { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ux5 .g4-head .g4-spacer { flex: 1 1 auto; }
+.ux5 .g4-tabs { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid var(--u5-line); margin: 0 0 14px; flex-wrap: nowrap; }
+.ux5 .g4-tabs > a, .ux5 .g4-more > summary { padding: 8px 12px; font-size: 14px; color: var(--u5-body); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; cursor: pointer; list-style: none; }
+.ux5 .g4-tabs > a:hover, .ux5 .g4-more > summary:hover { background: var(--u5-hover); }
+.ux5 .g4-tabs > a.on, .ux5 .g4-more.on > summary { color: var(--u5-ink); font-weight: 600; border-bottom-color: var(--u5-ink); }
+.ux5 .g4-tabs .k { font-size: 12px; color: var(--u5-muted); margin-left: 4px; }
+.ux5 .g4-more { position: relative; }
+.ux5 .g4-more > summary::-webkit-details-marker { display: none; }
+.ux5 .g4-more > summary::after { content: " \25BE"; color: var(--u5-muted); }
+.ux5 .g4-more[open] > summary { background: var(--u5-hover); }
+.ux5 .g4-menu { position: absolute; z-index: 30; top: 100%; left: 0; min-width: 220px; background: var(--u5-panel); border: 1px solid var(--u5-line); border-radius: var(--r-s); padding: 6px; display: grid; gap: 2px; }
+.ux5 .g4-menu h4 { margin: 6px 8px 2px; font-size: 12px; font-weight: 600; color: var(--u5-muted); }
+.ux5 .g4-menu a { display: block; padding: 6px 8px; border-radius: 6px; color: var(--u5-body); text-decoration: none; font-size: 14px; }
+.ux5 .g4-menu a:hover { background: var(--u5-hover); }
+.ux5 .g4-menu a.on { font-weight: 600; color: var(--u5-ink); }
+
+/* agent overview: one column */
+.ux5 .g4-stack { display: grid; gap: 14px; max-width: 920px; }
+.ux5 .g4-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ux5 .g4-stat { padding: 10px 12px; border: 1px solid var(--u5-line); border-radius: var(--r-s); background: var(--u5-panel); }
+.ux5 .g4-stat b { display: block; font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--u5-ink); }
+.ux5 .g4-stat span { font-size: 12px; color: var(--u5-muted); }
+.ux5 .g4-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.ux5 .g4-card-actions { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.ux5 article.agent.g4 { display: block; }
+.ux5 article.agent.g4 .side { margin-top: 10px; max-width: 420px; position: static; height: auto; overflow: visible; display: grid; }
+
+/* generic folds and empty states */
+.ux5 details.g4-fold { margin: 10px 0; }
+.ux5 details.g4-fold > summary { cursor: pointer; color: var(--u5-muted); font-size: 14px; padding: 4px 0; }
+.ux5 details.g4-fold[open] > summary { margin-bottom: 8px; }
+.ux5 .g4-empty { padding: 14px; border: 1px dashed var(--u5-line); border-radius: var(--r-s); color: var(--u5-muted); font-size: 14px; max-width: 72ch; }
+.ux5 .g4-empty a { margin-left: 6px; }
+.ux5 .g4-searchbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0 12px; }
+.ux5 .g4-searchbar input[type=search] { min-width: 240px; }
+.ux5 .g4-sub { color: var(--u5-muted); font-size: 13px; }
+.ux5 .g4-note { font-size: 13px; color: var(--u5-muted); max-width: 72ch; }
+
+/* tables that may grow: sticky header when open */
+.ux5 .g4-scroll { max-height: 70vh; overflow: auto; }
+.ux5 .g4-scroll thead th { position: sticky; top: 0; background: var(--u5-panel); z-index: 1; }
+.ux5 table.g4-matrix td, .ux5 table.g4-matrix th { padding: 6px 8px; }
+.ux5 table.g4-matrix td { text-align: center; }
+.ux5 table.g4-matrix th[scope=row] { text-align: left; min-width: 280px; }
+
+/* attach diagram */
+.ux5 .g4-attach-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.ux5 .g4-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) {
+  .ux5 .g4-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ux5 .g4-two { grid-template-columns: 1fr; }
+  .ux5 .g4-tabs { overflow-x: auto; }
+}
+
+/* integrations: method cards, fixed height, 3 columns */
+.ux5 .g4-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ux5 .g4-cards .card { min-height: 150px; display: flex; flex-direction: column; }
+.ux5 .g4-cards .card p { margin: 4px 0; }
+@media (max-width: 900px) { .ux5 .g4-cards { grid-template-columns: 1fr; } }

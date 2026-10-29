@@ -3,10 +3,18 @@
 {% block title %}{{ t('nav_integrations') }}{% endblock %}
 {% block content %}
 {# WP38: the Integrations page as a collector catalogue (COLLECTORS_ENABLED=1). #}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g4.css">
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_integrations'), None)]) }}
+{{ u5.page_head(t('nav_integrations'), t('g4_int_purpose'), about=t('col_purpose') ~ ' ' ~ t('col_why')) }}
+{% if not ingress_on %}<p class="g4-line"><span class="u5-chip warn"><span class="u5-dot" aria-hidden="true"></span>{{ t('g4_auth_off') }}</span></p>{% endif %}
+{% else %}
 {{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_integrations'), None)]) }}
 {{ ui.pagehead(t('nav_integrations')) }}
 {{ ui.purpose(t('col_purpose'), t('col_why')) }}
 {% if not ingress_on %}<div class="msg msg-warn" role="status">{{ t('col_ingress_off') }}</div>{% endif %}
+{% endif %}
 {% if store_error %}<div class="msg msg-error" role="alert">{{ t('col_store_error') }}: {{ store_error }}</div>{% endif %}
 
 <section id="connect-result" aria-live="polite"></section>
@@ -25,9 +33,26 @@
   {% endif %}
 </form>
 
+{% if ux5 %}
+<div class="g4-cards">
+{% for category, templates in groups %}{% for tpl in templates %}
+  <div class="card" data-template="{{ tpl.id }}">
+    <div class="g4-sub">{{ t('col_cat_' ~ category) }}</div>
+    <h3>{{ tpl.name }}{% if not tpl.available %} {{ ui.pill(t('g4_soon'), 'neutral') }}{% endif %}</h3>
+    <p>{{ (tpl.description.split('. ')[0] ~ '.') if '. ' in tpl.description else tpl.description }}</p>
+    {% if tpl.available and sel_agent %}
+    <form hx-post="/console/integrations/{{ sel_agent }}/connect?lang={{ lang }}" hx-target="#connect-result" hx-swap="innerHTML" hx-push-url="false">
+      <input type="hidden" name="template" value="{{ tpl.id }}">
+      <p class="btnrow"><button class="btn primary" type="submit">{{ t('col_add') }}: {{ sel_agent }}</button></p>
+    </form>
+    {% endif %}
+  </div>
+{% endfor %}{% endfor %}
+</div>
+{% else %}
 {% for category, templates in groups %}
 <h2 class="sec">{{ t('col_cat_' ~ category) }}</h2>
-<div class="grid2">
+<div class="{{ 'g4-cards' if ux5 else 'grid2' }}">
   {% for tpl in templates %}
   <div class="card" data-template="{{ tpl.id }}">
     <h3>{{ tpl.name }}{% if not tpl.available %} {{ ui.pill(tpl.availability_note, 'neutral') }}{% endif %}</h3>
@@ -46,6 +71,33 @@
 </div>
 {% endfor %}
 
+{% endif %}
+{% if ux5 %}
+<h2 class="sec">{{ t('col_agents') }} <span class="k">{{ ux.total }}</span></h2>
+<p class="g4-note" data-nokey="{{ ux.nokey }}">{{ t('g4_int_nokey', n=ux.nokey, total=ux.total) }}</p>
+<div class="tablewrap">
+<table class="queue">
+  <caption class="sr">{{ t('col_agents') }}</caption>
+  <thead><tr><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('state') }}</th><th scope="col">{{ t('col_key_state') }}</th><th scope="col">{{ t('mode') }}</th><th scope="col" class="n">{{ t('col_consumers') }}</th></tr></thead>
+  <tbody>
+  {% for a in ux.rows %}
+    <tr class="row" data-row="{{ a.agent_id }}">
+      <td><a class="head rowlink" href="/console/integrations?drawer={{ a.agent_id }}&amp;lang={{ lang }}" hx-get="/console/integrations/agent/{{ a.agent_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false">{{ a.name }}</a><div class="idline mono">{{ a.agent_id }}</div></td>
+      <td>{{ a.gate_state or '-' }}</td>
+      <td>{{ ui.pill(t('col_key_active') if a.has_key else t('col_key_none'), 'ok' if a.has_key else 'neutral', True) }}</td>
+      <td>{{ ui.pill(t('mode_' ~ a.mode) if a.mode in ('enforce', 'observe') else a.mode, 'teal' if a.mode == 'observe' else 'neutral') }}</td>
+      <td class="n">{{ a.consumers }}</td>
+    </tr>
+  {% else %}
+    {% if not ux.folded %}<tr><td colspan="5">{{ ui.empty(t('col_none_agents'), t('col_none_agents_line')) }}</td></tr>{% endif %}
+  {% endfor %}
+  {% if ux.folded %}{{ u5.fold(ux.folded, t('g4_int_fold', state=ux.common.gate_state or '-', keystate=t('col_key_active') if ux.common.has_key else t('col_key_none'), mode=ux.common.mode or '-'), 5) }}{% endif %}
+  </tbody>
+</table>
+</div>
+{% if ux.pages > 1 %}{{ u5.pager(ux.page, ux.pages, '/console/integrations?lang=' ~ lang ~ ('&view=all' if ux.view_all else '')) }}{% endif %}
+{% if ux.folded %}<p class="g4-note"><a href="/console/integrations?view=all&amp;lang={{ lang }}">{{ t('g4_int_show_all', n=ux.total) }}</a></p>{% elif ux.view_all %}<p class="g4-note"><a href="/console/integrations?lang={{ lang }}">{{ t('g4_int_show_less') }}</a></p>{% endif %}
+{% else %}
 <h2 class="sec">{{ t('col_agents') }} <span class="k">{{ agents|length }}</span></h2>
 <div class="tablewrap">
 <table class="queue">
@@ -67,6 +119,7 @@
 </table>
 </div>
 
+{% endif %}
 <h2 class="sec">{{ t('col_status_title') }}</h2>
 <div class="tablewrap">
 <table class="queue integ-tbl">
@@ -86,6 +139,6 @@
   </tbody>
 </table>
 </div>
-<p class="hint">{{ t('integrations_note') }}</p>
+<p class="{{ 'g4-note' if ux5 else 'hint' }}">{{ t('integrations_note') }}</p>
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_collector_drawer.html" %}{% endif %}{% endblock %}

@@ -1,6 +1,8 @@
 {# Agents table + pager: the swap target #list of the agents page (WP-UX1 list components). #}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
+{% set ns = namespace(show_sys=sys_col) %}
+{% if ux5 and sys_col %}{% set ns.show_sys = false %}{% for a in page.items %}{% for sy in a.systems %}{% if sy.system_id and sy.name != a.name and (sy.name ~ ' agent') != a.name %}{% set ns.show_sys = true %}{% endif %}{% endfor %}{% endfor %}{% endif %}
 <div class="tablewrap">
 <table class="queue agents-tbl">
   <caption class="sr">{{ t('agents') }}</caption>
@@ -11,22 +13,25 @@
       {{ tb.th('owner_team', t('owner'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
       {{ tb.th('risk_tier', t('risk'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
       {{ tb.th('coverage', t('coverage'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs) }}
-      {{ tb.th('open_cases', t('cases'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs, numeric=True) }}{% if sys_col %}<th scope="col">{{ t('ux4b_col_system') }}</th>{% endif %}{{ '' }}
+      {{ tb.th('open_cases', t('cases'), sort_col, sort_dir, '/console/agents', '/console/agents/rows', base_qs, numeric=True) }}{% if ns.show_sys %}<th scope="col">{{ t('ux4b_col_system') }}</th>{% endif %}{{ '' }}
     </tr>
   </thead>
   <tbody id="rows">
   {% for a in page.items %}
     {% set dq = list_qs ~ '&lang=' ~ lang %}
     <tr class="row" data-row="{{ a.agent_id }}">
+      {% if ux5 %}<td><a class="head rowlink" href="/console/agents/{{ a.agent_id }}?lang={{ lang }}">{{ a.name or a.agent_id }}</a><div class="idline mono">{{ a.agent_id }}</div></td>
+      {% else %}
       <td><a class="head rowlink" href="/console/agents?drawer={{ a.agent_id }}&amp;{{ dq }}" hx-get="/console/agents/{{ a.agent_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ a.agent_id }}</a><div class="idline">{{ a.name }}</div></td>
+      {% endif %}
       <td>{{ ui.state_pill(a.state) }}</td>
       <td>{{ a.owner_team or '-' }}</td>
       <td>{{ t(a.risk_tier) if a.risk_tier else '-' }}</td>
       <td>{% set bp = a.coverage.bp %}<span class="mono">{{ '%d%%'|format(bp // 100) if bp is not none else '-' }}</span></td>
-      <td class="n">{{ a.open_cases }}</td>{% if sys_col %}<td data-col="system">{% for sy in a.systems %}{% if sy.system_id %}{% if sys_page %}<a href="/console/systems/{{ sy.system_id }}?lang={{ lang }}">{{ sy.name }}</a>{% else %}{{ sy.name }}{% endif %}{{ ', ' if not loop.last }}{% else %}<span class="muted">{{ t('ux4b_sys_other') }}</span>{% endif %}{% else %}<span class="muted">{{ t('ux4b_sys_none') }}</span>{% endfor %}</td>{% endif %}{{ '' }}
+      <td class="n">{{ a.open_cases }}</td>{% if ns.show_sys %}<td data-col="system">{% for sy in a.systems %}{% if sy.system_id %}{% if sys_page and not ux5 %}<a href="/console/systems/{{ sy.system_id }}?lang={{ lang }}">{{ sy.name }}</a>{% else %}{{ sy.name }}{% endif %}{{ ', ' if not loop.last }}{% else %}<span class="muted">{{ t('ux4b_sys_other') }}</span>{% endif %}{% else %}<span class="muted">{{ t('ux4b_sys_none') }}</span>{% endfor %}</td>{% endif %}{{ '' }}
     </tr>
   {% else %}
-    <tr><td colspan="{{ 7 if sys_col else 6 }}">{{ ui.empty(t('no_agents'), t('no_agents_filtered')) }}</td></tr>
+    <tr><td colspan="{{ 7 if ns.show_sys else 6 }}">{{ ui.empty(t('no_agents'), t('no_agents_filtered')) }}</td></tr>
   {% endfor %}
   </tbody>
 </table>

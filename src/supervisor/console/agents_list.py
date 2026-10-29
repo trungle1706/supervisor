@@ -95,12 +95,15 @@ def ordered(cards: list[dict[str, Any]], p: Mapping[str, str]) -> tuple[list[Any
 
 
 def list_view(
-    cards: list[dict[str, Any]], query: Mapping[str, str], with_system: bool = False
+    cards: list[dict[str, Any]],
+    query: Mapping[str, str],
+    with_system: bool = False,
+    size: int = PAGE_SIZE,
 ) -> dict[str, Any]:
     """Data for ``agents.html`` / ``_agents_list.html``."""
     p = parse_params(query, with_system)
     rows, col, direction = ordered(cards, p)
-    page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate(rows, parse_int(p["page"], "page", 1), size)
     counts = {s: sum(1 for a in cards if a["state"] == s) for s in STATES}
     base = {k: v for k, v in p.items() if k in ("q", "state", "risk", "system")}
     tiles = [{"label": "all", "n": len(cards), "on": not p["state"], "qs": _qs(p, state="")}]
