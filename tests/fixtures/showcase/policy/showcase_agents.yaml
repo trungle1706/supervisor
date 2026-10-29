@@ -1,0 +1,458 @@
+# Showcase policy for the three journey agents (WP-D2). Built by
+# tools/showcase_sources.py from the candidate fragments; synthetic owners.
+# Put it next to baseline.yaml in POLICY_DIR (second folder) for the traffic generator.
+policy_version: 1
+tools:
+  search_policies: read_only
+  http_inbound: read_only
+  lookup_customer_profile: pii_export
+  create_ticket: read_only
+  waive_fee: money
+  reconcile: read_only
+  add_payee: pii_export
+  transfer: money
+  export_all_documents: read_only
+  delete_customer: money
+agents:
+  kb-helpdesk-bot:
+    name: Bank knowledge chatbot (synthetic policy documents)
+    owner_user: owner.hr@example.invalid
+    owner_team: HR Services (synthetic)
+    risk_tier: medium
+    model_family: qwen
+    host_type: databricks_app
+    plug_point: fastapi_middleware
+    initial_state: SHADOW
+    detectors:
+      settings:
+        dlp_vn:
+          mode: transform
+          transform_tools:
+          - search_policies
+          - http_inbound
+  cs-assistant:
+    name: Customer service agent (A2 candidate, LangGraph)
+    owner_user: cc-lead@example.invalid
+    owner_team: Retail Customer Care (synthetic)
+    risk_tier: high
+    model_family: qwen
+    host_type: python_inprocess
+    plug_point: langgraph_middleware
+    initial_state: SHADOW
+    detectors:
+      settings:
+        dlp_vn:
+          keep_args:
+            lookup_customer_profile:
+            - cccd
+          transform_tools:
+          - create_ticket
+    keep_args_approvals:
+    - risk.lead
+    - dpo.officer
+  payment-ops-copilot:
+    name: Payments operations agent (candidate A3, synthetic)
+    owner_user: payops-lead@example.invalid
+    owner_team: Payments Ops (synthetic)
+    risk_tier: critical
+    model_family: qwen
+    host_type: python_inprocess
+    plug_point: sdk
+    initial_state: SHADOW
+    detectors:
+      settings:
+        dlp_vn:
+          keep_args:
+            add_payee:
+            - account_number
+            - payee_name
+    keep_args_approvals:
+    - risk.lead
+    - dpo.officer
+    consumers:
+      payops-desk:
+        mode: enforce
+    monitors:
+      session:
+        k: 3
+        case_threshold_bp: 1800
+        pause_threshold_bp: 2000
+        pause_scope:
+        - money
+        window_s: 1800
+        cooldown_s: 3600
+        cap_minor: 150000000
+        weights:
+          findings: 600
+          refusals: 1500
+          expand: 1300
+          drift: 800
+          money: 2000
+          near_dup: 800
+          timing: 100
+          cross_agent: 1300
+          memory: 1400
+          split_cue: 200
+rules:
+- id: KB-01
+  version: 1
+  description: The knowledge chatbot may call only its approved tool (search_policies)
+    and the inbound HTTP check
+  agent_scope:
+  - kb-helpdesk-bot
+  when:
+    tool:
+      not_in:
+      - search_policies
+      - http_inbound
+  action: block
+  severity: critical
+  risk_class: read_only
+  regulation_ref: Decision 33 (banking) - approved tools
+  owner: SME Credit Risk
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: KB-02
+  version: 1
+  description: A policy search must carry a query
+  agent_scope:
+  - kb-helpdesk-bot
+  when:
+    tool: search_policies
+    all:
+    - arg: query
+      op: absent
+  action: block
+  severity: medium
+  risk_class: read_only
+  regulation_ref: Internal AI use policy - complete tool calls
+  owner: SME Credit Risk
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: KB-03
+  version: 1
+  description: More than 200 policy searches in one hour is unusual for a staff Q
+    and A bot (alert only)
+  agent_scope:
+  - kb-helpdesk-bot
+  when:
+    tool: search_policies
+  aggregate:
+    fn: count
+    window_s: 3600
+    group_by: agent
+    op: gt
+    limit: 200
+  action: alert
+  severity: low
+  risk_class: read_only
+  regulation_ref: Internal AI use policy - usage monitoring
+  owner: SME Credit Risk
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: CSA-01
+  version: 1
+  description: A fee waiver needs a recorded approval by a person (fact approval.approved)
+  agent_scope:
+  - cs-assistant
+  when:
+    tool: waive_fee
+    all:
+    - arg: fact.approval.approved
+      op: ne
+      value: true
+  action: block
+  severity: critical
+  risk_class: money
+  regulation_ref: Decision 33 (banking) - human approval before execution; Fee policy
+  owner: Retail Customer Care
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: CSA-02
+  version: 1
+  description: Single fee waiver limit 500,000 VND
+  agent_scope:
+  - cs-assistant
+  when:
+    tool: waive_fee
+    all:
+    - arg: amount_minor
+      op: gt
+      value: 500000
+  action: block
+  severity: high
+  risk_class: money
+  regulation_ref: Fee policy - waiver authority
+  owner: Retail Customer Care
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: CSA-03
+  version: 1
+  description: A fee waiver must state amount_minor as an integer
+  agent_scope:
+  - cs-assistant
+  when:
+    tool: waive_fee
+    all:
+    - arg: amount_minor
+      op: absent
+  action: block
+  severity: medium
+  risk_class: money
+  regulation_ref: Fee policy - complete instruction
+  owner: Retail Customer Care
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: CSA-04
+  version: 1
+  description: A fee waiver amount must be a positive integer
+  agent_scope:
+  - cs-assistant
+  when:
+    tool: waive_fee
+    all:
+    - arg: amount_minor
+      op: le
+      value: 0
+  action: block
+  severity: medium
+  risk_class: money
+  regulation_ref: Fee policy - valid instruction
+  owner: Retail Customer Care
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: CSA-05
+  version: 1
+  description: At most 2 fee waivers per account per day
+  agent_scope:
+  - cs-assistant
+  when:
+    tool: waive_fee
+  aggregate:
+    fn: count
+    window_s: 86400
+    group_by: customer
+    customer_arg: account_id
+    op: gt
+    limit: 2
+  action: block
+  severity: high
+  risk_class: money
+  regulation_ref: Fee policy - waiver frequency
+  owner: Retail Customer Care
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: CSA-06
+  version: 1
+  description: At most 20 customer lookups per agent per hour (bulk personal data)
+  agent_scope:
+  - cs-assistant
+  when:
+    tool: lookup_customer_profile
+  aggregate:
+    fn: count
+    window_s: 3600
+    group_by: agent
+    op: gt
+    limit: 20
+  action: block
+  severity: high
+  risk_class: pii_export
+  regulation_ref: Decree 13/2023/ND-CP (personal data protection)
+  owner: Data Protection Office
+  approvals:
+  - risk.lead
+  - dpo.officer
+- id: CSA-07
+  version: 1
+  description: Customer service agent may call approved tools only
+  agent_scope:
+  - cs-assistant
+  when:
+    tool:
+      not_in:
+      - lookup_customer_profile
+      - create_ticket
+      - waive_fee
+  action: pause
+  severity: critical
+  risk_class: money
+  regulation_ref: Decision 33 (banking) - approved tools
+  owner: Retail Customer Care
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-07
+  version: 1
+  description: Payments operations agent may call approved tools only
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool:
+      not_in:
+      - reconcile
+      - add_payee
+      - transfer
+  action: pause
+  severity: critical
+  risk_class: money
+  regulation_ref: Decision 33 (banking) - approved tools
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-01
+  version: 1
+  description: A transfer must state amount_minor (mirror of PAY-01)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: transfer
+    all:
+    - arg: amount_minor
+      op: absent
+  action: block
+  severity: high
+  risk_class: money
+  regulation_ref: Internal payment control - complete instruction
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-06
+  version: 1
+  description: A transfer amount must be a positive integer (mirror of PAY-06)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: transfer
+    all:
+    - arg: amount_minor
+      op: le
+      value: 0
+  action: block
+  severity: high
+  risk_class: money
+  regulation_ref: Internal payment control - valid instruction
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-02
+  version: 1
+  description: Single transfer limit 100,000,000 VND (mirror of PAY-02)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: transfer
+    all:
+    - arg: amount_minor
+      op: gt
+      value: 100000000
+  action: block
+  severity: high
+  risk_class: money
+  regulation_ref: Internal limit - single agent-initiated transfer
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-03
+  version: 1
+  description: Daily transfers from one account above 150,000,000 VND (structuring;
+    mirror of PAY-03)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: transfer
+  aggregate:
+    fn: sum
+    field: amount_minor
+    window_s: 86400
+    group_by: customer
+    customer_arg: from_account_id
+    op: gt
+    limit: 150000000
+  action: pause
+  severity: critical
+  risk_class: money
+  regulation_ref: AML structuring control - daily aggregate per customer account
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-08
+  version: 1
+  description: Split payment - transfers from one account to one payee within 1 hour
+    above the 100,000,000 VND single-transfer limit (mirror of PAY-08)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: transfer
+  aggregate:
+    fn: sum
+    field: amount_minor
+    window_s: 3600
+    group_by: customer
+    customer_arg: from_account_id
+    also_by:
+    - payee_id
+    op: gt
+    limit: 100000000
+  action: block
+  severity: high
+  risk_class: money
+  regulation_ref: AML structuring control - split payment (ADR D10)
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: PAYOPS-09
+  version: 1
+  description: At most 3 new payees per customer per day (mirror of PAY-09)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: add_payee
+  aggregate:
+    fn: count
+    window_s: 86400
+    group_by: customer
+    customer_arg: customer_id
+    op: gt
+    limit: 3
+  action: block
+  severity: high
+  risk_class: pii_export
+  regulation_ref: Fraud control - payee changes
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer
+- id: SHOW-PAY-01
+  version: 1
+  description: A transfer above 20,000,000 VND needs an approval (showcase guardian)
+  agent_scope:
+  - payment-ops-copilot
+  when:
+    tool: transfer
+    all:
+    - arg: amount_minor
+      op: gt
+      value: 20000000
+  action: pause
+  severity: high
+  risk_class: money
+  regulation_ref: 'Showcase: transfer above limit needs approval'
+  owner: Payments Ops
+  approvals:
+  - risk.lead
+  - compliance.officer

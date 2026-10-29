@@ -1,4 +1,4 @@
-"""Showcase seeders: ``python -m supervisor.demo.showcase portfolio | journeys | factory``.
+"""Showcase seeders: ``python -m supervisor.demo.showcase portfolio | journeys | traffic | factory``.
 
 A tiny dispatcher shared by WP-D1 (portfolio), WP-D2 (journeys) and WP-D3 (factory). Each
 subcommand lives in its own module ``showcase_<name>`` and exposes ``main(argv) -> int``. A module
@@ -10,7 +10,7 @@ from __future__ import annotations
 import importlib
 import sys
 
-COMMANDS: tuple[str, ...] = ("portfolio", "journeys", "factory")
+COMMANDS: tuple[str, ...] = ("portfolio", "journeys", "traffic", "factory")
 
 
 def main(argv: list[str] | None = None) -> int:
