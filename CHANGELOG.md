@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## v0.10.0 (Databricks showcase, backlog B1, faster tests and CI) - 2026-10-29
+
+- **Showcase** (default off, `SHOWCASE_ENABLED=1`; demo workspaces only): `python -m
+  supervisor.demo.showcase portfolio | journeys | traffic | factory`. WP-D1 300-system portfolio
+  (state tables only, tag `demo:showcase`, `--remove`); WP-D2 three journeys from scan to live with a
+  traffic generator; WP-D3 two assessment agents and two guardians through the factory gates. Inputs
+  ship in `src/supervisor/demo/showcase_data/`. Guides: `docs/showcase/DEPLOY_SHOWCASE.md`,
+  `SCRIPT.md`, `SHOWCASE_PLAN.md`.
+- WP-T1: `pytest -n 6` (pytest-xdist) and a `slow` marker; GitHub Actions workflow `tests` on pull
+  requests, pushes to main and tags.
+
 - WP-B1 item 1: **detector setting overrides**. New table `detector_override` and service
   `supervisor.detectors.overrides`. Smart guardian Accept writes `detector_setting` lines through it
   (the policy block stays as an export). The gate reads the rows under the policy file (a key the
