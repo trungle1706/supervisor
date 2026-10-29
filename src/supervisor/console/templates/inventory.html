@@ -2,9 +2,16 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_inventory') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g4.css">
+{{ ui.crumbs([(t('nv3_catalogues'), '/console/catalogues?lang=' ~ lang), (t('nav_inventory'), None)]) }}
+{{ u5.page_head(t('nav_inventory'), t('g4_inv_purpose'), about=t('inv_purpose') ~ ' ' ~ t('inv_why')) }}
+{% else %}
 {{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_inventory'), None)]) }}
 {{ ui.pagehead(t('nav_inventory')) }}
 {{ ui.purpose(t('inv_purpose'), t('inv_why')) }}
+{% endif %}
 <div id="inventory-body" data-inventory="1">
 <h2>{{ t('inv_unmanaged') }} {{ ui.pill(unmanaged|length, 'bad' if unmanaged else 'ok') }}</h2>
 <div id="um-list">
@@ -12,7 +19,7 @@
 </div>
 
 {% if agents %}
-<h2>{{ t('inv_tree') }}</h2>
+<h2>{{ t('inv_tree') if not ux5 else t('inv_nodes') }}</h2>
 <form method="get" action="/console/inventory" class="filters fbar" hx-get="/console/inventory" hx-target="#main" hx-select="#main" hx-swap="outerHTML" hx-trigger="change, submit" hx-push-url="true">
   <input type="hidden" name="lang" value="{{ lang }}">
   <label for="inv-agent">{{ t('inv_agent') }}</label>
@@ -22,8 +29,8 @@
   <noscript><button type="submit" class="chipbtn">OK</button></noscript>
   {% if agent %}<a class="chipbtn" href="/console/agents/{{ agent }}?tab=inventory&amp;lang={{ lang }}">{{ t('open_agent_page') }}</a>{% endif %}
 </form>
-<pre class="excerpt" id="inv-tree">{{ tree }}</pre>
-<h2>{{ t('inv_nodes') }}</h2>
+{% if not ux5 %}<pre class="excerpt" id="inv-tree">{{ tree }}</pre>{% endif %}
+{% if not ux5 %}<h2>{{ t('inv_nodes') }}</h2>{% endif %}
 <div class="tablewrap">
 <table class="queue" id="inv-nodes">
   <thead><tr><th scope="col">{{ t('inv_kind') }}</th><th scope="col">{{ t('inv_name') }}</th><th scope="col">{{ t('inv_own') }}</th><th scope="col">{{ t('inv_eff') }}</th><th scope="col">{{ t('inv_evidence') }}</th></tr></thead>
@@ -32,14 +39,14 @@
     <tr class="row">
       <td>{{ r.kind }}</td><td class="mono">{{ r.name }}</td>
       <td>{{ r.own_risk or '-' }}</td><td>{{ r.effective_risk or '-' }}</td>
-      <td class="mono">{{ r.evidence }}</td>
+      <td class="mono">{% if ux5 %}<details><summary>{{ t('g4_evidence') }}</summary>{{ r.evidence }}</details>{% else %}{{ r.evidence }}{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
 {% else %}
-<p class="empty">{{ t('inv_no_agents') }} <code>python -m supervisor.jobs.inventory</code></p>
+<p class="empty">{{ t('inv_no_agents') }}{% if not ux5 %} <code>python -m supervisor.jobs.inventory</code>{% endif %}</p>
 {% endif %}
 </div>
 {% endblock %}

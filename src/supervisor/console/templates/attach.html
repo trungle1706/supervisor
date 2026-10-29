@@ -5,5 +5,5 @@
 {% block content %}
 {{ ui.crumbs([(t('at_title'), None), (at.node_id, None)]) }}
 {{ ui.pagehead(t('at_title') ~ ': ' ~ at.node_id) }}
-{% include "_attach_panel.html" %}
+{% include "_attach_panel_ux5.html" if ux5 else "_attach_panel.html" %}
 {% endblock %}

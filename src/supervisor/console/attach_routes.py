@@ -103,6 +103,11 @@ def layout(model: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _panel(ctx: ConsoleContext) -> str:
+    """The Attach panel template: the UX5 one with CONSOLE_UX5, else the original."""
+    return "_attach_panel_ux5.html" if ctx.settings.console_ux5 else "_attach_panel.html"
+
+
 def panel_data(
     ctx: ConsoleContext, me: AuthPrincipal, node_id: str, checked: bool = False
 ) -> dict[str, Any]:
@@ -133,7 +138,7 @@ async def attach_panel(
     intake.check_node_id(node_id)
     data = await _call(panel_data, ctx, me, node_id)
     if request.headers.get("hx-request") == "true":
-        return render(request, ctx, me, "_attach_panel.html", **data)
+        return render(request, ctx, me, _panel(ctx), **data)
     return render(request, ctx, me, "attach.html", section="candidates", **data)
 
 
@@ -171,7 +176,7 @@ async def attach_check(
         "person",
         str(me.user_id),
     )
-    resp = render(request, ctx, me, "_attach_panel.html", **data)
+    resp = render(request, ctx, me, _panel(ctx), **data)
     note = f"{node_id}: checked now, {counts['lit']} of {counts['total']} guardians have evidence"
     resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))

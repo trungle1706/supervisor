@@ -4829,6 +4829,9 @@ _T.update(
 from supervisor.console.i18n_schema import SCH as _SCH  # noqa: E402  (WP-P3, prefix sch_)
 
 _T.update(_SCH)
+from supervisor.console.i18n_ux5_g4 import G4 as _G4  # noqa: E402  (UX5-G4, new keys, prefix g4_)
+
+_T.update(_G4)
 from supervisor.console.i18n_intake import IK as _IK  # noqa: E402  (WP-O1, prefix ik_)
 
 _T.update(_IK)

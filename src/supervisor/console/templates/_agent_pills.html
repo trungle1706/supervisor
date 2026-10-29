@@ -4,6 +4,6 @@
 {% if a.cause and a.cause.rule %}{{ ui.state_pill(a.state, t('by_rule', rule=a.cause.rule), ' ') }}
 {% elif a.cause and a.cause.principal %}{{ ui.state_pill(a.state, t('by_person', who=a.cause.principal), ' ') }}
 {% else %}{{ ui.state_pill(a.state) }}{% endif %}
-{% if a.risk_tier %} {{ ui.pill(t('risk') ~ ' ' ~ t(a.risk_tier), 'neutral') }}{% endif %}
+{% if a.risk_tier %} {{ ui.pill(t('risk') ~ ': ' ~ t(a.risk_tier) if ux5 else t('risk') ~ ' ' ~ t(a.risk_tier), 'neutral') }}{% endif %}
 {% if a.d33.cls == 'high_risk' %} {{ ui.pill(t('d33_high') ~ (' (' ~ t('proposal') ~ ')' if a.d33.source == 'proposal' else ''), 'bad') }}{% endif %}
-{% if a.judge.mock %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}
+{% if a.judge.mock and not ux5 %} {{ ui.pill(t('mock'), 'neutral') }}{% endif %}

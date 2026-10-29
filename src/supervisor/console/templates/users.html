@@ -2,21 +2,30 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_users') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g4.css">
+{{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_users'), None)]) }}
+{% set badge %}{{ ui.pill(t('read_only'), 'neutral') }}{% endset %}
+{{ u5.page_head(t('nav_users'), t('g4_users_purpose'), about=t('users_purpose') ~ ' ' ~ t('users_why'), actions=badge) }}
+{{ u5.technical([(t('users_source'), source)] + ([('group_lookup', group_lookup)] if group_lookup else []) + ([(t('service_principal'), service_principal.id)] if service_principal else [])) }}
+{% else %}
 {{ ui.crumbs([(t('nav_g_settings'), None), (t('nav_users'), None)]) }}
 {{ ui.pagehead(t('nav_users'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('users_purpose'), t('users_why')) }}
 <p class="idline">{{ t('users_source') }}: <span class="mono">{{ source }}</span>{% if group_lookup %} · group_lookup: <span class="mono">{{ group_lookup }}</span>{% endif %}{% if service_principal %} · {{ t('service_principal') }}: <span class="mono">{{ service_principal.id }}</span> ({{ service_principal.roles|join(', ') or t('read_only') }}){% endif %}</p>
 
+{% endif %}
 <h2 class="sec">{{ t('users_users') }}</h2>
 <div class="tablewrap">
 <table class="queue users-tbl">
   <caption class="sr">{{ t('users_users') }}</caption>
-  <thead><tr><th scope="col">{{ t('user') }}</th><th scope="col">{{ t('name') }}</th><th scope="col">{{ t('roles') }}</th><th scope="col">{{ t('source') }}</th></tr></thead>
+  <thead><tr><th scope="col">{{ t('user') }}</th><th scope="col">{{ t('name') }}</th><th scope="col">{{ t('roles') }}</th>{% if not ux5 %}<th scope="col">{{ t('source') }}</th>{% endif %}</tr></thead>
   <tbody>
   {% for u in users %}
-    <tr><td class="mono">{{ u.user_id }}</td><td>{{ u.name or '-' }}</td><td>{% for r in u.roles %}{{ ui.pill(r, 'neutral') }} {% endfor %}</td><td class="mono">{{ u.source }}</td></tr>
+    <tr><td class="mono">{{ u.user_id }}</td><td>{{ u.name or '-' }}</td><td>{% for r in u.roles %}{{ ui.pill(r, 'neutral') }} {% endfor %}</td>{% if not ux5 %}<td class="mono">{{ u.source }}</td>{% endif %}</tr>
   {% else %}
-    <tr><td colspan="4">{{ ui.empty(t('no_users'), t('no_users_line')) }}</td></tr>
+    <tr><td colspan="{{ 3 if ux5 else 4 }}">{{ ui.empty(t('no_users'), t('no_users_line')) }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -35,6 +44,21 @@
 </table>
 </div>
 
+{% if ux5 %}
+<details class="g4-fold" id="matrix"><summary>{{ t('g4_matrix_show', n=matrix|length) }}</summary>
+<div class="tablewrap g4-scroll">
+<table class="queue matrix-tbl g4-matrix">
+  <caption class="sr">{{ t('users_matrix') }}</caption>
+  <thead><tr><th scope="col">{{ t('permission') }}</th>{% for r in role_names %}<th scope="col">{{ r }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for m in matrix %}
+    <tr><th scope="row">{{ m.text }}{% if me.has('admin') %}<div class="idline mono">{{ m.permission }}</div>{% endif %}</th>{% for r in role_names %}<td>{% if m.roles[r] %}<span aria-label="{{ t('yes') }}">x</span>{% else %}<span class="muted" aria-label="{{ t('no') }}">-</span>{% endif %}</td>{% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</details>
+{% else %}
 <h2 class="sec" id="matrix">{{ t('users_matrix') }}</h2>
 <p class="hint">{{ t('users_matrix_note') }} <span class="mono">docs/console.md</span></p>
 <div class="tablewrap">
@@ -48,4 +72,5 @@
   </tbody>
 </table>
 </div>
+{% endif %}
 {% endblock %}

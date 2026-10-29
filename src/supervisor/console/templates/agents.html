@@ -2,11 +2,19 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('agents') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g4.css">
+{{ ui.crumbs([(t('nv3_catalogues'), '/console/catalogues?lang=' ~ lang), (t('agents'), None)]) }}
+{% set act %}<a class="btn" href="/console/onboard?lang={{ lang }}">{{ t('nav_onboard') }}</a>{% endset %}
+{{ u5.page_head(t('agents'), t('agents_purpose'), about=t('agents_why'), actions=act) }}
+{% else %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('agents'), None)]) }}
 {% call ui.pagehead(t('agents')) %}
   <a class="btn" href="/console/onboard?lang={{ lang }}">{{ t('nav_onboard') }}</a>
 {% endcall %}
 {{ ui.purpose(t('agents_purpose'), t('agents_why')) }}
+{% endif %}
 {{ ui.tiles(tiles, '/console/agents', '/console/agents/rows') }}
 {{ ui.filterbar('/console/agents', '/console/agents/rows', [
   {'name': 'q', 'label': t('search_agents'), 'kind': 'search', 'value': params.q},
@@ -16,6 +24,6 @@
 <div id="list">
 {% include "_agents_list.html" %}
 </div>
-<p class="hint">{{ t('agent_controls_hint') }}</p>
+{% if not ux5 %}<p class="hint">{{ t('agent_controls_hint') }}</p>{% endif %}
 {% endblock %}
 {% block drawer %}{% if drawer is defined %}{% include "_agent_drawer.html" %}{% endif %}{% endblock %}
