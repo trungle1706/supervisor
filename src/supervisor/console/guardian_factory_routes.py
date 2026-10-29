@@ -73,7 +73,10 @@ def list_defs(request: Request, ctx: ConsoleContext = _CTX) -> Any:
     filters = {
         k: request.query_params.get(k, "") for k in ("state", "owner_group", "stage", "type")
     }
-    return {"items": svc.list_defs(filters), "counts": svc.counts()}
+    return {
+        "items": ctx.guardian_promotion.annotate(svc.list_defs(filters)),
+        "counts": svc.counts(),
+    }
 
 
 @api_router.get("/guardian-defs-schema", dependencies=[Depends(needs("guardians.view"))])
@@ -328,8 +331,10 @@ def panel_data(
     can = agent_detail.can(me, "guardians.edit") and (not owner or gstore.can_edit(me, owner))
     editable = can and (view is None or view["state"] in gstore.EDITABLE)
     bench = bench_data(ctx, me, def_id) if view is not None else {}
+    promo = promotion_data(ctx, me, def_id) if view is not None else {}
     return {
         **bench,
+        **promo,
         "gf": {
             "id": def_id,
             "is_new": view is None,
@@ -372,7 +377,7 @@ def list_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     }
     return {
         "gl": {
-            "rows": svc.list_defs(filters),
+            "rows": ctx.guardian_promotion.annotate(svc.list_defs(filters)),
             "counts": svc.counts(),
             "filters": filters,
             "groups": owner_groups(),
@@ -863,3 +868,335 @@ async def editor_mark_benchmarked(
     def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
     return await _console_move("mark-benchmarked", def_id, request, ctx, me)
+
+
+# --------------------------------------------------------------- shadow and promotion (WP-G3)
+# JSON API: GET /v1/guardian-defs/{id}/shadow, POST .../shadow/start | shadow/stop,
+# POST .../shadow/findings/{finding_id}/review, POST .../allow | allow/remove, POST .../approve |
+# go-live | rollback | retire-version. Console: the Shadow and Promotion panels inside the editor
+# (GET .../shadow and .../promotion give the panel alone) and the POST actions of the same names.
+# Same flag, same 400 guardian_factory_off. approve, go-live and rollback need guardians.approve.
+
+STEPS = ("draft", "benchmarked", "shadow", "approved", "live")
+_KEYS: dict[str, tuple[str, ...]] = {
+    "shadow-start": (),
+    "shadow-stop": (),
+    "review": ("mark", "allow"),
+    "allow": ("agent_id", "reason", "expires", "version"),
+    "allow-remove": ("agent_id", "version"),
+    "approve": ("kind",),
+    "go-live": (),
+    "rollback": ("reason", "to_version"),
+    "retire-version": ("version",),
+}
+_NOTES = {
+    "shadow-start": "shadow run started",
+    "shadow-stop": "shadow run stopped, back to draft",
+    "review": "finding reviewed",
+    "allow": "allow-list entry added",
+    "allow-remove": "allow-list entry removed",
+    "approve": "approval recorded",
+    "go-live": "set live",
+    "rollback": "rolled back",
+    "retire-version": "version retired",
+}
+
+
+def _promo(ctx: ConsoleContext) -> Any:
+    gstore.require_on(ctx.settings)
+    return ctx.guardian_promotion
+
+
+def _opt_int(value: Any, field: str) -> int | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, str)) or not str(value).isdigit():
+        raise GuardianFactoryError("bad_version", f"{field}: a whole number")
+    return int(value)
+
+
+def _do_promo(
+    what: str, svc: Any, def_id: str, data: dict[str, Any], me: Any, finding_id: str = ""
+) -> dict[str, Any]:
+    extra = sorted(set(data) - set(_KEYS[what]))
+    if extra:
+        raise GuardianFactoryError("bad_request", f"unknown key: {', '.join(extra)}")
+    if what == "shadow-start":
+        return svc.start_shadow(def_id, me)
+    if what == "shadow-stop":
+        return svc.stop_shadow(def_id, me)
+    if what == "review":
+        allow = data.get("allow")
+        if allow is not None and not isinstance(allow, dict):
+            raise GuardianFactoryError("bad_request", "allow: an object")
+        return svc.review(def_id, finding_id, data.get("mark"), me, allow)
+    if what == "allow":
+        return svc.add_allow(
+            def_id,
+            _opt_int(data.get("version"), "version"),
+            data.get("agent_id"),
+            data.get("reason"),
+            data.get("expires"),
+            me,
+        )
+    if what == "allow-remove":
+        n = svc.remove_allow(
+            def_id, _opt_int(data.get("version"), "version"), data.get("agent_id"), me
+        )
+        return {"id": def_id, "allow_n": n}
+    if what == "approve":
+        return svc.approve(def_id, me, data.get("kind") or None)
+    if what == "go-live":
+        return svc.go_live(def_id, me)
+    if what == "rollback":
+        return svc.rollback(
+            def_id, me, data.get("reason"), _opt_int(data.get("to_version"), "to_version")
+        )
+    return svc.retire_version(def_id, _opt_int(data.get("version"), "version"), me)
+
+
+def _form_args(what: str, form: dict[str, str]) -> dict[str, Any]:
+    if what == "review":
+        out: dict[str, Any] = {"mark": form.get("mark", "")}
+        reason, expires = (
+            form.get("allow_reason", "").strip(),
+            form.get("allow_expires", "").strip(),
+        )
+        if reason or expires:
+            out["allow"] = {"reason": reason, "expires": expires}
+        return out
+    return {k: v for k, v in form.items() if k in _KEYS[what] and v != ""}
+
+
+def promotion_data(ctx: ConsoleContext, me: AuthPrincipal, def_id: str) -> dict[str, Any]:
+    """The data of the Shadow and Promotion panels (``gs`` and ``gp``)."""
+    from supervisor.guardian_factory import shadow as gshadow
+
+    svc = _promo(ctx)
+    sm = svc.summary(def_id, me)
+    row = svc._version(def_id, None)  # noqa: SLF001
+    can = sm["can"]
+    base = f"/console/guardian-factory/{def_id}"
+    state = sm["state"]
+    shadow = sm["shadow"]
+    findings = svc.findings(def_id) if shadow is not None and shadow["findings_n"] else []
+    cur = STEPS.index(state) if state in STEPS else -1
+    return {
+        "gs": {
+            "id": def_id,
+            "base": base,
+            "state": state,
+            "can_edit": can["edit"],
+            "hook_on": gshadow.enabled(ctx.settings),
+            "shadow": shadow,
+            "findings": findings,
+            "allow_list": sm["allow_list"],
+            "days_default": svc.days_of(svc._body(row)),  # noqa: SLF001
+        },
+        "gp": {
+            "id": def_id,
+            "base": base,
+            "state": state,
+            "version": sm["version"],
+            "live_version": sm["live_version"],
+            "slug": sm["slug"],
+            "approvals": sm["approvals"],
+            "missing": sm["missing"] if state in ("shadow", "approved") else [],
+            "problems": shadow["problems"] if shadow and state == "shadow" else [],
+            "steps": [
+                {"state": s, "done": i < cur or s == state == "live", "current": s == state}
+                for i, s in enumerate(STEPS)
+            ],
+            "can_approve": state == "shadow"
+            and (
+                ("owner_lead" in sm["missing"] and can["owner_lead"])
+                or ("platform_security" in sm["missing"] and can["platform_security"])
+            ),
+            "can_go_live": state == "approved" and can["owner_lead"],
+            "can_retire": can["edit"] and state in ("shadow", "approved", "live"),
+            "can_retire_live": can["edit"]
+            and bool(sm["live_version"])
+            and sm["live_version"] != sm["version"],
+            "can_rollback": can["admin"] and bool(sm["prior"]),
+            "prior": sm["prior"],
+        },
+    }
+
+
+async def _panel_page(
+    template: str, def_id: str, request: Request, ctx: ConsoleContext, me: AuthPrincipal
+) -> Response:
+    _promo(ctx)
+    _check_id(def_id, "guardian id")
+    if request.headers.get("hx-request") != "true":
+        return RedirectResponse(
+            f"/console/guardian-factory/{def_id}?lang={_lang(request, ctx)}", status_code=303
+        )
+    try:
+        data = await _call(promotion_data, ctx, me, def_id)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    return render(request, ctx, me, template, section="", **data)
+
+
+@router.get(
+    "/guardian-factory/{def_id}/shadow",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.view"))],
+)
+async def shadow_page(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    return await _panel_page("_gf_shadow.html", def_id, request, ctx, me)
+
+
+@router.get(
+    "/guardian-factory/{def_id}/promotion",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.view"))],
+)
+async def promotion_page(
+    def_id: str, request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
+) -> Response:
+    return await _panel_page("_gf_promo.html", def_id, request, ctx, me)
+
+
+async def _console_promo(
+    what: str,
+    def_id: str,
+    request: Request,
+    ctx: ConsoleContext,
+    me: AuthPrincipal,
+    finding_id: str = "",
+) -> Response:
+    svc = _promo(ctx)
+    _check_id(def_id, "guardian id")
+    if finding_id:
+        _check_id(finding_id, "finding id")
+    form, plain = await form_or_plain(request)
+    try:
+        await _call(_do_promo, what, svc, def_id, _form_args(what, form), me, finding_id)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = f"guardian_def {what} {def_id}"
+    return await _respond(request, ctx, me, def_id, plain, f"{def_id}: {_NOTES[what]}")
+
+
+async def _api_promo(
+    what: str,
+    def_id: str,
+    request: Request,
+    ctx: ConsoleContext,
+    me: AuthPrincipal,
+    finding_id: str = "",
+) -> Any:
+    svc = _promo(ctx)
+    _check_id(def_id, "guardian id")
+    if finding_id:
+        _check_id(finding_id, "finding id")
+    data = await _body(request)
+    try:
+        out = await _call(_do_promo, what, svc, def_id, data, me, finding_id)
+    except NotFoundError as exc:
+        return _not_found(exc)
+    request.state.audit_detail = f"guardian_def {what} {def_id}"
+    return out
+
+
+@api_router.get("/guardian-defs/{def_id}/shadow", dependencies=[Depends(needs("guardians.view"))])
+def get_shadow(def_id: str, request: Request, ctx: ConsoleContext = _CTX) -> Any:
+    svc = _promo(ctx)
+    _check_id(def_id, "guardian id")
+    try:
+        sm = svc.summary(def_id)
+        pending = request.query_params.get("pending") in ("1", "true")
+        findings = svc.findings(def_id, pending_only=pending) if sm["shadow"] else []
+    except NotFoundError as exc:
+        return _not_found(exc)
+    return {**sm, "findings": findings}
+
+
+_PLAIN_ROUTES = (
+    ("shadow-start", "shadow/start", "guardians.edit"),
+    ("shadow-stop", "shadow/stop", "guardians.edit"),
+    ("allow", "allow", "guardians.edit"),
+    ("allow-remove", "allow/remove", "guardians.edit"),
+    ("approve", "approve", "guardians.approve"),
+    ("go-live", "go-live", "guardians.approve"),
+    ("rollback", "rollback", "guardians.approve"),
+    ("retire-version", "retire-version", "guardians.edit"),
+)
+
+
+def _make_routes() -> None:
+    for what, path, perm in _PLAIN_ROUTES:
+
+        def api_factory(what: str = what, perm: str = perm) -> Any:
+            @audited(perm)
+            async def handler(
+                def_id: str,
+                request: Request,
+                ctx: ConsoleContext = _CTX,
+                me: AuthPrincipal = _ME,
+            ) -> Any:
+                return await _api_promo(what, def_id, request, ctx, me)
+
+            return handler
+
+        def console_factory(what: str = what, perm: str = perm) -> Any:
+            @audited(perm)
+            async def handler(
+                def_id: str,
+                request: Request,
+                ctx: ConsoleContext = _CTX,
+                me: AuthPrincipal = _ME,
+            ) -> Any:
+                return await _console_promo(what, def_id, request, ctx, me)
+
+            return handler
+
+        api_router.post(
+            f"/guardian-defs/{{def_id}}/{path}",
+            dependencies=[Depends(needs(perm))],
+            name=f"gf_api_{what.replace('-', '_')}",
+        )(api_factory())
+        router.post(
+            f"/guardian-factory/{{def_id}}/{path}",
+            response_class=HTMLResponse,
+            dependencies=[Depends(needs(perm))],
+            name=f"gf_console_{what.replace('-', '_')}",
+        )(console_factory())
+
+
+_make_routes()
+
+
+@api_router.post(
+    "/guardian-defs/{def_id}/shadow/findings/{finding_id}/review",
+    dependencies=[Depends(needs("guardians.edit"))],
+)
+@audited("guardians.edit")
+async def review_finding(
+    def_id: str,
+    finding_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Any:
+    return await _api_promo("review", def_id, request, ctx, me, finding_id)
+
+
+@router.post(
+    "/guardian-factory/{def_id}/shadow/review/{finding_id}",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("guardians.edit"))],
+)
+@audited("guardians.edit")
+async def console_review_finding(
+    def_id: str,
+    finding_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    return await _console_promo("review", def_id, request, ctx, me, finding_id)

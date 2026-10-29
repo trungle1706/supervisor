@@ -2056,3 +2056,40 @@ CREATE TABLE IF NOT EXISTS guardian_proposal (
 );
 
 CREATE INDEX IF NOT EXISTS ix_guardian_proposal_system_id_status ON guardian_proposal (system_id, status);
+
+-- guardian_shadow_finding (state): WP-G3 (GUARDIAN_FACTORY + GUARDIAN_SHADOW). One finding of a guardian definition in state shadow, found on live gate traffic in log-only mode. Nothing was blocked or redacted. call_ref is the correlation or request id of the call; value_hash is the SHA-256 digest of the finding (ids, code, integers and fragment digests), never the masked value text. count is the number of matches. would_action is the action_on_fail the guardian would take once live. reviewed is empty (not yet), correct (a true finding) or false (a false positive); a person sets it with reviewed_by. No personal data, no floats.
+CREATE TABLE IF NOT EXISTS guardian_shadow_finding (
+  finding_id TEXT NOT NULL,
+  def_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  agent_id TEXT NOT NULL,
+  call_ref TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  finding_code TEXT NOT NULL,
+  count INTEGER NOT NULL,
+  value_hash TEXT NOT NULL,
+  would_action TEXT NOT NULL,
+  reviewed TEXT,
+  reviewed_by TEXT,
+  created_at TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (finding_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_shadow_finding_def_id_version ON guardian_shadow_finding (def_id, version);
+
+-- guardian_shadow_day (state): WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls with a finding that would act (would_act), calls where the shadow detector was skipped because the latency budget was used (skipped_budget) and findings written. Integers only. A daily job writes one guardian_shadow_day chain record per closed day (chained).
+CREATE TABLE IF NOT EXISTS guardian_shadow_day (
+  def_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  day TEXT NOT NULL,
+  calls_seen INTEGER NOT NULL,
+  would_act INTEGER NOT NULL,
+  skipped_budget INTEGER NOT NULL,
+  findings_n INTEGER NOT NULL,
+  chained INTEGER NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (def_id, version, day)
+);

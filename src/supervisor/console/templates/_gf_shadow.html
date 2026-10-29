@@ -1,0 +1,92 @@
+{# Guardian factory Shadow panel (WP-G3, GUARDIAN_FACTORY + GUARDIAN_SHADOW). Variable: gs. #}
+{% import "_ui.html" as ui with context %}
+{% set b = gs.base %}
+{% set S = gs.shadow %}
+<div id="gf-shadow" data-panel="shadow" data-def="{{ gs.id }}" data-state="{{ gs.state }}">
+  <p class="hint">{{ t('gf_s_purpose') }}</p>
+  {% if not gs.hook_on %}<div class="msg msg-error" data-shadow-hook="off" role="alert">{{ t('gf_s_hook_off') }}</div>{% endif %}
+
+  {% if gs.state == 'benchmarked' %}
+    {% if gs.can_edit %}
+    <form method="post" action="{{ b }}/shadow/start?lang={{ lang }}" hx-post="{{ b }}/shadow/start?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+      <div class="btnrow"><button class="btn primary" data-action="shadow-start">{{ t('gf_s_start') }}</button></div>
+    </form>
+    <p class="hint">{{ t('gf_s_start_hint', n=S.days_total if S else gs.days_default) }}</p>
+    {% else %}<p class="hint" data-view-only="1">{{ t('gf_view_only') }}</p>{% endif %}
+  {% elif not S %}
+    <p class="hint" data-shadow-none="1">{{ t('gf_s_none') }}</p>
+  {% else %}
+  <div class="tiles" role="group" aria-label="{{ t('gf_s_numbers') }}" data-shadow-numbers="1">
+    <div class="tile"><span class="n" data-n="days">{{ S.days_elapsed }} / {{ S.days_total }}</span><span class="l">{{ t('gf_s_days') }}</span></div>
+    <div class="tile"><span class="n" data-n="calls">{{ S.calls_seen }}</span><span class="l">{{ t('gf_s_calls') }}</span></div>
+    <div class="tile"><span class="n" data-n="would_act">{{ S.would_act }}</span><span class="l">{{ t('gf_s_would_act') }}</span></div>
+    <div class="tile"><span class="n" data-n="skipped">{{ S.skipped_budget }}</span><span class="l">{{ t('gf_s_skipped') }}</span></div>
+    <div class="tile"><span class="n" data-n="correct">{{ S.reviewed_correct }}</span><span class="l">{{ t('gf_s_correct') }}</span></div>
+    <div class="tile"><span class="n" data-n="false">{{ S.reviewed_false }}</span><span class="l">{{ t('gf_s_false') }}</span></div>
+    <div class="tile"><span class="n" data-n="pending">{{ S.pending_n }}</span><span class="l">{{ t('gf_s_pending') }}</span></div>
+    <div class="tile"><span class="n" data-n="rate">{{ S.false_rate_pct }}% / {{ S.max_fpr_pct }}%</span><span class="l">{{ t('gf_s_rate') }}</span></div>
+  </div>
+  {% if gs.state == 'shadow' %}
+    {% if S.passed %}<p class="msg msg-ok" data-shadow-passed="1" role="status">{{ t('gf_s_passed') }}</p>
+    {% else %}<p class="hint" data-shadow-open="1">{{ S.problems|join('; ') }}</p>{% endif %}
+    {% if gs.can_edit %}
+    <form method="post" action="{{ b }}/shadow/stop?lang={{ lang }}" hx-post="{{ b }}/shadow/stop?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+      <div class="btnrow"><button class="btn" data-action="shadow-stop">{{ t('gf_s_stop') }}</button></div>
+    </form>
+    {% endif %}
+  {% endif %}
+
+  <h5>{{ t('gf_s_review') }}</h5>
+  {% if gs.findings %}
+  <div class="tablewrap">
+  <table class="tbl" data-findings="{{ gs.findings|length }}">
+    <thead><tr><th>{{ t('gf_s_agent') }}</th><th>{{ t('gf_s_code') }}</th><th>{{ t('gf_s_count') }}</th><th>{{ t('gf_s_would') }}</th><th>{{ t('gf_s_call') }}</th><th>{{ t('gf_s_mark') }}</th></tr></thead>
+    <tbody>{% for f in gs.findings %}
+      <tr data-finding="{{ f.finding_id }}" data-reviewed="{{ f.reviewed or '' }}">
+        <td class="mono">{{ f.agent_id }}</td><td class="mono">{{ f.finding_code }}</td><td class="n">{{ f.count }}</td><td>{{ f.would_action }}</td><td class="mono">{{ f.call_ref[:16] }}</td>
+        <td>
+        {% if f.reviewed %}{{ ui.pill(t('gf_s_' ~ f.reviewed), 'ok' if f.reviewed == 'correct' else 'warn') }} <span class="idline">{{ f.reviewed_by }}</span>
+        {% elif gs.state == 'shadow' and gs.can_edit %}
+          <form method="post" action="{{ b }}/shadow/review/{{ f.finding_id }}?lang={{ lang }}" hx-post="{{ b }}/shadow/review/{{ f.finding_id }}?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+            <button class="btn" name="mark" value="correct" data-action="review-correct">{{ t('gf_s_correct_btn') }}</button>
+            <button class="btn" name="mark" value="false" data-action="review-false">{{ t('gf_s_false_btn') }}</button>
+            <details><summary>{{ t('gf_s_allow_too') }}</summary>
+              <label>{{ t('gf_s_allow_reason') }} <input name="allow_reason" maxlength="200"></label>
+              <label>{{ t('gf_s_allow_expires') }} <input name="allow_expires" placeholder="YYYY-MM-DD" maxlength="10"></label>
+              <span class="hint">{{ t('gf_s_allow_max') }}</span>
+            </details>
+          </form>
+        {% else %}-{% endif %}
+        </td>
+      </tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  {% else %}<p class="hint" data-no-findings="1">{{ t('gf_s_no_findings') }}</p>{% endif %}
+  {% endif %}
+
+  {% if gs.state in ('shadow', 'approved', 'live') %}
+  <h5>{{ t('gf_s_allow') }}</h5>
+  <p class="hint">{{ t('gf_s_allow_hint') }}</p>
+  {% if gs.allow_list %}
+  <table class="tbl" data-allow="{{ gs.allow_list|length }}">
+    <thead><tr><th>{{ t('gf_s_agent') }}</th><th>{{ t('gf_s_allow_reason') }}</th><th>{{ t('gf_s_allow_expires') }}</th><th></th></tr></thead>
+    <tbody>{% for e in gs.allow_list %}
+      <tr data-allow-agent="{{ e.agent_id }}" data-expired="{{ '1' if e.expired else '0' }}">
+        <td class="mono">{{ e.agent_id }}</td><td>{{ e.reason }}</td>
+        <td class="mono">{{ e.expires }} {% if e.expired %}{{ ui.pill(t('gf_s_expired'), 'warn') }}{% endif %}</td>
+        <td>{% if gs.can_edit %}<form method="post" action="{{ b }}/allow/remove?lang={{ lang }}" hx-post="{{ b }}/allow/remove?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML"><input type="hidden" name="agent_id" value="{{ e.agent_id }}"><button class="btn" data-action="allow-remove">{{ t('gf_s_remove') }}</button></form>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<p class="hint" data-no-allow="1">{{ t('gf_s_no_allow') }}</p>{% endif %}
+  {% if gs.can_edit %}
+  <form method="post" action="{{ b }}/allow?lang={{ lang }}" hx-post="{{ b }}/allow?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+    <div class="grid2">
+      <label>{{ t('gf_s_agent') }} <input name="agent_id" maxlength="64"></label>
+      <label>{{ t('gf_s_allow_reason') }} <input name="reason" maxlength="200"></label>
+      <label>{{ t('gf_s_allow_expires') }} <input name="expires" placeholder="YYYY-MM-DD" maxlength="10"></label>
+    </div>
+    <div class="btnrow"><button class="btn" data-action="allow-add">{{ t('gf_s_allow_add') }}</button></div>
+  </form>
+  {% endif %}
+  {% endif %}
+</div>

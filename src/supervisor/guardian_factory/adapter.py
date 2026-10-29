@@ -1,7 +1,8 @@
 """Adapter (WP-G1): a ``live`` guardian definition becomes a detector of the existing contract
 (``supervisor.core.detectors.Detector``), so WP-G3 can attach it through guardian bindings.
 
-In this work package it is unit-tested only; nothing mounts it into the gate.
+WP-G3 mounts it: ``attach.LiveGuardians`` registers a live definition under the slug
+``gf:<def_id>@<version>`` and the gate adds ``GATE-GUARDIAN-BLOCK`` for a deterministic block.
 
 * ``regex``: the ``custom_rules`` machinery (``dlp_extras.Extras``), so the same time budget,
   the same hit cap and the same masking as a custom rule in ``config/detectors.yaml``.
@@ -13,7 +14,8 @@ In this work package it is unit-tested only; nothing mounts it into the gate.
   ``not_executed`` entry, never a pass.
 
 Action mapping to the finding's ``action_hint`` (the gate clamps ``pause`` and ``block`` to
-``report`` until the gate rules say otherwise, R1 of ``core/detectors.py``): ``block`` ->
+``report`` unless a gate rule says otherwise (R1 of ``core/detectors.py``; WP-G3 adds the block
+rule for deterministic types)): ``block`` ->
 ``block``, ``require_approval`` -> ``pause``, ``redact`` -> ``transform``, ``log`` -> ``report``.
 A model type never gets ``block`` or ``transform``: the definition schema refuses it, and the
 adapter repeats the check.
@@ -75,6 +77,14 @@ class _Base:
             raise GuardianFactoryError(
                 "invalid_definition", "action_on_fail: not allowed for this type"
             )
+
+    def applies(self, meta: Mapping[str, Any]) -> bool:
+        """True when the call is in the scope of the guardian and not allow-listed (WP-G3)."""
+        return self._applies(meta)
+
+    def fail_closed_allowed(self) -> bool:
+        """WP-G3: a guardian that did not run never blocks a risky call (the registry veto)."""
+        return False
 
     @property
     def did(self) -> str:

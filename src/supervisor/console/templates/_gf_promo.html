@@ -1,0 +1,57 @@
+{# Guardian factory Promotion panel (WP-G3, GUARDIAN_FACTORY). Variable: gp. #}
+{% import "_ui.html" as ui with context %}
+{% set b = gp.base %}
+<div id="gf-promo" data-panel="promotion" data-def="{{ gp.id }}" data-state="{{ gp.state }}">
+  <p class="hint">{{ t('gf_p_purpose') }}</p>
+  <ol class="steps" data-steps="1">
+    {% for s in gp.steps %}<li data-step="{{ s.state }}" data-done="{{ '1' if s.done else '0' }}"{% if s.current %} aria-current="step"{% endif %}>{{ t('gf_state_' ~ s.state) }}</li>{% endfor %}
+  </ol>
+  <p class="idline">{{ t('gf_version') }} {{ gp.version }} - {{ t('gf_p_slug') }}: <span class="mono" data-slug="1">{{ gp.slug }}</span>
+    {% if gp.live_version %} - {{ t('gf_p_live_version') }}: {{ gp.live_version }}{% endif %}</p>
+
+  {% if gp.state in ('shadow', 'approved') %}
+  <h5>{{ t('gf_p_approvals') }}</h5>
+  <ul data-approvals="{{ gp.approvals|length }}">
+    {% for a in gp.approvals %}<li data-kind="{{ a.kind }}">{{ t('gf_p_kind_' ~ a.kind) }}: <span class="mono">{{ a.by }}</span> <span class="idline">{{ a.at }}</span></li>{% endfor %}
+    {% for k in gp.missing %}<li data-missing="{{ k }}">{{ t('gf_p_kind_' ~ k) }}: {{ t('gf_p_waiting') }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if gp.state == 'shadow' and gp.problems %}<p class="hint" data-not-passed="1">{{ t('gf_p_not_passed') }} {{ gp.problems|join('; ') }}</p>{% endif %}
+
+  <div class="btnrow">
+    {% if gp.can_approve %}
+    <form method="post" action="{{ b }}/approve?lang={{ lang }}" hx-post="{{ b }}/approve?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+      <button class="btn primary" data-action="approve">{{ t('gf_p_approve') }}</button>
+    </form>
+    {% endif %}
+    {% if gp.can_go_live %}
+    <form method="post" action="{{ b }}/go-live?lang={{ lang }}" hx-post="{{ b }}/go-live?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+      <button class="btn primary" data-action="go-live">{{ t('gf_p_go_live') }}</button>
+    </form>
+    {% endif %}
+    {% if gp.can_retire_live %}
+    <form method="post" action="{{ b }}/retire-version?lang={{ lang }}" hx-post="{{ b }}/retire-version?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+      <input type="hidden" name="version" value="{{ gp.live_version }}">
+      <button class="btn" data-action="retire-live">{{ t('gf_p_retire_live') }}</button>
+    </form>
+    {% endif %}
+    {% if gp.can_retire %}
+    <form method="post" action="{{ b }}/retire-version?lang={{ lang }}" hx-post="{{ b }}/retire-version?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+      <input type="hidden" name="version" value="{{ gp.version }}">
+      <button class="btn" data-action="retire-version">{{ t('gf_retire') }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if gp.state == 'live' %}<p class="msg msg-ok" data-live="1" role="status">{{ t('gf_p_live_note') }}</p>{% endif %}
+
+  {% if gp.can_rollback and gp.prior %}
+  <h5>{{ t('gf_p_rollback') }}</h5>
+  <form method="post" action="{{ b }}/rollback?lang={{ lang }}" hx-post="{{ b }}/rollback?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+    <label>{{ t('gf_p_reason') }} <input name="reason" maxlength="200" minlength="20"></label>
+    <label>{{ t('gf_version') }} <select name="to_version"><option value="">{{ t('gf_p_newest') }}</option>{% for p in gp.prior %}<option value="{{ p.version }}">{{ p.version }}</option>{% endfor %}</select></label>
+    <div class="btnrow"><button class="btn" data-action="rollback">{{ t('gf_p_rollback_btn') }}</button></div>
+  </form>
+  {% endif %}
+  {% if gp.prior %}<p class="hint" data-prior="{{ gp.prior|length }}">{{ t('gf_p_prior') }}: {% for p in gp.prior %}<span class="mono">v{{ p.version }}</span> {% endfor %}</p>{% endif %}
+</div>

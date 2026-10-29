@@ -2,13 +2,12 @@
 
 Flag `GUARDIAN_FACTORY=1` (needs `DETECTORS_ENABLED=1`). Default off. With either flag off every
 route answers HTTP 400 `guardian_factory_off` and no table is read. This package (WP-G1) defines
-and stores guardian definitions. The benchmark (WP-G2, section Benchmark) is in; shadow mode,
-approval and going live (WP-G3) come later.
+and stores guardian definitions. The benchmark (WP-G2, section Benchmark) and shadow mode,
+approval and going live (WP-G3, sections Shadow, Promotion, Allow-lists) are in.
 
 A **guardian definition** describes one detector as data. A `live` definition becomes a detector
-of the existing contract (`core/detectors.py`) through `guardian_factory/adapter.py`, so WP-G3 can
-attach it to agents by id through guardian bindings. In WP-G1 the adapter is unit-tested only; it
-is not mounted into the gate.
+of the existing contract (`core/detectors.py`) through `guardian_factory/adapter.py`, and WP-G3
+attaches it to agents by id and version (slug `gf:<id>@<version>`, guardian bindings).
 
 ```
  plain words ──► author (library, else gateway model) ──► artifact draft ──► person edits ──► save (draft)
@@ -69,19 +68,21 @@ then a matching `permit`, then `default`.
 
 ## States
 
-One table in `caps.py` (`TRANSITIONS`); `ALLOWED_NOW` marks what WP-G1 and WP-G2 allow.
+One table in `caps.py` (`TRANSITIONS`); `ALLOWED_NOW` marks what is open. The conditions of every
+move are in `promotion.py` (WP-G3) and `store.py` (WP-G1, WP-G2).
 
-| From | To | Allowed now |
-|---|---|---|
-| draft | retired | yes |
-| retired | draft | yes (reopen) |
-| draft | benchmarked | yes (WP-G2): needs a passing run, see Benchmark |
-| benchmarked | draft | yes (WP-G2): by any change of the definition |
-| benchmarked | retired | yes |
-| benchmarked | shadow | not yet (WP-G3) |
-| shadow | approved, draft, retired | not yet (WP-G3) |
-| approved | live, retired | not yet (WP-G3) |
-| live | retired | not yet (WP-G3) |
+| From | To | Route and role | Condition |
+|---|---|---|---|
+| draft | retired | `retire`, guardians.edit | none |
+| retired | draft | `reopen`, guardians.edit | none |
+| draft | benchmarked | `mark-benchmarked`, guardians.edit | a passing run of this version and definition, see Benchmark |
+| benchmarked | draft | any change, guardians.edit | none |
+| benchmarked | shadow | `shadow/start`, guardians.edit | the newest run still fits the definition |
+| shadow | approved | `approve` twice, guardians.approve | two people, see Promotion |
+| shadow | draft | `shadow/stop`, guardians.edit | approvals are dropped |
+| approved | live | `go-live`, guardians.approve | owner lead or admin; both approvals given |
+| retired | live | `rollback`, admin | reason of at least 20 characters; the version was live before |
+| shadow, approved, live | retired | `retire-version`, guardians.edit | none |
 
 Only a draft or a benchmarked version is edited in place (a change of a benchmarked version
 sends it back to draft, see Benchmark). "New version" copies a non-draft version into version + 1 as a
@@ -113,8 +114,9 @@ stage (`output` reads `output`, the others read `args`; `input` also `tool_resul
 above. Classifier delegates to the existing detector named by `model_ref`. Judge prompt makes one
 judge call on the masked text; a judge that cannot answer is a `not_executed` entry, never a pass.
 `action_on_fail` becomes the finding `action_hint`: `block` to `block`, `require_approval` to
-`pause`, `redact` to `transform` (with the masked copy), `log` to `report`. The gate still clamps
-`block` and `pause` to `report` until the gate rules say otherwise (R1 of `core/detectors.py`).
+`pause`, `redact` to `transform` (with the masked copy), `log` to `report`. The gate clamps
+`block` and `pause` to `report` (R1 of `core/detectors.py`) except where a gate rule says otherwise:
+see Promotion (WP-G3).
 Scope (`agents`, `tools`, `data_classes`) and the allow-list (an entry stops counting after its
 `expires` date) are checked before the detector runs.
 
@@ -242,7 +244,7 @@ Result shape (integers only; no case text):
   run of this version is `done` with gate `pass`, its `def_sha256` equals the definition now, and
   its pack is `benchmark_pack` of the definition. Otherwise `no_passing_run` (HTTP 400) with the
   reason. Saving a benchmarked version with a different hash sets it back to `draft` (event
-  `reset_to_draft`); saving the same content keeps it. Shadow, approved and live are WP-G3.
+  `reset_to_draft`); saving the same content keeps it. Shadow, approved and live are WP-G3 (see Shadow and Promotion).
 * Each finished run writes a chain record `guardian_bench`: run id, definition id and version,
   pack id and hashes, type, stage, sensitivity, gate, failing threshold, case counts, TP FN FP TN,
   the three rates, p95 in microseconds, the live detector slug and its two rates. Integers and
@@ -259,6 +261,149 @@ Result shape (integers only; no case text):
 
 Every refusal is HTTP 400 with the code in the message (404 for an unknown guardian or run); every
 POST writes two `console_action` rows.
+
+## Shadow (WP-G3)
+
+Flag `GUARDIAN_SHADOW=1` (needs `GUARDIAN_FACTORY=1` and `DETECTORS_ENABLED=1`; default off). The
+hook costs gate latency, so it has its own flag and a budget (`GUARDIAN_SHADOW_BUDGET_MS`, default
+20 ms per call for all shadow guardians together). With the flag off the gate has no hook
+(`DetectorGate.shadow` is None) and nothing here runs.
+
+`POST /v1/guardian-defs/{id}/shadow/start` moves the newest version from `benchmarked` to
+`shadow` (guardians.edit, owner group). The shadow period is `lifecycle.shadow_days` (0 or unset
+= 7, at most 90). From then on `DetectorGate.prepare` calls the `ShadowRunner` after the real
+detector pass of every call, outside the gate lock:
+
+```
+call -> policy rules -> prepare: real detectors (registry.run) -> shadow.observe  -> apply -> decision
+                                                                  |  log only
+                                                                  v
+                      guardian_shadow_finding, guardian_shadow_day (counters)
+```
+
+* The runner builds each shadow definition with `adapter.build` and runs it only when the call
+  direction fits the stage and `applies(meta)` says the call is in scope and not allow-listed.
+  A regex, keyword or policy guardian runs inline. A classifier or judge guardian runs on one
+  worker thread behind a queue of 50, so the gate never waits for a model; without a gateway model
+  it is not run.
+* The budget is read with a monotonic clock from the start of the hook. A shadow detector that
+  would start after the budget is used is skipped and counted (`skipped_budget`).
+* Findings: one row per finding in `guardian_shadow_finding`: `finding_id`, `def_id`, `version`,
+  `agent_id`, `call_ref` (correlation or request id), `stage`, `finding_code`, `count`,
+  `value_hash` (the finding digest: ids, code, integers, fragment digests), `would_action` (the
+  `action_on_fail`), `reviewed` (empty, `correct`, `false`), `reviewed_by`, `created_at`. No masked
+  value text and no argument text.
+* Nothing is blocked, redacted or returned: the decision, the response and the records of the call
+  are the same with and without the hook (a test compares a synthetic call set).
+* Day counters (`guardian_shadow_day`: calls in scope, calls that would act, skipped, findings)
+  are kept in memory and written every 25 calls or 5 seconds. The daily job
+  (`python -m supervisor.jobs.guardian_shadow`, in-process job `guardian_shadow`, every
+  `SCHED_GUARDIAN_SHADOW_S` = 86400 seconds) writes one chain record `guardian_shadow_day` per
+  closed day: counts only.
+
+The Shadow panel (in the editor) shows days elapsed, calls seen, would-act count, skipped, the
+reviewed counts, the false rate against `max_fpr_pct`, and the review list with a Correct and a
+False button per finding. `POST .../shadow/findings/{finding_id}/review` takes
+`{"mark": "correct" | "false", "allow": {"reason", "expires"}}`; `allow` goes only with `false`.
+A person may change a mark while the version is in shadow.
+
+## Promotion (WP-G3)
+
+```
+benchmarked --start--> shadow --approve (owner_lead)--+
+                          |    approve (platform_security)--> approved --go-live--> live
+                          +--stop--> draft                                   |
+                                          retired <--superseded, retire, rollback--+
+```
+
+**Approve** (`POST .../approve`, permission `guardians.approve`: roles approver and admin):
+
+| Kind | Who |
+|---|---|
+| `owner_lead` | the approver of the owner group (a role the group lists in `config/factory_groups.yaml`, or the group in the user's `groups`), or an admin |
+| `platform_security` | a member of the `platform` group (same rule), or an admin |
+
+Refusals, all HTTP 400 with the code first: `author_cannot_approve` (the creator or anyone who
+saved or created the version), `same_person` (the same person gives both approvals; case does not
+matter), `not_eligible`, `already_approved`, `bad_kind`, and `shadow_not_passed`. The shadow
+check runs on every approval: the period must be complete (now is at least the start plus
+`shadow_days`), the reviewed false rate (integer percent of the reviewed findings) must be at most
+`thresholds.max_fpr_pct`, and when findings exist at least one must be reviewed. The message
+carries the numbers: day, calls seen, would act, reviewed, false rate, limit. When both kinds are
+given the version becomes `approved`.
+
+**Go live** (`POST .../go-live`, owner lead or admin): `approved -> live`. The previous live
+version of the id becomes `retired` and stays readable. A live version is immutable (save is
+refused with `not_draft`); a change is a new version.
+
+**Attach.** The gate holds `LiveGuardians` (`DetectorGate.attach`, only when `GUARDIAN_FACTORY=1`).
+A live definition is built with `adapter.to_detector` and registered in the detector registry
+under the slug `gf:<def_id>@<version>`, for example `gf:account-numbers@2`. The per-agent override
+that `DetectorGate.prepare` already reads (`AgentDetectors.enable`) switches the slug on for the
+agents of `scope.agents` (`*` or a list; a consumer id `agent/consumer` counts as `agent`);
+`scope.tools` and `scope.data_classes` are checked by the detector. The list is cached for 5
+seconds and dropped at once after a move in the same process.
+
+**Bindings.** A guardian binding (`docs/guardian-bindings.md`) may name the slug
+`gf:<def_id>@<version>` of a live version: a product owner switches it off for the agents of one
+AI system. The floor rules of `governance/guardians.py` apply unchanged (a slug in the floor of
+the system cannot be switched off). With the flag off the slug is unknown.
+
+**What `action_on_fail` does once live** (the gate rules, R1):
+
+| Type | Action | Effect |
+|---|---|---|
+| regex, keyword list, policy | `block` | the call is blocked, rule `GATE-GUARDIAN-BLOCK`, input direction (preflight, input, tool_call stages) on every tool class; observe mode lifts it like the other detector blocks |
+| regex, keyword list | `redact` | the masked arguments go back (the existing dlp transform) |
+| any | `require_approval` | recorded as a finding with hint `pause`; the gate does not pause an agent for it (clamped to a report) |
+| any | `log` | recorded as a finding |
+| classifier, judge prompt | any | a report only; a model advises (the definition schema already refuses `block` and `redact`) |
+
+A guardian that cannot run (a timeout, no model) never fails a risky call closed
+(`fail_closed_allowed` is false). Output-stage `block` is clamped to a report.
+
+**Rollback** (`POST .../rollback`, admin): `{"reason": "...at least 20 characters...", "to_version": n}`
+sets the newest earlier version that was live (or `to_version`) live again; the live version
+becomes retired. **Retire** (`POST .../retire-version`, `{"version": n}`, guardians.edit) retires
+a shadow, approved or live version on request.
+
+Every move writes a `guardian_def_event` row (`shadow_started`, `approval`, `approved`, `live`,
+`retired`, `rolled_back`, `shadow_stopped`, `allow_added`, `allow_removed`, `allow_expired`) and a
+chain record `guardian_promotion`: `def_id`, `version`, `action`, `from`, `to`, `def_sha256` (the
+definition without its lifecycle), `approvals_n`, `actor_ref` (keyed short hash), `ts` and
+integers. No person id, no text, no float.
+
+## Allow-lists (WP-G3)
+
+`lifecycle.allow_list` holds entries `{agent_id, reason, expires}`; an entry always ends.
+
+* `POST .../allow` `{"agent_id", "reason", "expires"}` (guardians.edit, owner group) on a
+  shadow, approved or live version; `POST .../allow/remove` `{"agent_id"}`. A false mark in the
+  review list may add the entry in one step.
+* `expires` is a date `YYYY-MM-DD`, not in the past and at most 90 days from today
+  (`bad_expiry`); the reason is required; at most 50 live entries; one entry per agent
+  (`allow_exists`).
+* An allow-list entry only changes `lifecycle`, so it does not change the definition hash and
+  does not need a new version.
+* An expired entry is ignored by the guardian at once (the adapter compares the date) and is
+  flagged on the panel. The daily job removes it and writes the event `allow_expired`.
+
+## API and console additions (WP-G3)
+
+| Method and path | Permission |
+|---|---|
+| `GET /v1/guardian-defs/{id}/shadow` (`?pending=1`) | guardians.view |
+| `POST .../shadow/start`, `.../shadow/stop` | guardians.edit |
+| `POST .../shadow/findings/{finding_id}/review` | guardians.edit |
+| `POST .../allow`, `.../allow/remove`, `.../retire-version` | guardians.edit |
+| `POST .../approve`, `.../go-live`, `.../rollback` | guardians.approve |
+| `GET /console/guardian-factory/{id}/shadow`, `.../promotion` (panels) | guardians.view |
+| `POST /console/guardian-factory/{id}/shadow/start`, `shadow/stop`, `shadow/review/{finding_id}`, `allow`, `allow/remove`, `retire-version` | guardians.edit |
+| `POST /console/guardian-factory/{id}/approve`, `go-live`, `rollback` | guardians.approve |
+
+`guardians.approve` is held by the roles approver and admin. `GET /v1/guardian-defs` adds
+`shadow_days` (days elapsed, in state shadow) and `live_version` to each row. Every console POST
+writes two `console_action` rows.
 
 ## Not legal advice
 

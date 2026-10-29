@@ -165,3 +165,12 @@ shown; the notes say where to get the key (`ingress_auth issue`).
 **Check now** drops the cached gate state of the agent and reads the state and the evidence again.
 It writes no evidence and does not call the candidate; the panel then shows the time of the read.
 
+## Live guardians of the guardian factory (WP-G3, `GUARDIAN_FACTORY`)
+
+A guardian definition that went live (`docs/guardian-factory.md`, "Promotion") is a detector with the
+slug `gf:<def_id>@<version>`, for example `gf:account-numbers@2`. It is listed in the guardians of a
+system next to the catalogue detectors (group `detect`) and a product owner may switch it off with
+the same call, `PUT /v1/systems/{id}/guardians/gf:account-numbers@2`. The floor applies unchanged: a
+slug in the floor of the system cannot be switched off. Only a version in state `live` is
+bindable; a retired version or an unknown version is an unknown slug. With `GUARDIAN_FACTORY` off
+the slug is unknown and nothing changes.

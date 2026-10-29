@@ -846,6 +846,14 @@ class Settings(BaseSettings):
     # --- WP-G1 (phase 12) --- guardian factory (docs/guardian-factory.md). Needs DETECTORS_ENABLED.
     # Off = the routes answer HTTP 400 guardian_factory_off and nothing is read or written.
     guardian_factory: bool = False
+    # --- WP-G3 --- shadow mode of the guardian factory (docs/guardian-factory.md "Shadow"). Needs
+    # GUARDIAN_FACTORY. On: the gate runs each guardian in state shadow on live calls in log-only
+    # mode (findings stored, nothing blocked). It costs gate latency, so it has its own flag and a
+    # budget in milliseconds per call; a shadow detector over the budget is skipped and counted.
+    guardian_shadow: bool = False
+    guardian_shadow_budget_ms: int = Field(default=20, ge=1, le=1000)
+    # The daily job: retire expired allow-list entries, one chain record per closed shadow day.
+    sched_guardian_shadow_s: int = Field(default=86_400, ge=300)
     # --- WP-G1 --- lifecycle, stage approvals, reviews, outbound events (docs/governance.md).
     # Everything is under GOVERNANCE_ENABLED. WEBHOOKS_ENABLED: the outbound event stub marks
     # events delivered and logs them (no network; the real sender is later work).

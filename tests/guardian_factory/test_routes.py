@@ -156,13 +156,17 @@ def test_save_retire_reopen_new_version(gf: Any) -> None:
     assert api(gf, "POST", "/v1/guardian-defs/nope/retire").status_code == 404
 
 
-def test_later_states_are_not_reachable(gf: Any) -> None:
+def test_later_states_need_their_conditions(gf: Any) -> None:
+    """WP-G3 opened the later states, each behind its own route and conditions."""
     from supervisor.guardian_factory.store import check_transition
 
     make(gf)
-    for pair in (("benchmarked", "shadow"), ("shadow", "approved"), ("approved", "live")):
-        with pytest.raises(Exception, match="not allowed yet"):
-            check_transition(*pair)
+    with pytest.raises(Exception, match="cannot go to"):
+        check_transition("draft", "live")
+    for what in ("shadow/start", "approve", "go-live"):
+        r = api(gf, "POST", f"/v1/guardian-defs/account-numbers/{what}", {})
+        assert r.status_code in (400, 403), what
+        assert r.status_code == 403 or "bad_transition" in r.json()["error"]
 
 
 def test_draft_artifact_stores_nothing(gf: Any) -> None:

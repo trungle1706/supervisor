@@ -46,6 +46,11 @@ FAILED_RULE = "GATE-DETECTOR-FAILED"
 # WP-D2: dlp_vn secrets.action = block. A secret in a tool argument blocks the call on every tool
 # class: a masked credential has still left (the bank rule). Same fail-closed shape as above.
 SECRET_RULE = "GATE-SECRET-IN-ARGS"  # noqa: S105 - a rule id, not a password
+# WP-G3: a live guardian of the guardian factory (slug gf:<id>@<version>) of a deterministic type
+# (regex, keyword list, policy) with action_on_fail block blocks the call. A model type never does:
+# its hint is clamped to a report (R1). The rule is part of the gate, not of the definition.
+GUARDIAN_RULE = "GATE-GUARDIAN-BLOCK"
+GF_PREFIX = "gf:"
 # WP25 (ADR D27), WP-D3: the one pause a detector may cause (the classifier or the guard model).
 # Only a detector listed here is allowed to
 # turn a pause hint into a pause, and never on a tool whose risk class is outside the set below
@@ -134,6 +139,10 @@ class DetectorGate:
         # WP-D1: reads context.documents when DOCUMENT_INTAKE_ENABLED=1 (set by wiring), else None
         self.intake: IntakeService | None = None
         self.dry_fetch = False  # PLAYGROUND_URL_FETCH: a dry run may fetch a URL (default no)
+        # WP-G3: live guardians (LiveGuardians) and the shadow runner (ShadowRunner), both set by
+        # wiring only when GUARDIAN_FACTORY (and GUARDIAN_SHADOW) are on; None = the code as before.
+        self.attach: Any = None
+        self.shadow: Any = None
 
     def redact_budget_bytes(self) -> int | None:
         """WP41b (D32): the bytes of argument text the inline masker may read for one call, or
@@ -153,6 +162,15 @@ class DetectorGate:
         if not new:
             return override
         return base.model_copy(update={"disable": [*base.disable, *sorted(new)]})
+
+    def _with_live(self, override: AgentDetectors | None, agent_id: str) -> AgentDetectors | None:
+        """WP-G3: the agent's override with the live guardians of its scope added to ``enable``
+        (a ``disable`` entry of the same slug still wins). Unchanged when there are none."""
+        base = override if override is not None else AgentDetectors()
+        new = [s for s in self.attach.slugs_for(agent_id) if s not in base.enable]
+        if not new:
+            return override
+        return base.model_copy(update={"enable": [*base.enable, *new]})
 
     def check_policy(self, policy: Policy) -> list[str]:
         """Problems in the per-agent detector overrides of a policy (empty = fine). Used at
@@ -284,6 +302,8 @@ class DetectorGate:
         try:
             pre.risk_class = policy.risk_class(tool_name)
             override = policy.agent_detectors(agent_id)
+            if self.attach is not None:  # WP-G3 (flag off: this branch never runs)
+                override = self._with_live(override, agent_id)
             if self.narrow is not None:  # WP-S1 (flag off: this branch never runs)
                 override = self._narrowed(override, agent_id)
             run_cfg, skip_tools = self.resolved.for_agent(override)
@@ -309,22 +329,25 @@ class DetectorGate:
                 names = (dlp.settings.get("keep_args") or {}).get(tool_name) or []
                 pre.kept = {n: args[n] for n in names if n in args}
             protocol = ctx.get("protocol")
+            view = self.payload_view(
+                agent_id,
+                agent_version,
+                tool_name,
+                pre.risk_class,
+                args,
+                ctx,
+                req.direction,
+                pre.intake,
+            )
             pre.result = self.registry.run(
-                self.payload_view(
-                    agent_id,
-                    agent_version,
-                    tool_name,
-                    pre.risk_class,
-                    args,
-                    ctx,
-                    req.direction,
-                    pre.intake,
-                ),
+                view,
                 req.direction,
                 run_cfg,
                 protocol=protocol if protocol in ("llm", "mcp", "a2a") else "llm",
                 risk_class=pre.risk_class,
             )
+            if self.shadow is not None:  # WP-G3: log-only; it never changes pre or the decision
+                self.shadow.observe(view, req.direction, req.correlation_id or req.request_id or "")
             if reporter_off and pre.intake.closing and pre.risk_class in pre.fail_closed_risk:
                 # The intake is on but its reporter is off (yaml or per-agent disable): nothing
                 # would report the unread document, so a risky tool fails closed, not open.
@@ -341,6 +364,10 @@ class DetectorGate:
             pre.result = None
             pre.error = type(exc).__name__
         return pre
+
+    def _gf_deterministic(self, slug: str) -> bool:
+        det = self.registry.get(slug) if slug in self.registry else None
+        return det is not None and getattr(det, "category", "") == "guardian"
 
     # ------------------------------------------------------------------ inside _evaluate
 
@@ -440,6 +467,24 @@ class DetectorGate:
                     f"{SECRET_RULE}: a secret in the tool arguments ({', '.join(leaked)}): "
                     "blocked, a masked credential has still left"
                 )
+                d.fail_mode = "closed"
+                transformed = None
+                d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0
+        # 1a2. WP-G3: a live guardian of a deterministic type with action_on_fail block. Input
+        # direction (preflight, input, tool_call stages) only; a model-type guardian, a
+        # require_approval hint and an output-stage hint stay reports (R1).
+        if d.allow and not shadow and not builtin and direction == "input":
+            blockers = sorted(
+                f.detector_slug
+                for f in out.findings
+                if f.action_hint == "block"
+                and f.detector_slug.startswith(GF_PREFIX)
+                and f.not_executed_reason is None
+                and self._gf_deterministic(f.detector_slug)
+            )
+            if blockers:
+                d.allow, d.action, d.rule_id = False, "block", GUARDIAN_RULE
+                d.reason = f"{GUARDIAN_RULE}: live guardian {blockers[0]} found a match: blocked"
                 d.fail_mode = "closed"
                 transformed = None
                 d.transformed_args, d.args_hmac_transformed, d.redaction_count = None, None, 0

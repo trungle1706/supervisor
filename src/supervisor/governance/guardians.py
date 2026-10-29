@@ -118,6 +118,8 @@ def bindable_slugs(settings: Any) -> list[str]:
 
 
 def group_of(slug: str) -> str:
+    if slug.startswith("gf:"):
+        return "detect"
     if slug in JUDGE_SLUGS:
         return "judge"
     if slug in MONITOR_SLUGS:
@@ -131,6 +133,8 @@ def instance_on(settings: Any, slug: str, detectors: Mapping[str, bool] | None =
     """Whether this instance has the feature on (flags and ``config/detectors.yaml``). A
     per-agent policy override (``agents.<id>.detectors``) is applied by the engine itself."""
     g = lambda name: bool(getattr(settings, name, False))  # noqa: E731
+    if slug.startswith("gf:"):  # WP-G3: a live guardian of the guardian factory
+        return g("guardian_factory") and g("detectors_enabled")
     if slug == SESSION:
         return g("session_monitor_enabled")
     if slug == "judge_t2_sample":
@@ -203,6 +207,22 @@ class GuardianService:
             for r in self.state.query("guardian_binding", {"system_id": system_id})
         }
 
+    # ------------------------------------------------------------------ WP-G3
+    def _gf_slugs(self) -> list[str]:
+        """Live guardians of the guardian factory (gf:<id>@<version>); none with the flag off."""
+        if not getattr(self.settings, "guardian_factory", False):
+            return []
+        from supervisor.guardian_factory.attach import live_slugs
+
+        return live_slugs(self.state)
+
+    def _gf_live(self, slug: str) -> bool:
+        if not getattr(self.settings, "guardian_factory", False):
+            return False
+        from supervisor.guardian_factory.attach import bindable
+
+        return bindable(self.state, slug)
+
     # ------------------------------------------------------------------ read
     def get(self, system_id: str) -> dict[str, Any]:
         """Every bindable feature with the binding, the floor lock and the effective state."""
@@ -212,7 +232,7 @@ class GuardianService:
         floor = {f["slug"]: f["rules"] for f in _floor(self.settings, self.state, system_id)}
         det = detector_entries(self.settings)
         out = []
-        for slug in bindable_slugs(self.settings):
+        for slug in [*bindable_slugs(self.settings), *self._gf_slugs()]:
             row = rows.get(slug)
             bound = str(row["state"]) if row is not None else "on"
             locked = slug in floor
@@ -266,7 +286,7 @@ class GuardianService:
                 "switches them"
             )
         known = bindable_slugs(self.settings)
-        if slug not in known:
+        if slug not in known and not self._gf_live(slug):
             raise SystemsError(f"unknown feature slug {slug!r}; it must be one of {known}")
         if not isinstance(state, str) or state not in STATES:
             raise SystemsError(f"state must be one of {', '.join(STATES)}")

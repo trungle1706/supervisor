@@ -340,11 +340,33 @@ def make_detector_gate(settings: Settings, policy: Policy, state: Any = None) ->
     from supervisor.governance.guardians import make_narrower
 
     gate.narrow = make_narrower(settings, state)
+    _wire_guardian_factory(settings, gate, registry, state)  # WP-G3 (default off)
     problems = gate.check_policy(policy)
     if problems:
         msg = "detector overrides in the policy are invalid: " + "; ".join(problems)
         raise ConfigError(msg.encode("ascii", "backslashreplace").decode("ascii"))
     return gate
+
+
+def _wire_guardian_factory(settings: Settings, gate: Any, registry: Any, state: Any) -> None:
+    """WP-G3: live guardians (GUARDIAN_FACTORY) and the shadow runner (also GUARDIAN_SHADOW).
+    Both stay None when the flag is off: the gate then runs the code it ran before."""
+    if state is None or not getattr(settings, "guardian_factory", False):
+        return
+    from supervisor.guardian_factory import shadow as gshadow
+    from supervisor.guardian_factory.attach import LiveGuardians
+
+    chat = gmasker = None
+    if settings.llm_base_url and not settings.llm_mock:
+        from supervisor.adapters.factory import make_chat_model, make_masker
+
+        chat = make_chat_model(settings)
+        gmasker = make_masker(settings)
+    gate.attach = LiveGuardians(state, settings, registry, chat=chat, masker=gmasker)
+    if gshadow.enabled(settings):
+        gate.shadow = gshadow.ShadowRunner(
+            state, settings, registry=registry, chat=chat, masker=gmasker
+        )
 
 
 def make_intake(settings: Settings) -> Any:

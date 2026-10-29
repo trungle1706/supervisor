@@ -206,6 +206,11 @@ PERMISSIONS: dict[str, tuple[tuple[str, ...], str]] = {
         "Create, draft, save and retire guardian definitions; the owner group is also checked "
         "(WP-G1)",
     ),
+    "guardians.approve": (
+        ("approver", "admin"),
+        "Approve a shadow guardian (owner-group lead or platform security, two persons), set it "
+        "live, roll it back (WP-G3)",
+    ),
     # --- WP-L1 --- law agent drafts (LAWAGENT_ENABLED); the page needs the flag
     "regkb.view": (
         _ALL,
@@ -563,6 +568,28 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/guardian-factory/{def_id}/bench-packs/{op}"): "guardians.edit",
     ("POST", "/console/guardian-factory/{def_id}/benchmark"): "guardians.edit",
     ("POST", "/console/guardian-factory/{def_id}/mark-benchmarked"): "guardians.edit",
+    # --- WP-G3 (phase 12) --- guardian shadow mode and promotion (same flag, same 400)
+    ("GET", "/v1/guardian-defs/{def_id}/shadow"): "guardians.view",
+    ("POST", "/v1/guardian-defs/{def_id}/shadow/start"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/shadow/stop"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/shadow/findings/{finding_id}/review"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/allow"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/allow/remove"): "guardians.edit",
+    ("POST", "/v1/guardian-defs/{def_id}/approve"): "guardians.approve",
+    ("POST", "/v1/guardian-defs/{def_id}/go-live"): "guardians.approve",
+    ("POST", "/v1/guardian-defs/{def_id}/rollback"): "guardians.approve",
+    ("POST", "/v1/guardian-defs/{def_id}/retire-version"): "guardians.edit",
+    ("GET", "/console/guardian-factory/{def_id}/shadow"): "guardians.view",
+    ("GET", "/console/guardian-factory/{def_id}/promotion"): "guardians.view",
+    ("POST", "/console/guardian-factory/{def_id}/shadow/start"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/shadow/stop"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/shadow/review/{finding_id}"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/allow"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/allow/remove"): "guardians.edit",
+    ("POST", "/console/guardian-factory/{def_id}/approve"): "guardians.approve",
+    ("POST", "/console/guardian-factory/{def_id}/go-live"): "guardians.approve",
+    ("POST", "/console/guardian-factory/{def_id}/rollback"): "guardians.approve",
+    ("POST", "/console/guardian-factory/{def_id}/retire-version"): "guardians.edit",
     # --- WP-F2 (phase 12B) --- agent factory (AGENT_FACTORY; 400 agent_factory_off when off).
     # factory.edit also needs a role the owner group lists in config/factory_groups.yaml.
     ("GET", "/v1/factory/agents"): "systems.view",

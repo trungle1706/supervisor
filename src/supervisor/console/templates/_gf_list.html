@@ -22,12 +22,12 @@
   <div class="tablewrap">
   <table class="queue">
     <caption class="sr">{{ t('gf_title') }}</caption>
-    <thead><tr><th scope="col">{{ t('gf_id') }}</th><th scope="col">{{ t('gf_name') }}</th><th scope="col">{{ t('gf_state') }}</th><th scope="col">{{ t('gf_group') }}</th><th scope="col">{{ t('gf_stage') }}</th><th scope="col">{{ t('gf_type') }}</th><th scope="col" class="n">{{ t('gf_version') }}</th></tr></thead>
+    <thead><tr><th scope="col">{{ t('gf_id') }}</th><th scope="col">{{ t('gf_name') }}</th><th scope="col">{{ t('gf_state') }}</th><th scope="col">{{ t('gf_group') }}</th><th scope="col">{{ t('gf_stage') }}</th><th scope="col">{{ t('gf_type') }}</th><th scope="col" class="n">{{ t('gf_version') }}</th><th scope="col" class="n">{{ t('gf_col_shadow') }}</th><th scope="col" class="n">{{ t('gf_col_live') }}</th></tr></thead>
     <tbody>
     {% for g in gl.rows %}
-      <tr data-def="{{ g.id }}" data-state="{{ g.state }}"><td class="mono"><a href="{{ gl.base }}/{{ g.id }}?lang={{ lang }}">{{ g.id }}</a></td><td>{{ g.name }}</td><td>{{ ui.pill(t('gf_state_' ~ g.state), 'ok' if g.state == 'live' else ('neutral' if g.state in ('draft', 'retired') else 'warn')) }}</td><td class="mono">{{ g.owner_group }}</td><td class="mono">{{ g.stage }}</td><td class="mono">{{ g.type }}</td><td class="n">{{ g.version }}</td></tr>
+      <tr data-def="{{ g.id }}" data-state="{{ g.state }}"><td class="mono"><a href="{{ gl.base }}/{{ g.id }}?lang={{ lang }}">{{ g.id }}</a></td><td>{{ g.name }}</td><td>{{ ui.pill(t('gf_state_' ~ g.state), 'ok' if g.state == 'live' else ('neutral' if g.state in ('draft', 'retired') else 'warn')) }}</td><td class="mono">{{ g.owner_group }}</td><td class="mono">{{ g.stage }}</td><td class="mono">{{ g.type }}</td><td class="n">{{ g.version }}</td><td class="n" data-col="shadow">{{ g.shadow_days if g.shadow_days is not none else '-' }}</td><td class="n" data-col="live">{{ g.live_version if g.live_version else '-' }}</td></tr>
     {% else %}
-      <tr><td colspan="7">{{ ui.empty(t('gf_none')) }}</td></tr>
+      <tr><td colspan="9">{{ ui.empty(t('gf_none')) }}</td></tr>
     {% endfor %}
     </tbody>
   </table>

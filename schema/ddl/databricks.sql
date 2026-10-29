@@ -1798,3 +1798,44 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_proposal` (
 USING DELTA
 COMMENT 'WP-G4 (phase 12C, SMART_GUARDIAN). One proposal of the smart guardian for one AI system: a guardian set, thresholds, autonomy limits and the floor, each line with the pointer that justifies it (finding, dimension status, fact, flag, classification, system record or rule) and the rule id of config/smart_guardian.yaml. Deterministic, no model call. status: proposed (open), accepted (a person with systems.edit accepted all or some lines; the decision, the results and the policy snippet are kept in proposal_json), rejected (a reason of 20 characters or more in note) or superseded (a newer assessment run or a newer proposal replaced it). attempt_n is the orchestrator attempt the proposal read (0 when there was no run). note is at most 300 characters, masked. Integers only; no floats, no personal data. Chain record guardian_proposal: ids, hash and counts.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_shadow_finding (state): WP-G3 (GUARDIAN_FACTORY + GUARDIAN_SHADOW). One finding of a guardian definition in state shadow, found on live gate traffic in log-only mode. Nothing was blocked or redacted. call_ref is the correlation or request id of the call; value_hash is the SHA-256 digest of the finding (ids, code, integers and fragment digests), never the masked value text. count is the number of matches. would_action is the action_on_fail the guardian would take once live. reviewed is empty (not yet), correct (a true finding) or false (a false positive); a person sets it with reviewed_by. No personal data, no floats.
+-- primary key (enforced by the app, not by Delta): finding_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_shadow_finding` (
+  finding_id STRING NOT NULL,
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  agent_id STRING NOT NULL,
+  call_ref STRING NOT NULL,
+  stage STRING NOT NULL,
+  finding_code STRING NOT NULL,
+  count BIGINT NOT NULL,
+  value_hash STRING NOT NULL,
+  would_action STRING NOT NULL,
+  reviewed STRING,
+  reviewed_by STRING,
+  created_at TIMESTAMP NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G3 (GUARDIAN_FACTORY + GUARDIAN_SHADOW). One finding of a guardian definition in state shadow, found on live gate traffic in log-only mode. Nothing was blocked or redacted. call_ref is the correlation or request id of the call; value_hash is the SHA-256 digest of the finding (ids, code, integers and fragment digests), never the masked value text. count is the number of matches. would_action is the action_on_fail the guardian would take once live. reviewed is empty (not yet), correct (a true finding) or false (a false positive); a person sets it with reviewed_by. No personal data, no floats.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_shadow_day (state): WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls with a finding that would act (would_act), calls where the shadow detector was skipped because the latency budget was used (skipped_budget) and findings written. Integers only. A daily job writes one guardian_shadow_day chain record per closed day (chained).
+-- primary key (enforced by the app, not by Delta): def_id, version, day
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_shadow_day` (
+  def_id STRING NOT NULL,
+  version BIGINT NOT NULL,
+  day STRING NOT NULL,
+  calls_seen BIGINT NOT NULL,
+  would_act BIGINT NOT NULL,
+  skipped_budget BIGINT NOT NULL,
+  findings_n BIGINT NOT NULL,
+  chained BOOLEAN NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'WP-G3. One row per guardian version and UTC day of its shadow run: calls in scope, calls with a finding that would act (would_act), calls where the shadow detector was skipped because the latency budget was used (skipped_budget) and findings written. Integers only. A daily job writes one guardian_shadow_day chain record per closed day (chained).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

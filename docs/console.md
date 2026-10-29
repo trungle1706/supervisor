@@ -595,6 +595,7 @@ sort), so a bookmark keeps its meaning. A fragment is kept by the browser.
 | `policy.reload` | Reload the policy folders from disk (WP-P2) |  |  |  |  | x |  |  |
 | `guardians.view` | Guardian factory registry and editor, read-only (WP-G1) | x | x | x | x | x | x | x |
 | `guardians.edit` | Create, draft, save and retire guardian definitions; the owner group is also checked (WP-G1) |  | x | x | x | x |  |  |
+| `guardians.approve` | Approve a shadow guardian (owner-group lead or platform security, two persons), set it live, roll it back (WP-G3) |  |  | x |  | x |  |  |
 | `regkb.view` | Law agent drafts page: duties drafted from the stored official text (WP-L1) | x | x | x | x | x | x | x |
 | `regkb.confirm` | Confirm or drop a law agent draft; the compliance sign-off role (WP-L1) |  |  | x |  | x |  |  |
 | `regkb.upload` | Upload an internal document to RegKB and ask the law agent to draft its duties (WP-W3) |  | x | x | x | x |  |  |

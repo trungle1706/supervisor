@@ -55,6 +55,28 @@
   step (`/console/systems/{id}/guardian-proposal`), RBAC rows, audit rows, EN and VI labels,
   `app.yaml` commented flag. Off: routes answer HTTP 400 `smart_guardian_off`, no table read,
   panels absent. Details: `docs/smart-guardian.md`.
+- WP-G3 (phase 12C): **guardian factory, shadow mode and promotion**, under `GUARDIAN_FACTORY` plus
+  the new flag `GUARDIAN_SHADOW` (default `0`; the hook costs gate latency; budget
+  `GUARDIAN_SHADOW_BUDGET_MS`, default 20). A `benchmarked` definition moves to `shadow`
+  (`shadow/start`); the gate then runs it in log-only mode on every call in scope
+  (`guardian_factory/shadow.py`, `DetectorGate.shadow`): findings go to the new table
+  `guardian_shadow_finding` (hashes and counts, no value text), day counters to
+  `guardian_shadow_day`; nothing is blocked or redacted and the decision is the same with and
+  without the hook; a shadow detector over the budget is skipped and counted. Review list with
+  Correct / False buttons; a false mark may add an allow-list entry (expires within 90 days, with
+  a reason). Promotion: `shadow -> approved` (new permission `guardians.approve`; owner-group lead
+  and platform security, two different people, the author never approves, `same_person`,
+  `shadow_not_passed` with the numbers) `-> live` (`go-live`): an immutable version attached to the
+  agents in scope under the detector slug `gf:<id>@<version>` (`DetectorGate.attach`, per-agent
+  enable list); the slug is bindable in guardian bindings (floor applies). Live `block` of a
+  regex, keyword or policy guardian blocks with the new gate rule `GATE-GUARDIAN-BLOCK`; model
+  types stay reports (R1). Previous live version becomes retired; admin `rollback` with a reason;
+  `retire-version`. Every move: `guardian_def_event` row and chain record `guardian_promotion`;
+  daily job `guardian_shadow` (expired allow-list entries, chain record `guardian_shadow_day`).
+  Console: Shadow and Promotion panels in the editor, registry columns for shadow days and live
+  version. New tables `guardian_shadow_finding`, `guardian_shadow_day` (appended to the schema);
+  `Approval` gained `kind`. `store.can_edit` now also reads the `groups` list of the user.
+  Details: `docs/guardian-factory.md` "Shadow", "Promotion", "Allow-lists".
 - WP-C4 (phase 12): **portfolio blocks on My overview**, `OVERVIEW_PORTFOLIO` (default `0`; needs
   `CONSOLE_OVERVIEW_V4`, `GOVERNANCE_ENABLED`). New `console/portfolio.py`: block **Classification**
   (a bar per outcome plus not classified, counts and integer percents, link to the Systems list

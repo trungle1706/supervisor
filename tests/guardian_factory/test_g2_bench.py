@@ -465,10 +465,10 @@ def test_run_pass_mark_benchmarked_and_change_resets(
     # run again on the new definition and mark again
     svc.start_run("account-numbers", AN, background=False)
     assert store.mark_benchmarked("account-numbers", AN)["state"] == "benchmarked"
-    # benchmarked -> shadow is WP-G3
+    # benchmarked -> live is not in the table
     with pytest.raises(GuardianFactoryError) as e:
-        store._move("account-numbers", "shadow", "x", AN)
-    assert e.value.code == "transition_not_yet_allowed"
+        store._move("account-numbers", "live", "x", AN)
+    assert e.value.code == "bad_transition"
     # chain: one guardian_bench record per finished run, integers and ids only
     recs = sink.of("guardian_bench")
     assert len(recs) == 2

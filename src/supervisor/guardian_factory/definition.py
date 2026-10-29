@@ -303,6 +303,7 @@ class Approval(_Strict):
     by: str = Field(min_length=1, max_length=caps.USER_MAX)
     group: str = Field(min_length=1, max_length=64)
     at: str
+    kind: Literal["", "owner_lead", "platform_security"] = ""  # WP-G3
 
 
 class AllowEntry(_Strict):
