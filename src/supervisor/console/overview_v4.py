@@ -219,6 +219,24 @@ def _banner(
     return {"state": "good", "why": "ov4_why_good", "arg": ""}
 
 
+def _banner_target(
+    why: str, overdue: list[dict[str, Any]], items: list[dict[str, Any]], systems_page: bool
+) -> tuple[str, str]:
+    """(href, cta) of the attention block (UX5): the page where the banner reason is handled."""
+    if why == "ov4_why_overdue_high":
+        high = [t for t in overdue if t.get("level") in ("high", "critical")]
+        if high and systems_page:
+            return f"/console/systems/{high[0]['agent_id']}?tab=tasks", "task"
+        return "/console/tasks", "task"
+    if why == "ov4_why_candidate":
+        return "/console/candidates", "candidates"
+    if why == "ov4_why_overdue":
+        return "/console/tasks", "task"
+    if why == "ov4_why_actions" and items:
+        return str(items[0]["href"]), "item"
+    return "/console/cases", "cases"
+
+
 def _law_change(ctx: Any, now: dt.datetime) -> dict[str, Any] | None:
     """WP-W2: the banner lines "law change pending review" and "law change applied on <date>: N
     systems re-opened" (7 days). None while REGKB_CHANGE_LOOP is off or there is nothing."""
@@ -458,6 +476,9 @@ def my_overview(
     top = cand[0] if cand else None
     banner = _banner(actions_n=acts["n"], overdue=overdue, cases=open_cases, top=top)
     banner["open_items"] = acts["n"] + len(open_cases)
+    banner["href"], banner["cta"] = _banner_target(
+        banner["why"], overdue, acts["items"], bool(ctx.settings.console_systems_enabled)
+    )
     return {
         "unit": "systems",
         "scope": scope,

@@ -1,7 +1,40 @@
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
 {% block title %}{{ t('nav_decisions') }}{% endblock %}
 {% block content %}
+{% if ux5 and v2 is defined and v2 %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+{{ u5.page_head(t('nav_decisions'), t('decisions_purpose_v2'), about=t('decisions_why_v2')) }}
+{{ ui.tiles(tiles, '/console/decisions', '/console/decisions/rows') }}
+<form class="filters fbar" role="search" action="/console/decisions" method="get" hx-get="/console/decisions/rows" hx-target="#list" hx-trigger="change, submit" hx-push-url="false">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  {% for f in [
+    {'name': 'agent', 'label': t('agent'), 'value': params.agent, 'options': agent_opts},
+    {'name': 'status', 'label': t('status'), 'value': params.status, 'options': status_opts},
+    {'name': 'range', 'label': t('time_range'), 'value': params.range, 'options': range_opts}] %}
+  <label class="sr" for="f-{{ f.name }}">{{ f.label }}</label>
+  <select id="f-{{ f.name }}" name="{{ f.name }}"><option value="">{{ f.label }}: {{ t('all') }}</option>{% for v, l in f.options %}<option value="{{ v }}" {{ 'selected' if f.value == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
+  {% endfor %}
+  <noscript><button class="btn" type="submit">{{ t('apply') }}</button></noscript>
+  <a class="chipbtn" href="/console/decisions?lang={{ lang }}">{{ t('reset') }}</a>
+  <details class="g1-filters-more" style="flex:1 1 100%"{% if params.rule or params.code or params.noteval or params.consumer or params.direction or params.tool or params.corr or params.trace or params.action %} open{% endif %}><summary>{{ t('u5g1_more_filters') }}</summary>
+  {% for f in [
+    {'name': 'rule', 'label': t('rule_col'), 'value': params.rule, 'options': rule_opts},
+    {'name': 'code', 'label': t('detection_code'), 'value': params.code, 'options': code_opts},
+    {'name': 'noteval', 'label': t('not_evaluated'), 'value': params.noteval, 'options': noteval_opts},
+    {'name': 'consumer', 'label': t('consumer'), 'value': params.consumer, 'options': consumer_opts},
+    {'name': 'direction', 'label': t('direction'), 'value': params.direction, 'options': direction_opts},
+    {'name': 'tool', 'label': t('tool'), 'value': params.tool, 'options': tool_opts}] %}
+  <label class="sr" for="f-{{ f.name }}">{{ f.label }}</label>
+  <select id="f-{{ f.name }}" name="{{ f.name }}"><option value="">{{ f.label }}: {{ t('all') }}</option>{% for v, l in f.options %}<option value="{{ v }}" {{ 'selected' if f.value == v else '' }}>{{ t(l) }}</option>{% endfor %}</select>
+  {% endfor %}
+  <input type="search" name="corr" value="{{ params.corr }}" placeholder="{{ t('correlation_id') }}" maxlength="64" autocomplete="off" aria-label="{{ t('correlation_id') }}">
+  <input type="search" name="trace" value="{{ params.trace }}" placeholder="{{ t('trace_id') }}" maxlength="64" autocomplete="off" aria-label="{{ t('trace_id') }}">
+  {% if params.action %}<input type="hidden" name="action" value="{{ params.action }}">{% endif %}
+  </details>
+</form>
+{% else %}
 {{ ui.crumbs([(t('nav_g_watch'), None), (t('nav_decisions'), None)]) }}
 {{ ui.pagehead(t('nav_decisions')) }}
 {% if v2 is defined and v2 %}
@@ -34,6 +67,7 @@
   {'name': 'range', 'label': t('time_range'), 'kind': 'select', 'value': params.range, 'options': range_opts},
   {'name': 'trace', 'label': t('trace_id'), 'kind': 'search', 'value': params.trace},
 ], '/console/decisions?lang=' ~ lang) }}
+{% endif %}
 {% endif %}
 <div id="list">
 {% if v2 is defined and v2 %}{% include "_decisions_list_v2.html" %}{% else %}{% include "_decisions_list.html" %}{% endif %}

@@ -2,10 +2,16 @@
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
 {% import "_v3.html" as v3 with context %}
+{% import "_ux5.html" as u5 with context %}
 {% block title %}{{ t('mya_title') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+{{ u5.page_head(t('mya_title'), t('mya_purpose')) }}
+{% else %}
 {% call ui.pagehead(t('mya_title')) %}{% endcall %}
 {{ ui.purpose(t('mya_purpose'), t('mya_why')) }}
+{% endif %}
 {{ v3.scope_switch('/console/my/agents', scope, scopes) }}
 {{ ui.tiles(tiles, '/console/my/agents', '/console/my/agents/rows') }}
 {{ ui.filterbar('/console/my/agents', '/console/my/agents/rows', [

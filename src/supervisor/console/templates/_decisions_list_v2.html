@@ -28,15 +28,17 @@
     </tr>
   </thead>
   <tbody id="rows">
+  {% set u5day = namespace(d='') %}
   {% for r in page.items %}
     {% set dq = list_qs ~ '&lang=' ~ lang %}
+    {% if ux5 %}{% set parts = (r.ts|day).split(' ') %}{% if parts[0] != u5day.d %}{% set u5day.d = parts[0] %}<tr class="u5-fold-row"><td colspan="9"><b>{{ parts[0] }}</b></td></tr>{% endif %}{% endif %}
     <tr class="row" data-row="{{ r.event_id }}" data-status="{{ r.status }}">
-      <td class="mono"><a class="head rowlink" href="/console/decisions?drawer={{ r.event_id }}&amp;{{ dq }}" hx-get="/console/decisions/{{ r.event_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ r.ts|day }}</a></td>
-      <td>{{ r.agent_id }}</td>
+      <td class="mono"><a class="head rowlink" href="/console/decisions?drawer={{ r.event_id }}&amp;{{ dq }}" hx-get="/console/decisions/{{ r.event_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{% if ux5 %}{{ (r.ts|day).split(' ')[1] }}{% else %}{{ r.ts|day }}{% endif %}</a></td>
+      <td{% if ux5 %} class="g1-nowrap"{% endif %}>{{ r.agent_id }}</td>
       <td class="mono">{{ r.tool }}<div class="idline">{{ t('dir_' ~ r.direction) }}</div></td>
       <td>{{ ui.status_pill(r.status) }} {{ ui.ne_badge(r.not_eval) }}</td>
       <td class="mono">{{ r.rule_id or '-' }}</td>
-      <td class="mono">{% for c in r.codes %}<span class="pill mono neutral">{{ c }}</span> {% else %}<span class="muted">-</span>{% endfor %}</td>
+      <td class="{{ '' if ux5 else 'mono' }}">{% for c in r.codes %}{% if ux5 %}<span class="pill neutral" title="{{ c }}">{{ c.split('.')[:2]|join(' · ')|replace('_', ' ')|replace('-', ' ')|truncate(48, True, '...') }}</span> {% else %}<span class="pill mono neutral">{{ c }}</span> {% endif %}{% else %}<span class="muted">-</span>{% endfor %}</td>
       <td class="mono">{{ r.consumer_id or '-' }}</td>
       <td class="n mono">{{ ((r.latency_us / 1000)|round(1)) ~ ' ms' if r.latency_us is not none else '-' }}</td>
       <td>{% if r.case_id %}<a href="/console/cases/{{ r.case_id }}?lang={{ lang }}">{{ r.case_id }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>

@@ -41,6 +41,31 @@ def parse_params(query: Mapping[str, str]) -> dict[str, str]:
     }
 
 
+_SUBJECT = re.compile(r"^Governance event: (\w+) \((\w+)\)$")
+
+
+def summarize(n: Mapping[str, Any]) -> dict[str, str]:
+    """UX5: one line from a governance notice (kind, severity, agent, system) and a readable
+    recipient; ``details`` is the raw body, kept for a disclosure. Other notices pass through."""
+    body = str(n.get("body") or "")
+    fields = {}
+    for line in body.splitlines():
+        k, sep, v = line.partition(": ")
+        if sep:
+            fields[k.strip()] = v.strip()
+    m = _SUBJECT.match(str(n.get("subject") or ""))
+    channel = str(n.get("channel") or "")
+    who = channel.split(":", 1)[-1].split("@", 1)[0] if channel else ""
+    return {
+        "kind": m.group(1).replace("_", " ") if m else "",
+        "severity": m.group(2) if m else "",
+        "agent": fields.get("agent", ""),
+        "system": fields.get("system", "-"),
+        "who": who,
+        "details": body,
+    }
+
+
 def list_view(notices: list[dict[str, Any]], query: Mapping[str, str]) -> dict[str, Any]:
     """Data for ``inbox.html`` / ``_inbox_rows.html``."""
     p = parse_params(query)
@@ -54,6 +79,7 @@ def list_view(notices: list[dict[str, Any]], query: Mapping[str, str]) -> dict[s
     rows = sort_rows(rows, col, direction)
     page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
     base = {k: p[k] for k in ("status", "channel")}
+    summaries = {str(n["notice_id"]): summarize(n) for n in page.items}
     return {
         "page": page,
         "params": p,
@@ -65,4 +91,5 @@ def list_view(notices: list[dict[str, Any]], query: Mapping[str, str]) -> dict[s
         ],
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),
+        "summaries": summaries,  # UX5 rows
     }

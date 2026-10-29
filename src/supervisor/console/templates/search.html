@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ t('search_title') }}{% endblock %}
+{% import "_ux5.html" as u5 with context %}
 {% block content %}
+{% if ux5 %}
+{% set n = found.agents|length + found.cases|length + found.traces|length %}
+{{ u5.page_head(t('search_title'), (t('u5g1_search_count', n=n, q=found.q) if (found.q|length >= 2 and n) else (t('u5g1_search_none', q=found.q) if found.q|length >= 2 else t('u5g1_search_hint')))) }}
+<div class="u5-panel sres-page">
+{% if n %}{% include "_search_results.html" %}{% endif %}
+</div>
+{% else %}
 <div class="pagehead"><h1>{{ t('search_title') }}</h1></div>
 <div class="card sres-page">
 {% include "_search_results.html" %}
 </div>
+{% endif %}
 {% endblock %}

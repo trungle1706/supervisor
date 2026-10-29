@@ -1,10 +1,16 @@
 {% extends "base.html" %}
 {% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
 {% block title %}{{ t('inbox') }}{% endblock %}
 {% block content %}
+{% if ux5 %}
+<link rel="stylesheet" href="/console/static/ux5_g1.css">
+{{ u5.page_head(t('inbox'), t('inbox_purpose'), about=t('u5g1_inbox_about')) }}
+{% else %}
 {{ ui.crumbs([(t('nav_g_act'), None), (t('inbox'), None)]) }}
 {{ ui.pagehead(t('inbox')) }}
 {{ ui.purpose(t('inbox_purpose'), t('inbox_why')) }}
+{% endif %}
 {{ ui.filterbar('/console/inbox', '/console/inbox/rows', [
   {'name': 'status', 'label': t('status'), 'kind': 'select', 'value': params.status, 'options': status_opts},
   {'name': 'channel', 'label': t('channel'), 'kind': 'select', 'value': params.channel, 'options': channel_opts},

@@ -14,9 +14,16 @@
   <tbody>
   {% for n in page.items %}
   <tr class="row" data-notice="{{ n.notice_id }}" data-status="{{ n.status }}">
+    {% if ux5 %}{% set sm = summaries[n.notice_id|string] if summaries is defined and summaries else None %}
+    <td class="g1-nowrap">{{ n.ts|day }}</td>
+    <td>{% if sm and sm.who %}{{ t('u5g1_inbox_sent', who=sm.who) }}{% else %}{{ n.channel }}{% endif %}</td>
+    <td>{% if sm and sm.kind %}{{ ui.pill(t(sm.severity) if sm.severity else '', {'critical': 'crit', 'high': 'bad', 'medium': 'warn'}.get(sm.severity, 'neutral')) }} <strong>{{ t('u5g1_inbox_line', agent=sm.agent or '-', kind=sm.kind) }}</strong>{% else %}<strong>{{ n.subject }}</strong>{% endif %}
+      <details class="g1-filters-more"><summary>{{ t('u5g1_inbox_details') }}</summary><div class="muted" style="white-space:pre-wrap;font-size:13px">{{ n.body }}</div></details></td>
+    {% else %}
     <td class="mono">{{ n.ts|day }}</td>
     <td>{{ ui.pill(n.channel, 'neutral') }}</td>
     <td><strong>{{ n.subject }}</strong><div class="muted" style="white-space:pre-wrap;font-size:13px">{{ n.body }}</div></td>
+    {% endif %}
     <td>{{ ui.pill(n.status, 'warn' if n.status == 'unread' else 'ok') }}{% if n.read_by %}<div class="idline">{{ n.read_by }}</div>{% endif %}</td>
     <td>{% if n.status == 'unread' %}
       <form hx-post="/console/inbox/{{ n.notice_id }}/read?{{ list_qs }}&amp;page={{ page.page }}&amp;lang={{ lang }}" hx-target="#inbox-rows">

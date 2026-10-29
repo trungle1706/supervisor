@@ -1,0 +1,43 @@
+{# KPI block of the governance overview (WP-G6), shared by ov_gov_systems.html and its UX5 page. #}
+{% import "_v3.html" as v3 with context %}
+{# WP-G6: the KPI block; d.kpis exists only with MCP_SERVER_ENABLED. Same figures as GET /v1/kpis. #}
+{% if d.get('kpis') %}
+{% macro kpi_rate(label, bp, key) %}<tr><td>{{ label }}</td><td>{% if bp is none %}<span class="muted">{{ t('nv3_na') }}</span> <span class="hint">{{ t('g6_na_' ~ d.kpis.unavailable.get(key, '')) if d.kpis.unavailable.get(key) else '' }}</span>{% else %}{{ v3.pct(bp) }}{% endif %}</td></tr>{% endmacro %}
+{% macro kpi_map(items) %}{% for k, n in items.items() %}{{ k }}: {{ n }}{{ ' · ' if not loop.last }}{% else %}{{ t('g6_kpi_none') }}{% endfor %}{% endmacro %}
+<section class="card" data-section="kpis">
+<h2 class="sec">{{ t('g6_kpi_title') }}</h2>
+<p class="hint">{{ t('g6_kpi_sub') }}</p>
+<div class="grid g3">
+<div>
+<h3>{{ t('g6_kpi_coverage') }}</h3>
+<div class="tablewrap flat"><table class="list" data-table="kpi-coverage"><tbody>
+<tr><td>{{ t('g6_kpi_assets') }}</td><td>{{ kpi_map(d.kpis.coverage.assets_by_kind) }}</td></tr>
+<tr><td>{{ t('g6_kpi_by_risk') }}</td><td>{{ kpi_map(d.kpis.coverage.systems_by_risk) }}</td></tr>
+<tr><td>{{ t('g6_kpi_by_stage') }}</td><td>{{ kpi_map(d.kpis.coverage.systems_by_stage) }}</td></tr>
+{{ kpi_rate(t('g6_kpi_class_rate'), d.kpis.coverage.classification_rate_bp, 'classification_rate_bp') }}
+{{ kpi_rate(t('g6_kpi_policy_cov'), d.kpis.coverage.policy_coverage_bp, 'policy_coverage_bp') }}
+</tbody></table></div>
+</div>
+<div>
+<h3>{{ t('g6_kpi_quality') }}</h3>
+<div class="tablewrap flat"><table class="list" data-table="kpi-quality"><tbody>
+{{ kpi_rate(t('g6_kpi_risk_treat'), d.kpis.quality.risk_treatment_coverage_bp, 'risk_treatment_coverage_bp') }}
+{{ kpi_rate(t('g6_kpi_residual'), d.kpis.quality.acceptable_residual_bp, 'acceptable_residual_bp') }}
+{{ kpi_rate(t('g6_kpi_readiness'), d.kpis.quality.control_readiness_bp, 'control_readiness_bp') }}
+{{ kpi_rate(t('g6_kpi_impl'), d.kpis.quality.implementation_per_policy_bp, 'implementation_per_policy_bp') }}
+</tbody></table></div>
+</div>
+<div>
+<h3>{{ t('g6_kpi_speed') }}</h3>
+<div class="tablewrap flat"><table class="list" data-table="kpi-speed"><tbody>
+<tr><td>{{ t('g6_kpi_days') }}</td><td>{{ kpi_map(d.kpis.speed.avg_days_per_stage) }}</td></tr>
+<tr><td>{{ t('g6_kpi_overdue') }}</td><td>{% if d.kpis.speed.overdue_tasks is none %}<span class="muted">{{ t('nv3_na') }}</span>{% else %}{{ d.kpis.speed.overdue_tasks }}{% endif %}</td></tr>
+{{ kpi_rate(t('g6_kpi_inherit'), d.kpis.speed.inheritance_rate_bp, 'inheritance_rate_bp') }}
+<tr><td>{{ t('g6_kpi_runs') }}</td><td>{{ d.kpis.speed.automation.rule_runs }}</td></tr>
+<tr><td>{{ t('g6_kpi_events') }}</td><td>{{ d.kpis.speed.automation.events }}</td></tr>
+{{ kpi_rate(t('g6_kpi_actions'), d.kpis.speed.automation.action_success_bp, 'action_success_bp') }}
+</tbody></table></div>
+</div>
+</div>
+</section>
+{% endif %}

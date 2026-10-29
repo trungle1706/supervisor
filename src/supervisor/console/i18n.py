@@ -4893,3 +4893,8 @@ _T.update(
         "ux5_more": ("+{n} more", "+{n} nữa"),
     }
 )
+
+# --- UX5 G1 --- strings used only by the overview-family UX5 templates (prefix u5g1_)
+from supervisor.console.i18n_ux5_g1 import NEW as _U5G1  # noqa: E402
+
+_T.update(_U5G1)

@@ -21,12 +21,16 @@
   <tbody id="rows">
   {% for r in page.items %}
     <tr class="row" data-row="{{ r.agent_id }}" data-kind="{{ r.kind }}">
+      {% if ux5 %}
+      <td>{% if r.kind == 'candidate' %}<span class="head">{{ r.name }}</span>{% else %}<a class="head rowlink" href="/console/agents/{{ r.agent_id }}?tab=register&amp;lang={{ lang }}">{{ r.name }}</a>{% endif %}<div class="idline">{{ r.agent_id }}{% if r.kind != 'candidate' %}{% for s in r.systems if s.name != r.name %} · {% if sys_links %}<a href="/console/systems/{{ s.system_id }}?lang={{ lang }}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}{% endfor %}{% endif %}</div></td>
+      {% else %}
       <td>{% if r.kind == 'candidate' %}<span class="head">{{ r.name }}</span><div class="idline">{{ r.agent_id }}</div>
         {% else %}<a class="head rowlink" href="/console/agents/{{ r.agent_id }}?tab=register&amp;lang={{ lang }}">{{ r.name }}</a><div class="idline">{{ r.agent_id }}{% for s in r.systems %} · {% if sys_links %}<a href="/console/systems/{{ s.system_id }}?lang={{ lang }}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}{% endfor %}</div>{% endif %}</td>
+      {% endif %}
       <td>{{ ui.pill(t('mya_kind_' ~ r.kind), {'registered': 'ok', 'policy_only': 'warn', 'candidate': 'neutral'}[r.kind]) }}{% if r.node_kind %}<div class="idline">{{ t('mya_node_' ~ r.node_kind) }}</div>{% endif %}</td>
       <td>{% if r.state %}{{ ui.state_pill(r.state) }}{% if r.pending %}<div class="idline">{{ t('mya_pending_resume', n=r.pending|length) }}</div>{% endif %}{% else %}<span class="muted">-</span>{% endif %}</td>
-      <td>{{ r.autonomy or '-' }}</td>
-      <td>{{ t(r.risk) if r.risk else '-' }}</td>
+      <td>{% if ux5 and r.autonomy %}{{ t('sy_autonomy_level_' ~ r.autonomy) }}{% else %}{{ r.autonomy or '-' }}{% endif %}</td>
+      <td>{% if ux5 and r.risk %}{{ ui.pill(t(r.risk), {'prohibited': 'crit', 'critical': 'crit', 'high': 'bad', 'medium': 'warn'}.get(r.risk, 'neutral')) }}{% else %}{{ t(r.risk) if r.risk else '-' }}{% endif %}</td>
       <td>{% if r.guard %}<span class="mono" data-on="{{ r.guard.on }}">{{ t('mya_on_of', n=r.guard.on, m=r.guard.of) }}</span> {{ ui.pill(t('mya_cover_' ~ r.guard.cover), {'full': 'ok', 'below_floor': 'warn', 'none': 'neutral'}[r.guard.cover], True) }}{% else %}<span class="muted">-</span>{% endif %}</td>
       <td>{% if r.last %}<span class="mono" title="{{ r.last|day }}">{{ r.last|day }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
       <td class="n">{{ r.open_cases }}</td>
