@@ -223,6 +223,10 @@ FA: dict[str, tuple[str, str]] = {
     ),
     "fa_upload": ("Upload", "Tải lên"),
     "fa_strat": ("Stratification by checklist item", "Phân tầng theo mục kiểm tra"),
+    "fa_golden_split": (
+        "{all} cases in the golden set: {n} checklist cases (listed below) and {k} gate cases (see the Gate step).",
+        "{all} ca trong bộ vàng: {n} ca theo danh mục kiểm tra (liệt kê bên dưới) và {k} ca cổng (xem bước Cổng).",
+    ),
     "fa_golden_cases": ("Cases", "Số ca"),
     "fa_golden_uncovered": ("No case yet for: {ids}", "Chưa có ca cho: {ids}"),
     "fa_golden_min": (

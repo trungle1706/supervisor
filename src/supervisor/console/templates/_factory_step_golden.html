@@ -2,7 +2,8 @@
 {% import "_ui.html" as ui with context %}
 {% import "_factory_ui.html" as fu with context %}
 <section class="card" id="factory-step-panel" data-step="golden">
-  <h3>9. {{ t('fa_step_golden') }} <span class="k" data-golden-total="{{ ed.strat.total }}">{{ ed.strat.total }}</span></h3>
+  <h3>9. {{ t('fa_step_golden') }} <span class="k" data-golden-total="{{ ed.golden_total }}">{{ ed.golden_total }}</span></h3>
+  {% if ed.golden_total != ed.strat.total %}<p class="hint" data-golden-split="1">{{ t('fa_golden_split', n=ed.strat.total, k=ed.golden_total - ed.strat.total, all=ed.golden_total) }}</p>{% endif %}
   <p class="hint">{{ t('fa_golden_hint') }}</p>
   {% if ed.editable %}
   <form hx-post="/console/factory/{{ ed.agent.id }}/golden" hx-target="#factory-step" hx-swap="innerHTML" hx-encoding="multipart/form-data" method="post" enctype="multipart/form-data" class="btnrow">

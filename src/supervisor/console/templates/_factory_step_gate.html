@@ -10,8 +10,8 @@
 
   <h4>{{ t('fg_golden') }}</h4>
   <p class="idline" data-gate-golden="1">
-    {{ ui.pill(t('fg_cases', n=g.golden.total, m=g.golden.min_cases), 'ok' if g.golden.ready else 'warn', True) }}
-    {{ ui.pill(t('fg_labels', n=g.labels, m=g.labels_min), 'ok' if g.labels >= g.labels_min else 'warn', True) }}
+    {{ ui.pill(t('fg_cases_met' if g.golden.total >= g.golden.min_cases else 'fg_cases', n=g.golden.total, m=g.golden.min_cases), 'ok' if g.golden.ready else 'warn', True) }}
+    {{ ui.pill(t('fg_labels_met' if g.labels >= g.labels_min else 'fg_labels', n=g.labels, m=g.labels_min), 'ok' if g.labels >= g.labels_min else 'warn', True) }}
     {% if g.golden.problems %}<span class="hint" data-golden-problems="1">{{ g.golden.problems|join('; ') }}</span>{% endif %}
     <a href="/console/factory/{{ aid }}?v={{ ed.version }}&amp;step=golden">{{ t('fa_step_golden') }}</a>
   </p>

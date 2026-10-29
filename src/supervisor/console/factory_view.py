@@ -110,7 +110,7 @@ def card(ctx: ConsoleContext, me: Any, row: Mapping[str, Any]) -> dict[str, Any]
         "state": row["state"],
         "state_pill": STATE_PILL.get(row["state"], "neutral"),
         "checklist_size": len(d.get("checklist") or []),
-        "golden_size": len(golden.load_cases(ctx.settings.data_dir, row["id"])),
+        "golden_size": len(golden.all_gate_cases(ctx.settings.data_dir, row["id"])),
         **_gate_card(ctx, row),
         "can_edit": may_edit(me, row["owner_group"]),
         "updated_at": row.get("updated_at"),
@@ -238,6 +238,8 @@ def _step_extra(
     elif step == "golden":
         cases = golden.load_cases(ctx.settings.data_dir, row["id"])
         out["strat"] = golden.stratification(cases, [c["id"] for c in defn["checklist"]])
+        # UX5-BUG: the golden set is the checklist cases plus the gate cases (one count everywhere)
+        out["golden_total"] = len(golden.all_gate_cases(ctx.settings.data_dir, row["id"]))
         from supervisor.console import factory_gate_view as fgv
 
         out["gate_on"] = fgv.on(ctx)

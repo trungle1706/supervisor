@@ -204,6 +204,9 @@ def test_golden_step_takes_gate_cases_and_labels(on: Console) -> None:
     assert r.status_code == 200 and "50 case(s) stored, 0 refused" in r.text
     assert len(golden.load_gate_cases(shim.data_dir, "mr-agent")) == 50
     assert 'data-gate-cases="50"' in r.text
+    # UX5-BUG: step 9 counts the gate cases too (it said 0), and so does the card
+    assert 'data-golden-total="50"' in r.text
+    assert 'data-golden-size="50"' in on.get("/console/factory").text
     labels = [
         {
             "case_id": cases[i]["case_id"],
@@ -233,7 +236,8 @@ def test_golden_step_takes_gate_cases_and_labels(on: Console) -> None:
     assert r2.status_code == 200 and "21 case(s) stored, 1 refused" in r2.text
     assert len(golden.load_labels(shim.data_dir, "mr-agent")) == 21
     frag = on.get("/console/factory/mr-agent/step/gate", headers=HX).text
-    assert "50 of 50 cases" in frag and "21 of 20 calibration labels" in frag
+    assert "50 cases (needs 50): met" in frag
+    assert "21 calibration labels (needs 20): met" in frag and " of 50 cases" not in frag
     # the old flat case format still works
     legacy = json.dumps(
         [
@@ -252,6 +256,9 @@ def test_golden_step_takes_gate_cases_and_labels(on: Console) -> None:
         headers={"X-Dev-User": "reviewer.an", **HX},
     )
     assert "1 case(s) stored, 0 refused" in r3.text
+    assert 'data-golden-total="51"' in r3.text and 'data-golden-split="1"' in r3.text
+    assert "51 cases in the golden set: 1 checklist cases" in r3.text
+    assert 'data-golden-size="51"' in on.get("/console/factory").text
 
 
 # ------------------------------------------------------------------------------ runs
