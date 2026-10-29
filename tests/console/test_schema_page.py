@@ -78,3 +78,16 @@ def test_page_answers_without_console_context(monkeypatch: pytest.MonkeyPatch) -
     r = TestClient(app).get("/console/admin/schema", headers={"X-Dev-User": "admin.chi"})
     assert r.status_code == 200
     assert "CREATE TABLE IF NOT EXISTS x" in r.text and "SqlError" in r.text
+
+
+def test_check_off_shows_not_checked_not_zeros(admin_console: Any) -> None:
+    import re
+
+    page = admin_console.get("/console/admin/schema?lang=en", user="admin.chi").text
+    for key in ("sch-tables", "sch-missing-tables", "sch-missing-cols"):
+        tile = re.search(rf'data-[\w-]+="{key}".*?</div>', page, re.S)
+        assert tile and "Not checked" in tile.group(0), key
+    assert page.count("Not checked") >= 3
+    schema_selfcheck.set_state(SchemaCheck("ok", "t", 60))
+    ok = admin_console.get("/console/admin/schema?lang=en", user="admin.chi").text
+    assert "Not checked" not in ok

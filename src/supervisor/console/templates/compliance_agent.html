@@ -12,13 +12,15 @@
 
 <div class="grid g2">
   <section class="card" data-section="counts">
-    <h3>{{ t('cp_counts') }}</h3>
+    <h3>{{ t('cp_counts', n=m.summary.by_applies.get('yes', 0)) }}</h3>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       {% for s in statuses %}
       {{ ui.pill(cw('status.' ~ s) ~ ' ' ~ m.summary.by_status.get(s, 0), status_pill[s], True) }}
       {% endfor %}
     </div>
     <div class="hint">{{ t('cp_needs_answer') }} <b>{{ m.summary.needs_answer }}</b> · {{ t('cp_questions') }} <b>{{ m.summary.questions }}</b> · {{ t('cp_threshold_gaps') }} <b>{{ m.summary.threshold_gaps }}</b></div>
+    {% set yes_n = m.summary.by_applies.get('yes', 0) %}{% set no_n = m.rows|length - yes_n - m.summary.needs_answer %}
+    <div class="hint" data-rows-split>{{ t('cp_rows_split', yes=yes_n, na=m.summary.needs_answer, n=m.rows|length) }}{% if no_n > 0 %} ({{ t('cp_rows_no', k=no_n) }}){% endif %}</div>
   </section>
   <section class="card" data-section="decision33">
     <h3>{{ t('cp_d33') }}</h3>

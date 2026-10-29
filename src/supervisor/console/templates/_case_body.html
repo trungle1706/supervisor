@@ -22,7 +22,6 @@
     <div class="clock"><span>{{ t('incident_urgency') }} · <b>{{ t('urgency_' ~ incident.urgency) }}</b></span></div>
     <div class="clock"><span>{{ t('prelim_due') }} · <b>{{ incident.prelim_due_at|ict }}</b>{% if incident.prelim_sent_at %} · {{ t('sent_at') }} {{ incident.prelim_sent_at|ict }}{% elif incident.prelim_overdue %} · <b class="over">{{ t('overdue') }}</b>{% endif %}</span></div>
     <div class="clock"><span>{{ t('formal_due') }} · <b>{{ incident.formal_due_at|ict }}</b>{% if incident.formal_sent_at %} · {{ t('sent_at') }} {{ incident.formal_sent_at|ict }}{% elif incident.formal_overdue %} · <b class="over">{{ t('overdue') }}</b>{% endif %}</span></div>
-    <div class="clock"><span>{{ t('sbv_clock') }} · <b>{{ ui.clocktext(report_clock) }}</b></span>{{ ui.bar(report_clock.used_bp, report_clock.kind) }}</div>
     <div class="clock"><span>{{ t('sbv_remediation') }} · <b>{{ ui.clocktext(remediation_clock) }}</b></span>{{ ui.bar(remediation_clock.used_bp, 'amber' if not remediation_clock.overdue else 'red') }}</div>
     {% else %}
     <div class="clock">{{ t('closed') }} · <b>{{ case.closed_at|day }}</b></div>

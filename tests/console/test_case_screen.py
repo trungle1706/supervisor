@@ -17,7 +17,9 @@ def test_case_header_story_and_decision(console: Console) -> None:
     assert "opened by the gate" in r.text and 'data-status="open"' in r.text
     assert "paused: a money-moving call (ext_transfer_api) was stopped before it ran" in r.text
     assert "Rule PAY-07 (Payments agent may call approved tools only) paused the agent" in r.text
-    assert "SBV 24 h report" in r.text and "SBV 5-day remediation" in r.text
+    # UX5-BUG: one report deadline in force (preliminary), no deprecated 24 h clock
+    assert "SBV 24 h report" not in r.text and "Preliminary report due" in r.text
+    assert "SBV 5-day remediation" in r.text
     assert "Decision 33" in r.text
     # pill tabs, Story active
     for tab in ("story", "rules", "transcript", "evidence", "casefile"):
@@ -67,3 +69,33 @@ def test_case_page_in_vietnamese(console: Console) -> None:
     cid = _pay07(console)["case_id"]
     r = console.get(f"/console/cases/{cid}?lang=vi")
     assert "Diễn biến" in r.text and "Quyết định của bạn" in r.text and "Giao cho tôi" in r.text
+
+
+def test_report_deadline_one_column_not_the_deprecated_24h(console: Console) -> None:
+    for url in ("/console/cases", "/console/signoff"):
+        html = console.get(url).text
+        assert "Report due" in html and "SBV 24 h report" not in html, url
+    from datetime import UTC, datetime, timedelta
+
+    from supervisor.console.readmodels import incident_clock
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    row = {
+        "status": "open",
+        "severity": "high",
+        "report_due_at": now + timedelta(hours=1),  # deprecated, must be ignored
+        "incident_detected_at": now,
+        "prelim_report_due_at": now + timedelta(hours=72),
+        "formal_report_due_at": now + timedelta(days=30),
+        "prelim_report_sent_at": None,
+        "formal_report_sent_at": None,
+    }
+    assert incident_clock(row, now)["secs"] == 72 * 3600
+    sent = {**row, "prelim_report_sent_at": now}
+    assert incident_clock(sent, now)["secs"] == 30 * 86400
+    assert incident_clock({**sent, "formal_report_sent_at": now}, now) is None
+    assert incident_clock({**row, "status": "closed"}, now) is None
+    assert (
+        incident_clock({**row, "prelim_report_due_at": None, "formal_report_due_at": None}, now)
+        is None
+    )

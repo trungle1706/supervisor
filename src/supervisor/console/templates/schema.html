@@ -6,10 +6,11 @@
 {{ ui.pagehead(t('sch_title'), ui.pill(t('read_only'), 'neutral')) }}
 {{ ui.purpose(t('sch_purpose'), t('sch_why')) }}
 <div class="tiles">
+  {% set unchecked = check.status in ('off', 'unknown') %}
   {{ ui.stat(t('sch_status'), t('sch_status_' ~ check.status), '', 'sch-status') }}
-  {{ ui.stat(t('sch_tables'), check.tables_total, '', 'sch-tables') }}
-  {{ ui.stat(t('sch_missing_tables'), check.missing_tables|length, '', 'sch-missing-tables') }}
-  {{ ui.stat(t('sch_missing_cols'), check.missing_column_count, '', 'sch-missing-cols') }}
+  {{ ui.stat(t('sch_tables'), t('sch_not_checked') if unchecked else check.tables_total, '', 'sch-tables') }}
+  {{ ui.stat(t('sch_missing_tables'), t('sch_not_checked') if unchecked else check.missing_tables|length, '', 'sch-missing-tables') }}
+  {{ ui.stat(t('sch_missing_cols'), t('sch_not_checked') if unchecked else check.missing_column_count, '', 'sch-missing-cols') }}
 </div>
 <p class="idline">{{ t('sch_checked_at') }}: <span class="mono">{{ check.checked_at or '-' }}</span> · <a href="/console/admin/schema?recheck=1&amp;lang={{ lang }}">{{ t('sch_recheck') }}</a></p>
 {% if check.status == 'off' %}<div class="msg msg-warn" role="status">{{ t('sch_status_off') }}</div>{% endif %}

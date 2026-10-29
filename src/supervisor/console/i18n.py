@@ -42,6 +42,7 @@ _T: dict[str, tuple[str, str]] = {
         "SBV 24 h report (deprecated: not in Circular 53)",
         "Báo cáo NHNN 24 giờ (không còn dùng: không có trong Thông tư 53)",
     ),
+    "report_due_col": ("Report due", "Hạn báo cáo"),
     "incident_urgency": ("Incident urgency", "Mức khẩn cấp sự cố"),
     "urgency_urgent": ("urgent (72 h)", "khẩn cấp (72 giờ)"),
     "urgency_standard": ("standard (5 working days)", "thông thường (5 ngày làm việc)"),
@@ -938,7 +939,15 @@ _T: dict[str, tuple[str, str]] = {
     "cp_d33": ("Decision 33 (suggestion)", "Quyết định 33 (gợi ý)"),
     "cp_open": ("Open matrix", "Mở ma trận"),
     "cp_back": ("All agents", "Tất cả tác tử"),
-    "cp_counts": ("Rows that apply, by status", "Dòng áp dụng, theo trạng thái"),
+    "cp_counts": (
+        "Rows that apply ({n}), by status",
+        "Dòng áp dụng ({n}), theo trạng thái",
+    ),
+    "cp_rows_no": ("{k} more rows do not apply", "{k} dòng khác không áp dụng"),
+    "cp_rows_split": (
+        "{yes} apply + {na} need an answer = {n} rows in the table below",
+        "{yes} áp dụng + {na} cần trả lời = {n} dòng trong bảng bên dưới",
+    ),
     "cp_filters": ("Filters", "Bộ lọc"),
     "cp_instrument": ("Instrument", "Văn bản"),
     "cp_duty": ("Duty", "Nhiệm vụ"),
@@ -2952,8 +2961,21 @@ _T.update(
             "Run python -m supervisor.jobs.decision_rollup (the scheduler does it every hour).",
             "Chạy python -m supervisor.jobs.decision_rollup (bộ lập lịch chạy mỗi giờ).",
         ),
-        "dd_series": ("Gate outcomes by day", "Kết quả của cổng theo ngày"),
-        "dd_per_agent": ("Per agent", "Theo tác tử"),
+        "dd_series": (
+            "Gate outcomes by day (daily rollup)",
+            "Kết quả của cổng theo ngày (tổng hợp theo ngày)",
+        ),
+        "dd_rollup_note": (
+            "The chart and the four tables below read the daily rollup. The tiles and the first "
+            "table above count single gate calls in the window. The rollup can hold more traffic "
+            "than those calls (for example rolled-up history of demo agents), so the totals can "
+            "differ.",
+            "Biểu đồ và bốn bảng bên dưới đọc từ bảng tổng hợp theo ngày. Các ô và bảng đầu tiên "
+            "ở trên đếm từng lệnh gọi qua cổng trong khoảng thời gian. Bảng tổng hợp có thể chứa "
+            "nhiều lưu lượng hơn các lệnh gọi đó (ví dụ lịch sử tổng hợp của tác tử demo), nên "
+            "tổng số có thể khác.",
+        ),
+        "dd_per_agent": ("Per agent (daily rollup)", "Theo tác tử (tổng hợp theo ngày)"),
         "dd_per_consumer": ("Per application", "Theo ứng dụng"),
         "dd_per_rule": ("Per rule", "Theo quy tắc"),
         "dd_per_detector": ("Per detector and code", "Theo bộ phát hiện và mã"),
@@ -3390,7 +3412,8 @@ _T.update(
         "nv3_t_datasets": ("Datasets", "Bộ dữ liệu"),
         "nv3_t_mcp": ("MCP servers", "Máy chủ MCP"),
         "nv3_t_unmanaged": ("Unmanaged", "Chưa quản lý"),
-        "nv3_t_policies": ("Policies", "Chính sách"),
+        "nv3_t_policies": ("Compliance", "Tuân thủ"),
+        "nv3_t_obligations": ("Obligations", "Nghĩa vụ"),
         "nv3_t_library": ("Library", "Thư viện"),
         "nv3_t_rules": ("Rules", "Quy tắc"),
         "nv3_t_detectors": ("Detectors", "Bộ phát hiện"),
@@ -4376,7 +4399,7 @@ _T.update(
             "Try the scope All, or clear the filters.",
             "Thử phạm vi Tất cả, hoặc xóa bộ lọc.",
         ),
-        "mya_tile_total": ("Total", "Tổng"),
+        "mya_tile_total": ("Total, all kinds", "Tổng, mọi loại"),
         "mya_tile_running": ("Running", "Đang chạy"),
         "mya_tile_shadow": ("Shadow", "Giám sát"),
         "mya_tile_stopped": ("Paused or quarantined", "Tạm dừng hoặc cách ly"),
@@ -4675,7 +4698,7 @@ _T.update(
         "ov4_risk_critical": ("Critical", "Nghiêm trọng"),
         "ov4_totals": ("Totals", "Tổng số"),
         "ov4_t_systems": ("AI systems", "Hệ thống AI"),
-        "ov4_t_agents_gate": ("Agents", "Tác tử"),
+        "ov4_t_agents_gate": ("Registered agents", "Tác tử đã đăng ký"),
         "ov4_gate_split": (
             "{r} running · {s} shadow · {p} paused",
             "{r} đang chạy · {s} chế độ bóng · {p} tạm dừng",

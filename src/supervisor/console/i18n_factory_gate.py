@@ -17,8 +17,16 @@ FG: dict[str, tuple[str, str]] = {
         "chưa cấu hình mô hình: chạy cổng cần mô hình của cổng (đặt LLM_BASE_URL). Không có nó thì không chạy.",
     ),
     "fg_golden": ("Golden set", "Bộ vàng"),
-    "fg_cases": ("{n} of {m} cases", "{n} trên {m} ca"),
-    "fg_labels": ("{n} of {m} calibration labels", "{n} trên {m} nhãn hiệu chuẩn"),
+    "fg_cases": ("{n} cases (needs {m}): not met", "{n} ca (cần {m}): chưa đạt"),
+    "fg_cases_met": ("{n} cases (needs {m}): met", "{n} ca (cần {m}): đạt"),
+    "fg_labels": (
+        "{n} calibration labels (needs {m}): not met",
+        "{n} nhãn hiệu chuẩn (cần {m}): chưa đạt",
+    ),
+    "fg_labels_met": (
+        "{n} calibration labels (needs {m}): met",
+        "{n} nhãn hiệu chuẩn (cần {m}): đạt",
+    ),
     "fg_golden_gate_hint": (
         "{n} gate case(s) and {m} calibration label(s). A gate case holds the inputs of a run (JSON with inputs, expected, expected_evidence_refs, rubric_notes). A label is {case_id, finding_id, human_verdict, label_by, labelled_at}.",
         "{n} ca cổng và {m} nhãn hiệu chuẩn. Ca cổng chứa đầu vào của một lần chạy (JSON với inputs, expected, expected_evidence_refs, rubric_notes). Nhãn là {case_id, finding_id, human_verdict, label_by, labelled_at}.",

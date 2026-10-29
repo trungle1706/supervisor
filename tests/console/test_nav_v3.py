@@ -269,7 +269,7 @@ def test_old_urls_keep_working_with_v3_on(v3all: Console) -> None:
         ("/console/policies", "Guardians", "Rules"),
         ("/console/assurance", "Guardians", "Packs"),
         ("/console/risks", "Risks & controls", "Risks"),
-        ("/console/compliance", "Risks & controls", "Policies"),
+        ("/console/compliance", "Risks & controls", "Compliance"),
         ("/console/onboard", "Systems", "Onboard"),
     ],
 )

@@ -55,11 +55,33 @@ def _bare(html: str) -> str:
 
 
 def new(c: Console, query: str = "", user: str = ME) -> str:
-    r = c.get("/console/register/new" + query, user=user, follow_redirects=False)
-    assert r.status_code in (302, 303, 307), r.text[:300]
-    m = re.search(r"/console/register/(rd_[0-9a-f]{20})/step/1", r.headers["location"])
-    assert m, r.headers["location"]
+    """Make a draft: since UX5-BUG a GET only confirms, the POST creates."""
+    r = c.post("/console/register/new" + query, {}, user=user)
+    assert r.status_code == 200, r.text[:300]
+    m = re.search(r"/console/register/(rd_[0-9a-f]{20})/step/1", r.headers["hx-redirect"])
+    assert m, r.headers
     return m.group(1)
+
+
+def test_get_new_creates_nothing_post_creates_one(reg: Console) -> None:
+    nid = seed_node(reg)
+    for q in ("", f"?from={nid}"):
+        r = reg.get("/console/register/new" + q, follow_redirects=False)
+        assert r.status_code == 200 and 'data-register="new-confirm"' in r.text
+        assert rows(reg, "registration_draft") == []
+    assert f'name="from" value="{nid}"' in r.text
+    did = new(reg, f"?from={nid}")
+    made = rows(reg, "registration_draft")
+    assert [d["draft_id"] for d in made] == [did]
+    # a plain post from another site is refused, like every console POST
+    bad = reg.post(
+        "/console/register/new",
+        {},
+        htmx=False,
+        headers={"Origin": "https://evil.example"},
+    )
+    assert bad.status_code == 400
+    assert len(rows(reg, "registration_draft")) == 1
 
 
 def step(
