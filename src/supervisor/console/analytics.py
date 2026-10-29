@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.analytics import tools
-from supervisor.console import analytics_v2, readmodels, tools_views, views
+from supervisor.console import analytics_v2, readmodels, tools_views, ux5_g5, views
 from supervisor.console.listing import ListingError
 from supervisor.core.errors import SupervisorError
 
@@ -190,10 +190,15 @@ def metrics_data(ctx: Any, days: int | None, agent: str) -> dict[str, Any]:
             }
         )
     heads = ctx.runtime.chain.heads()
+    monitor_rows = views.monitor_status_rows(rows)
+    extra: dict[str, Any] = {}
+    if ctx.settings.console_ux5:  # UX5: only agents with data, plus a count of the rest
+        extra = ux5_g5.monitor_view(monitor_rows, views.MONITOR_ORDER)
     return {
+        **extra,
         "alert_counts": alerts_summary(ctx),
         "metric_cols": cols,
-        "monitor_rows": views.monitor_status_rows(rows),
+        "monitor_rows": monitor_rows,
         "monitor_order": views.MONITOR_ORDER,
         "summary": summary,
         "rows": rows[-200:],

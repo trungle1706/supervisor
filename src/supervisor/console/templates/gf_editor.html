@@ -3,7 +3,12 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('gf_title') }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g5.css">
+{% if gf.is_new %}{{ u5.page_head(x5.gf_new_title, x5.gf_new_purpose, about=x5.gf_about_full) }}
+{% else %}{{ u5.page_head(gf.vals.name or gf.id, '') }}{% endif %}
+{% else %}
 {{ ui.crumbs([(t('gf_title'), '/console/guardian-factory?lang=' ~ lang), (gf.id, None)]) }}
 {{ ui.pagehead(t('gf_title') ~ ': ' ~ gf.id) }}
+{% endif %}
 {% include "_gf_editor.html" %}
 {% endblock %}

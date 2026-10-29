@@ -16,6 +16,18 @@
   {% elif not S %}
     <p class="hint" data-shadow-none="1">{{ t('gf_s_none') }}</p>
   {% else %}
+  {% if ux5 %}
+  <div class="g5-kpis" role="group" aria-label="{{ t('gf_s_numbers') }}" data-shadow-numbers="1">
+    <div><b data-n="days">{{ S.days_elapsed }} / {{ S.days_total }}</b><span>{{ x5.gf_s_k_days }}</span></div>
+    <div><b data-n="calls">{{ S.calls_seen }}</b><span>{{ x5.gf_s_k_calls }}</span></div>
+    <div><b data-n="would_act">{{ S.would_act }}</b><span>{{ x5.gf_s_k_act }}</span></div>
+    <div><b data-n="correct">{{ S.reviewed_correct }}</b><span>{{ x5.gf_s_k_ok }}</span></div>
+    <div><b data-n="false">{{ S.reviewed_false }}</b><span>{{ x5.gf_s_k_false }}</span></div>
+    {% if S.pending_n %}<div><b data-n="pending">{{ S.pending_n }}</b><span>{{ x5.gf_s_k_pending }}</span></div>{% endif %}
+    {% if S.skipped_budget %}<div><b data-n="skipped">{{ S.skipped_budget }}</b><span>{{ x5.gf_s_k_skipped }}</span></div>{% endif %}
+    <div><b data-n="rate">{{ S.false_rate_pct }}% / {{ S.max_fpr_pct }}%</b><span>{{ x5.gf_s_k_rate }}</span></div>
+  </div>
+  {% else %}
   <div class="tiles" role="group" aria-label="{{ t('gf_s_numbers') }}" data-shadow-numbers="1">
     <div class="tile"><span class="n" data-n="days">{{ S.days_elapsed }} / {{ S.days_total }}</span><span class="l">{{ t('gf_s_days') }}</span></div>
     <div class="tile"><span class="n" data-n="calls">{{ S.calls_seen }}</span><span class="l">{{ t('gf_s_calls') }}</span></div>
@@ -26,6 +38,7 @@
     <div class="tile"><span class="n" data-n="pending">{{ S.pending_n }}</span><span class="l">{{ t('gf_s_pending') }}</span></div>
     <div class="tile"><span class="n" data-n="rate">{{ S.false_rate_pct }}% / {{ S.max_fpr_pct }}%</span><span class="l">{{ t('gf_s_rate') }}</span></div>
   </div>
+  {% endif %}
   {% if gs.state == 'shadow' %}
     {% if S.passed %}<p class="msg msg-ok" data-shadow-passed="1" role="status">{{ t('gf_s_passed') }}</p>
     {% else %}<p class="hint" data-shadow-open="1">{{ S.problems|join('; ') }}</p>{% endif %}
@@ -38,6 +51,37 @@
 
   <h5>{{ t('gf_s_review') }}</h5>
   {% if gs.findings %}
+  {% if ux5 %}
+  {% macro frow(f) %}
+      <tr data-finding="{{ f.finding_id }}" data-reviewed="{{ f.reviewed or '' }}">
+        <td class="mono">{{ f.agent_id }}</td><td>{{ f.finding_code|u5rule }}</td><td class="n">{{ f.count }}</td><td>{{ f.would_action }}</td><td class="mono">{{ f.call_ref[:16] }}</td>
+        <td>
+        {% if f.reviewed %}{{ ui.pill(t('gf_s_' ~ f.reviewed), 'ok' if f.reviewed == 'correct' else 'warn') }} <span class="idline">{{ f.reviewed_by }}</span>
+        {% elif gs.state == 'shadow' and gs.can_edit %}
+          <form method="post" action="{{ b }}/shadow/review/{{ f.finding_id }}?lang={{ lang }}" hx-post="{{ b }}/shadow/review/{{ f.finding_id }}?lang={{ lang }}" hx-target="#gf-editor" hx-swap="outerHTML">
+            <button class="btn" name="mark" value="correct" data-action="review-correct">{{ t('gf_s_correct_btn') }}</button>
+            <button class="btn" name="mark" value="false" data-action="review-false">{{ t('gf_s_false_btn') }}</button>
+            <details><summary>{{ t('gf_s_allow_too') }}</summary>
+              <label>{{ t('gf_s_allow_reason') }} <input name="allow_reason" maxlength="200"></label>
+              <label>{{ t('gf_s_allow_expires') }} <input name="allow_expires" placeholder="YYYY-MM-DD" maxlength="10"></label>
+              <span class="hint">{{ t('gf_s_allow_max') }}</span>
+            </details>
+          </form>
+        {% else %}-{% endif %}
+        </td>
+      </tr>{% endmacro %}
+  {% set ordered = (gs.findings|selectattr('reviewed', 'equalto', 'false')|list) + (gs.findings|rejectattr('reviewed')|list) + (gs.findings|selectattr('reviewed', 'equalto', 'correct')|list) %}
+  <div class="tablewrap">
+  <table class="tbl" data-findings="{{ gs.findings|length }}">
+    <thead><tr><th>{{ t('gf_s_agent') }}</th><th>{{ x5.gf_s_c_rule }}</th><th>{{ t('gf_s_count') }}</th><th>{{ t('gf_s_would') }}</th><th>{{ t('gf_s_call') }}</th><th>{{ t('gf_s_mark') }}</th></tr></thead>
+    <tbody>{% for f in ordered[:5] %}{{ frow(f) }}{% endfor %}</tbody>
+  </table>
+  {% if ordered|length > 5 %}
+  <details class="g5-adv"><summary>{{ x5.gf_s_show_all.format(n=ordered|length) }}</summary>
+  <table class="tbl"><tbody>{% for f in ordered[5:] %}{{ frow(f) }}{% endfor %}</tbody></table></details>
+  {% endif %}
+  </div>
+  {% else %}
   <div class="tablewrap">
   <table class="tbl" data-findings="{{ gs.findings|length }}">
     <thead><tr><th>{{ t('gf_s_agent') }}</th><th>{{ t('gf_s_code') }}</th><th>{{ t('gf_s_count') }}</th><th>{{ t('gf_s_would') }}</th><th>{{ t('gf_s_call') }}</th><th>{{ t('gf_s_mark') }}</th></tr></thead>
@@ -61,6 +105,7 @@
       </tr>{% endfor %}</tbody>
   </table>
   </div>
+  {% endif %}
   {% else %}<p class="hint" data-no-findings="1">{{ t('gf_s_no_findings') }}</p>{% endif %}
   {% endif %}
 

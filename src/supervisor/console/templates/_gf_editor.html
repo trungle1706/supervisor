@@ -2,6 +2,7 @@
 {% import "_ui.html" as ui with context %}
 {% set v = gf.vals %}
 {% set base = gf.base ~ '/' ~ gf.id %}
+{% if ux5 %}{% include "_gf_editor_ux5.html" %}{% else %}
 <section class="card" id="gf-editor" data-section="guardian-editor" data-def="{{ gf.id }}">
   {% if gf.view %}
   <div class="idline" data-state="{{ gf.view.state }}">
@@ -97,3 +98,4 @@
   <ul data-history="1">{% for e in gf.events %}<li><span class="mono">v{{ e.version }}</span> {{ e.action }}: {{ e.from_state }} -> {{ e.to_state }} <span class="idline">{{ e.actor }} {{ e.at }}</span></li>{% endfor %}</ul>
   {% endif %}
 </section>
+{% endif %}

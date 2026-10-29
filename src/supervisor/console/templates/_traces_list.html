@@ -1,6 +1,7 @@
 {# Traces table + pager: the swap target #list of the traces page (WP-UX3). #}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
+{% if ux5 %}{% include "_traces_list_ux5.html" %}{% else %}
 {% if capped %}<p class="hint">{{ t('scan_capped') }}</p>{% endif %}
 <div class="tablewrap">
 <table class="queue traces-tbl">
@@ -32,3 +33,4 @@
 </table>
 </div>
 {{ tb.pager(page, '/console/traces', '/console/traces/rows', list_qs) }}
+{% endif %}

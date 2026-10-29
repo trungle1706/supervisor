@@ -1,0 +1,76 @@
+{# Oversight metrics tab under CONSOLE_UX5: a summary per monitor, only agents with data in the
+   matrix (the rest is one fold line), top 10 agents in the metric table, chain data for admins. #}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% macro mrow(s) %}<tr data-agent="{{ s.agent_id }}">
+        <td><strong>{{ s.agent_id }}</strong><div class="idline">{{ s.points }} day(s)</div></td>
+        <td class="mono">{{ s.metric_date }}</td>
+        {% for c in metric_cols %}
+        <td class="mono" style="font-size:12px">{{ s.latest.get(c)|metric(c) }}<br>{{ s.sparks[c] }}</td>
+        {% endfor %}
+      </tr>{% endmacro %}
+<div class="grid g4" style="margin:0 0 10px">
+  <a class="card stat" id="alerts" data-num="alerts" href="/console/alerts?lang={{ lang }}">
+    <h3>{{ t('alerts') }}</h3>
+    <div class="bignum">{{ alert_counts.open }}</div>
+    <div class="sub">{{ t('alerts_open') }} · {{ alert_counts.acknowledged }} {{ t('alerts_ack') }} · {{ t('an_see_alerts') }} →</div>
+  </a>
+</div>
+<section class="u5-panel" id="monitor-status">
+  <h3>{{ t('monitor_status') }}</h3>
+  <p class="muted" style="margin:0 0 8px">{{ x5.an_mon_purpose }}</p>
+  {% if mon_total %}
+  <div class="g5-kpis">
+    {% for m in monitor_order %}{% set sm = mon_summary[m] %}
+    <div><b>{{ t('cat_' ~ m) }}</b><span>{{ x5.an_mon_line.format(ok=sm.ok, nd=sm.no_data, na=sm.not_applicable) }}</span></div>
+    {% endfor %}
+  </div>
+  {% if mon_active %}
+  <div class="tablewrap flat"><table class="monitor-status">
+    <thead><tr><th>{{ t('agent') }}</th>{% for m in monitor_order %}<th>{{ t('cat_' ~ m) }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in mon_active %}
+      <tr data-agent="{{ r.agent_id }}"><td><strong>{{ r.agent_id }}</strong></td>
+      {% for m in monitor_order %}{% set c = r.monitors.get(m) %}
+        <td data-monitor="{{ m }}">{% if c %}{{ ui.pill(t('ms_' ~ c.status), {'ok': 'ok', 'not_applicable': 'neutral', 'no_data': 'warn'}.get(c.status, 'neutral')) }}{% if c.get('n') is not none %} <span class="idline">n={{ c.n }}</span>{% endif %}{% if c.get('reason') %}<div class="idline"{% if 'admin' in me.roles %} title="{{ c.reason }}"{% endif %}>{{ c.reason|u5reason }}</div>{% endif %}{% else %}<span class="muted">-</span>{% endif %}</td>
+      {% endfor %}
+      </tr>
+    {% endfor %}
+    {% if mon_hidden %}{{ u5.fold(mon_hidden, x5.an_mon_fold, 1 + monitor_order|length) }}{% endif %}
+    </tbody>
+  </table></div>
+  {% elif mon_hidden %}{{ u5.fold(mon_hidden, x5.an_mon_fold) }}
+  {% endif %}
+  {% else %}
+  <p class="muted">{{ x5.an_no_data }}</p>
+  {% endif %}
+</section>
+<section class="u5-panel" style="margin-top:16px;padding:16px 0 0">
+  <h3 style="padding:0 20px">{{ t('oversight') }}</h3>
+  {% if summary %}
+  <div class="tablewrap flat"><table class="metrics u5-sticky">
+    <thead><tr><th>{{ t('agent') }}</th><th>{{ t('day') }}</th>
+      {% for c in metric_cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for s in summary[:10] %}{{ mrow(s) }}{% endfor %}</tbody>
+  </table>
+  {% if summary|length > 10 %}
+  <details class="g5-adv" style="padding:0 12px"><summary>{{ x5.an_show_all.format(n=summary|length) }}</summary>
+  <table><tbody>{% for s in summary[10:] %}{{ mrow(s) }}{% endfor %}</tbody></table></details>
+  {% endif %}</div>
+  {% else %}
+  <p class="muted" style="padding:0 20px 16px">{{ x5.an_no_data }}</p>
+  {% endif %}
+</section>
+<section class="u5-panel" style="margin-top:16px">
+  <h3>{{ x5.an_chain }}</h3>
+  <p style="margin:0 0 8px">{{ x5.an_chain_line.format(lanes=heads|length, entries=entries) }} <a href="/console/evidence?lang={{ lang }}">{{ x5.an_chain_open }}</a></p>
+  {% if 'admin' in me.roles %}
+  <details class="g5-adv"><summary>{{ t('ux5_technical') }}</summary><div>
+    <div class="tablewrap flat"><table><tr><th>Lane</th><th class="n">Seq</th><th>{{ t('head') }}</th></tr>
+    {% for lane, h in heads.items() %}<tr><td class="mono">{{ lane }}</td><td class="n">{{ h.seq }}</td><td class="mono">{{ h.entry_hash[:16] }}…</td></tr>{% endfor %}
+    </table></div>
+  </div></details>
+  {% endif %}
+  <div id="verify-result" style="margin-top:10px">{% include "_verify_result.html" %}</div>
+  <div class="btnrow"><button class="btn" hx-post="/console/chain/verify?lang={{ lang }}" hx-target="#verify-result">{{ t('verify_now') }}</button></div>
+</section>

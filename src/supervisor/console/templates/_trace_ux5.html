@@ -1,0 +1,41 @@
+{# One trace under CONSOLE_UX5: agent, time and outcome as the title; the case as a primary button;
+   ids for admins only; a one-span trace shows the detail alone. Variables as trace.html. #}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g5.css">
+{% set status_chip %}{{ u5.status_chip({'ok': 'ok', 'alert': 'warn', 'blocked': 'bad', 'paused': 'warn'}[head.status], t('trace_' ~ head.status)) }}{% endset %}
+{% set case_btns %}{% for c in head.case_ids %}<a class="btn primary" href="/console/cases/{{ c }}?lang={{ lang }}">{{ x5.tr_view_case }} {{ c }}</a>{% endfor %}{% endset %}
+{{ u5.page_head(head.agent_id ~ ' - ' ~ (head.started|u5when(true)), status_chip, actions=case_btns) }}
+<p class="hint">{{ x5.tr_meta.format(n=head.spans, ms=head.duration_ms) }}</p>
+{% if truncated or extra %}<p class="hint">{{ t('trace_capped', n=extra) }}</p>{% endif %}
+<div class="{{ 'tracegrid' if nodes|length > 1 else '' }}">
+  {% if nodes|length > 1 %}
+  <nav class="u5-panel spantree" aria-label="{{ t('span_tree') }}">
+    <h2>{{ t('span_tree') }}</h2>
+    <ul class="tree" role="tree">
+    {% for n in nodes %}
+      <li role="treeitem" aria-level="{{ n.depth + 1 }}" aria-selected="{{ 'true' if n.span_id == selected_id else 'false' }}" style="margin-left: {{ n.depth * 14 }}px">
+        <a class="spanlink {{ 'on' if n.span_id == selected_id else '' }}" href="/console/traces/{{ head.trace_id }}?span={{ n.span_id }}&amp;lang={{ lang }}" hx-get="/console/traces/{{ head.trace_id }}/span/{{ n.span_id }}?lang={{ lang }}" hx-target="#span-detail" hx-push-url="false"{% if n.span_id == selected_id %} aria-current="true"{% endif %}>
+          <span>{{ n.name }}</span>
+          <span class="muted">{{ n.ts|hhmmss }}{% if n.latency_ms %} · {{ n.latency_ms }} ms{% endif %}</span>
+          {% if n.mark %}{{ u5.status_chip({'P': 'warn', 'B': 'bad', 'A': 'warn'}[n.mark], t('act_' ~ n.stop)) }}{% endif %}
+          {% if v2 and n.finding_codes %}{{ u5.status_chip('info', t('findings_chip', n=n.finding_codes|length)) }}{% endif %}
+          {% if n.judge %}{{ u5.status_chip('na', x5.tr_ai_judge) }}{% endif %}
+        </a>
+      </li>
+    {% endfor %}
+    </ul>
+    {% if extra %}<p class="hint">{{ t('plus_more', n=extra) }}</p>{% endif %}
+  </nav>
+  {% endif %}
+  <section class="u5-panel" id="span-detail" aria-live="polite" aria-label="{{ t('span_detail') }}">
+    {% include "_span_detail.html" %}
+  </section>
+</div>
+{% if 'admin' in me.roles %}
+<div style="margin-top:16px">
+{% set ns = namespace(rows=[(t('trace_id'), head.trace_id)]) %}
+{% if v2 %}{% for c in head.correlation_ids %}{% set ns.rows = ns.rows + [(t('correlation_id'), c)] %}{% endfor %}{% endif %}
+{{ u5.technical(ns.rows) }}
+</div>
+{% endif %}

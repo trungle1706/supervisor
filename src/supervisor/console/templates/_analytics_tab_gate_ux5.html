@@ -1,0 +1,37 @@
+{# Gate tab under CONSOLE_UX5: top 10 rows with the rest folded, percentages instead of basis
+   points, plain column names. The counting is unchanged. Variables as _analytics_tab_gate.html. #}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% macro grow(r, maxn) %}<tr class="row" data-agent="{{ r.agent_id }}">
+      <td><a class="head" href="/console/agents/{{ r.agent_id }}?lang={{ lang }}">{{ r.agent_id }}</a></td>
+      <td>{{ ui.barcell(r.checked, maxn) }}</td>
+      <td class="n">{{ r.blocked }}</td><td class="n">{{ r.paused }}</td>
+      <td class="n">{{ r.median_ms if r.median_ms is not none else '-' }}</td><td class="n">{{ r.p95_ms if r.p95_ms is not none else '-' }}</td>
+    </tr>{% endmacro %}
+{% if gate_capped %}<div class="hint">{{ t('an_capped') }}</div>{% endif %}
+<div class="grid g4" id="gate-totals" style="margin:10px 0">
+  {{ ui.stat(t('gate_checked'), gate_total.checked, '', 'checked') }}
+  {{ ui.stat(t('gate_blocked'), gate_total.blocked, '', 'blocked') }}
+  {{ ui.stat(t('gate_paused'), gate_total.paused, '', 'paused') }}
+  {{ ui.stat(t('an_p95'), (gate_total.p95_ms ~ ' ms') if gate_total.p95_ms is not none else '-', '', 'p95') }}
+</div>
+{% if gate_rows %}
+{% set maxn = gate_rows|map(attribute='checked')|max %}
+<div class="u5-panel" style="padding:0">
+<table class="queue u5-sticky" id="gate-table">
+  <caption class="sr">{{ t('an_tab_gate') }}</caption>
+  <thead><tr>
+    <th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('gate_checked') }}</th><th scope="col" class="n">{{ t('gate_blocked') }}</th>
+    <th scope="col" class="n">{{ t('gate_paused') }}</th><th scope="col" class="n">{{ t('gate_median') }}</th><th scope="col" class="n">{{ t('an_p95') }}</th>
+  </tr></thead>
+  <tbody>{% for r in gate_rows[:10] %}{{ grow(r, maxn) }}{% endfor %}</tbody>
+</table>
+{% if gate_rows|length > 10 %}
+<details class="g5-adv" style="padding:0 12px"><summary>{{ x5.an_show_all.format(n=gate_rows|length) }}</summary>
+<table class="queue"><tbody>{% for r in gate_rows[10:] %}{{ grow(r, maxn) }}{% endfor %}</tbody></table></details>
+{% endif %}
+</div>
+{% else %}
+{{ ui.empty(t('an_gate_none'), t('an_gate_none_line')) }}
+{% endif %}
+{% if dd_on is defined and dd_on %}{% include "_analytics_dd_ux5.html" %}{% endif %}

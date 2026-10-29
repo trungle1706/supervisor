@@ -1,0 +1,43 @@
+{# Detectors tab under CONSOLE_UX5: plain names, milliseconds, the harness command for admins only. #}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% if det_empty %}{{ ui.empty(t('dd_empty'), t('dd_empty_line')) }}{% endif %}
+<section class="u5-panel" style="margin:12px 0" id="det-latency">
+  <h3>{{ t('det_latency') }}</h3>
+  {% if det_latency %}
+  <div class="tablewrap flat"><table>
+    <caption class="sr">{{ t('det_latency') }}</caption>
+    <thead><tr><th scope="col">{{ t('detector') }}</th><th scope="col" class="n">{{ t('det_runs') }}</th><th scope="col" class="n">{{ x5.an_det_p50 }}</th><th scope="col" class="n">{{ x5.an_det_p95 }}</th><th scope="col">{{ x5.an_det_result }}</th></tr></thead>
+    <tbody>
+    {% for r in det_latency %}
+      {% set v = det_validation.get(r.detector) %}
+      <tr data-detector="{{ r.detector }}">
+        <td>{{ r.detector|u5rule }}</td><td class="n">{{ r.runs }}</td>
+        <td class="n">{{ (r.p50_us / 1000)|round(2) if r.p50_us is not none else '-' }}</td><td class="n">{{ (r.p95_us / 1000)|round(2) if r.p95_us is not none else '-' }}</td>
+        <td>{% if v %}{{ v.overall }}{% if v.mock %} <span class="idline">mock</span>{% endif %}{% else %}<span class="muted">{{ x5.an_det_notrun }}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <details class="g5-adv"><summary>{{ x5.an_how }}</summary><div>{{ t('det_approx') }}</div></details>
+  {% if not det_validation and 'admin' in me.roles %}{{ u5.technical([(x5.an_det_cmd_label, 'python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json')]) }}{% endif %}
+  {% else %}<p class="muted">{{ t('dd_none') }}</p>{% endif %}
+</section>
+<section class="u5-panel" style="margin:12px 0" id="det-codes">
+  <h3>{{ t('dd_per_detector') }}</h3>
+  {% if det_codes %}
+  {% set groups = det_codes|groupby('key') %}
+  <div class="tablewrap flat"><table class="u5-sticky">
+    <thead><tr><th scope="col">{{ t('detector') }}</th><th scope="col" class="n">{{ t('dd_requests') }}</th><th scope="col" class="n">{{ x5.an_c_masked }}</th><th scope="col" class="n">{{ x5.an_c_notchk }}</th></tr></thead>
+    <tbody>
+    {% for name, items in groups %}
+      <tr><th scope="rowgroup" colspan="4" style="text-align:left;color:var(--u5-ink)">{{ name|u5rule }} <span class="idline">({{ items|length }})</span></th></tr>
+      {% for r in items[:10] %}
+      <tr><td>{{ r.key2|u5rule }}</td><td class="n">{{ r.requests }}</td><td class="n">{{ r.transforms }}</td><td class="n">{{ r.not_evaluated }}</td></tr>
+      {% endfor %}
+      {% if items|length > 10 %}{{ u5.fold(items|length - 10, x5.an_more_codes, 4) }}{% endif %}
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ t('dd_none') }}</p>{% endif %}
+</section>

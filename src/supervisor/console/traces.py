@@ -128,7 +128,10 @@ def summaries(ctx: Any, p: Mapping[str, str]) -> tuple[list[dict[str, Any]], boo
 def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     p = parse_params(query)
     rows, capped = summaries(ctx, p)
-    col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "started", "desc")
+    if getattr(ctx.settings, "console_ux5", False) and not p["sort"]:
+        col, direction = "status", "asc"  # UX5: problems first (paused, blocked, alert, ok)
+    else:
+        col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "started", "desc")
     keys = {"status": lambda r: _STATUS_RANK[r["status"]]}
     shown = sort_rows(rows, col, direction, keys)
     page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
