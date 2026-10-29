@@ -1,0 +1,93 @@
+{# Guardian catalog under CONSOLE_UX5: one list with filters (Guardians.dc.html). Variables:
+   catalog_view.ux5_page. New text lives in x5 (i18n_ux5_g5.NEW). #}
+{% import "_ux5.html" as u5 with context %}
+<link rel="stylesheet" href="/console/static/ux5_g5.css">
+{% set q = '&amp;lang=' ~ lang ~ ('&amp;system=' ~ gb.system.system_id if gb and gb.system else '') %}
+{% macro href(c, s) -%}/console/catalog?cat={{ c }}&amp;state={{ s }}{{ q|safe }}{%- endmacro %}
+{% set purpose = x5.cat_purpose %}
+{{ u5.page_head(x5.cat_title, purpose, about=t('cat_rule')) }}
+<div class="g5-filters">
+  <div class="g5-seg" role="group" aria-label="{{ x5.cat_filter_cat }}">
+    <a href="{{ href('', state) }}"{% if not cat %} class="on" aria-current="true"{% endif %}>{{ x5.cat_all }} {{ n_all }}</a>
+    {% for k, label in [('gate','catg_gate'),('detect','catg_detect'),('judge','catg_judge'),('monitor','catg_monitor'),('prove','catg_prove'),('connect','catg_connect')] %}
+    <a href="{{ href(k, state) }}"{% if cat == k %} class="on" aria-current="true"{% endif %}>{{ t(label) }} {{ counts[k] }}</a>
+    {% endfor %}
+  </div>
+  <div class="g5-seg" role="group">
+    <a href="{{ href(cat, 'on') }}"{% if state == 'on' %} class="on" aria-current="true"{% endif %}>{{ x5.cat_f_on }} {{ n_on }}</a>
+    <a href="{{ href(cat, 'off') }}"{% if state == 'off' %} class="on" aria-current="true"{% endif %}>{{ x5.cat_f_off }} {{ n_all - n_on }}</a>
+  </div>
+  <span class="g5-grow"></span>
+  {{ u5.status_chip('ok', x5.cat_n_on.format(n=n_on, total=n_all)) }}
+  {% if gb %}
+  <form class="g5-sys" method="get" action="/console/catalog">
+    <input type="hidden" name="cat" value="{{ cat }}"><input type="hidden" name="state" value="{{ state }}"><input type="hidden" name="lang" value="{{ lang }}">
+    <select id="gb-system" name="system" aria-label="{{ x5.cat_sys_pick }}" onchange="this.form.submit()">
+      <option value="">{{ x5.cat_sys_pick }}: {{ x5.cat_sys_none }}</option>
+      {% for s in gb.systems %}<option value="{{ s.system_id }}"{{ ' selected' if gb.system and gb.system.system_id == s.system_id else '' }}>{{ s.name }}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn" type="submit">{{ t('gb_show') }}</button></noscript>
+  </form>
+  {% endif %}
+</div>
+{% if gb and not gb.system %}<p class="hint">{{ x5.cat_sys_hint }}</p>{% endif %}
+{% if gb and gb.system %}
+<p class="hint">{{ t('gb_lede', name=gb.system.name) }}{% if not gb.can_edit %} {{ t('gb_read_only') }}{% endif %}</p>
+{% if gb.state_actions and gb.pending_off %}
+<section class="u5-panel" data-section="gb-pending" aria-label="{{ t('gb_pending_title') }}">
+  <h3>{{ t('gb_pending_title') }}</h3>
+  <ul class="drawer-list">
+  {% for r in gb.pending_off %}
+    <li data-request="{{ r.request_id }}">{{ t('gb_pending_row', slug=t('cat_' ~ r.feature_slug) if ('cat_' ~ r.feature_slug) != t('cat_' ~ r.feature_slug) else r.feature_slug, who=r.requested_by) }}<div class="idline">{{ r.reason }}</div>
+      {% if gb.can_approve and r.requested_by != gb.me_id %}
+      <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardian-requests/{{ r.request_id }}/approve?lang={{ lang }}"><button class="btn primary" type="submit">{{ t('gb_approve') }}</button></form>
+      <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardian-requests/{{ r.request_id }}/reject?lang={{ lang }}"><button class="btn" type="submit">{{ t('reject') }}</button></form>
+      {% elif r.requested_by == gb.me_id %}<div class="hint">{{ t('gb_you_asked') }}</div>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endif %}
+{% if not groups %}
+<div class="u5-panel"><p>{{ x5.cat_empty }}</p></div>
+{% endif %}
+{% for g in groups %}
+<section class="g5-panel" aria-labelledby="cat-{{ g.key }}">
+  <div class="g5-gh"><h2 id="cat-{{ g.key }}">{{ t(g.label) }}</h2><span>{{ x5['cat_gh_' ~ g.key] }}</span></div>
+  {% for card in g.rows %}
+  {% set e = card.e %}
+  <div class="g5-row{{ ' off' if not card.on else '' }}">
+    <div>
+      <b>{{ t('cat_' ~ e.key) }}</b>
+      <p>{{ t('cat_' ~ e.key ~ '_d') }}</p>
+      {% if not card.on %}<p class="g5-sub">{{ x5.cat_off_hint }}</p>{% endif %}
+      {% if card.required or card.mrm %}<p class="g5-sub">{% if card.required %}{{ u5.status_chip('warn', x5.cat_required) }} {% endif %}{% if card.mrm %}{{ u5.status_chip('ok' if card.mrm == 'GO' else 'na', x5.cat_mrm_go if card.mrm == 'GO' else x5.cat_mrm_nogo) }}{% endif %}</p>{% endif %}
+      {% if gb and gb.system %}
+        {% if e.key in gb.never_cards %}<p class="g5-sub">{{ x5.cat_sw_locked }}</p>{% endif %}
+        {% for sw in gb.by_card.get(e.key, []) %}
+        <div class="g5-sw">
+          {% if sw.locked %}<span class="muted">{{ x5.cat_sw_locked }}</span>
+          {% elif not sw.instance_on %}<span class="muted">{{ x5.cat_sw_inst_off }}</span>
+          {% else %}
+            {{ u5.status_chip('ok' if sw.state == 'on' else 'na', x5.cat_sw_on if sw.state == 'on' else x5.cat_sw_off) }}
+            {% if gb.can_edit %}
+            <form method="post" action="/console/systems/{{ gb.system.system_id }}/guardians/{{ sw.slug }}?lang={{ lang }}">
+              <input type="hidden" name="state" value="{{ 'off' if sw.state == 'on' else 'on' }}">
+              {% if gb.state_actions and sw.state == 'on' %}<input type="text" name="reason" maxlength="500" required placeholder="{{ t('gb_reason_ph') }}" aria-label="{{ t('reason') }}">{% endif %}
+              <button class="btn" type="submit">{{ t('gb_switch_off') if sw.state == 'on' else t('gb_switch_on') }}</button>
+            </form>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+    <span><span class="u5-chip {{ card.eff_cls }}"><span class="u5-dot" aria-hidden="true"></span>{{ x5[card.eff_key] }}</span></span>
+    <span>{{ u5.status_chip('ok' if card.on else 'na', (x5.cat_on ~ (' · mock' if card.mock else '')) if card.on else x5.cat_off) }}</span>
+    <span>{% if card.href %}<a class="btn" href="{{ card.href }}">{{ t('cat_open') }}</a>{% endif %}</span>
+  </div>
+  {% endfor %}
+</section>
+{% endfor %}
+{% if admin and tech %}{% set ns = namespace(rows=[]) %}{% for k, v in tech %}{% set ns.rows = ns.rows + [(t('cat_' ~ k), v)] %}{% endfor %}{{ u5.technical(ns.rows) }}{% endif %}

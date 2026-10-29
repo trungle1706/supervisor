@@ -1,0 +1,75 @@
+{# Dry-run answer under CONSOLE_UX5: the verdict first, then the reason; ids and hashes for admins. #}
+{% import "_ui.html" as ui with context %}
+{% import "_ux5.html" as u5 with context %}
+{% set res = result.res %}
+{% if result.error %}
+  <div class="msg msg-error" role="alert">{{ t('pg_error') }}: {{ result.error }}</div>
+{% else %}
+  <h2>{{ t('pg_result') }} {{ u5.status_chip('info', t('dry_run_pill')) }}</h2>
+  <p class="verdict-line">
+    {{ ui.action_pill(res.action) }}
+    {% if res.would_pause %}{{ ui.pill(t('pg_would_pause'), 'warn', True) }}{% endif %}
+    {% if res.shadow %}{{ ui.pill(t('state_SHADOW'), 'teal') }}{% endif %}
+    {{ u5.status_chip('ok' if res.allow else 'bad', t('yes') if res.allow else t('no')) }} <span class="muted">{{ t('pg_allow') }}</span>
+  </p>
+  {{ ui.kv([
+    (t('rule_col'), res.rule_id, True),
+    (t('reason'), res.reason),
+    (t('agent'), result.agent_id),
+    (t('tool'), result.tool, True),
+    (t('pg_result_mode'), t('mode_' ~ res.get('mode')) if res.get('mode') in ('enforce', 'observe') else none),
+  ]) }}
+  {% if res.get('observed_decision') %}
+  <div class="msg msg-warn" role="status"><strong>{{ t('pg_observed') }}:</strong> {{ res.observed_decision.action }} {{ res.observed_decision.rule_id }}. {{ t('pg_observed_line') }}</div>
+  {% endif %}
+  {% if res.get('consumer_ignored') %}<p class="hint">{{ t('pg_consumer_ignored') }}</p>{% endif %}
+  <h3>{{ t('pg_rule_hits') }}</h3>
+  {% if result.hits %}
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">{{ t('rule_col') }}</th><th scope="col">{{ t('action') }}</th><th scope="col">{{ t('severity') }}</th></tr></thead>
+    <tbody>
+    {% for h in result.hits %}
+      <tr><td><span class="mono">{{ h.rule_id }}</span>{% if h.error %} {{ ui.pill(t('rule_error'), 'bad') }}{% endif %}<div class="idline">{{ h.text }}</div></td><td>{{ ui.action_pill(h.action) }}</td><td>{{ ui.sev(h.severity) if h.severity else '-' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="hint">{{ t('no_rule_hits_line') }}</p>
+  {% endif %}
+  {% if result.not_evaluated %}
+  <details class="g5-adv"><summary>{{ t('pg_not_evaluated') }}</summary><div><span class="mono">{{ result.not_evaluated|join(', ') }}</span></div></details>
+  {% endif %}
+  {% if res.get('documents') %}
+  <h3>{{ t('pg_documents') }}</h3>
+  <div class="tablewrap flat"><table>
+    <thead><tr><th scope="col">#</th><th scope="col">{{ t('pg_doc_type') }}</th><th scope="col">{{ t('pg_doc_size') }}</th><th scope="col">{{ t('pg_doc_status') }}</th><th scope="col">{{ t('pg_doc_reason') }}</th></tr></thead>
+    <tbody>
+    {% for d in res.documents %}
+      <tr><td>{{ d.index + 1 }}</td><td class="mono">{{ d.media_type }}</td><td>{{ d.size }}</td><td>{{ d.status }}</td><td class="mono">{{ d.get('reason') or '-' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if res.get('findings') %}
+  <p class="hint">{{ t('pg_doc_findings') }}: <span class="mono">{% for f in res.findings %}{{ f.code }}{% if not loop.last %}, {% endif %}{% endfor %}</span></p>
+  {% endif %}
+  <p class="hint">{{ t('pg_doc_note') }}</p>
+  {% endif %}
+  <h3>{{ t('pg_transformed') }}</h3>
+  {% if result.transformed %}
+    <pre class="mono wrap payload">{{ result.transformed }}</pre>
+  {% elif result.preview %}
+    <p class="hint">{{ t('pg_preview_line', n=result.preview_changed) }}</p>
+    <pre class="mono wrap payload">{{ result.preview }}</pre>
+  {% else %}
+    <p class="hint">{{ t('pg_no_masker') }}</p>
+  {% endif %}
+  <p class="hint">{{ t('pg_state_unchanged') }}</p>
+  {% if 'admin' in me.roles %}{{ u5.technical([
+    (t('state'), res.agent_state),
+    (t('risk_class'), res.risk_class),
+    (t('policy_hash'), res.policy_hash),
+    (t('fail_mode'), res.fail_mode),
+    (t('latency_us'), res.latency_us),
+    (t('pg_consumer'), res.get('consumer_id') or '-'),
+  ]) }}{% endif %}
+{% endif %}

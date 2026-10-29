@@ -84,6 +84,7 @@ from supervisor.console import (
     views,
 )
 from supervisor.console.context import ConsoleContext, get_context
+from supervisor.console import i18n_ux5_g5, ux5_g5
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
 from supervisor.controls.model import ensure_on as ensure_controls_on
@@ -107,6 +108,7 @@ STATIC = {
     "console.js": "application/javascript",
     "console.css": "text/css",
     "ux5.css": "text/css",  # UX5-F: linked only with CONSOLE_UX5
+    "ux5_g5.css": "text/css",  # UX5 G5 pages
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -142,6 +144,10 @@ _env.filters["metric"] = lambda v, name="": views.metric_cell(name, v)
 _env.filters["hhmm"] = readmodels.hhmm
 _env.filters["hhmmss"] = lambda v: readmodels.hhmm(v, seconds=True)
 _env.filters["day"] = lambda v: "-" if v is None else readmodels.ict(v).strftime("%Y-%m-%d %H:%M")
+_env.filters["u5when"] = ux5_g5.when  # UX5 G5 filters
+_env.filters["u5pct"] = ux5_g5.pct
+_env.filters["u5share"] = ux5_g5.share
+_env.filters["u5rule"] = ux5_g5.rule
 _env.filters["vnd"] = lambda v: "-" if v is None else f"{int(v):,}"
 
 
@@ -211,6 +217,7 @@ def render(
     body = _env.get_template(template).render(
         t=translator(lang, ux5=bool(ctx.settings.console_ux5)),
         ux5=bool(ctx.settings.console_ux5),
+        x5=i18n_ux5_g5.texts(lang),  # UX5 G5: text without a base key
         dur=lambda secs: views.duration_text(secs, lang),
         shell=shell,
         side_nav=ctx.settings.console_nav != "top",  # CONSOLE_NAV=top is the rollback
@@ -1882,6 +1889,18 @@ async def catalog_page(
     if system:
         _check_id(system, "system id")
     try:
+        if ctx.settings.console_ux5:  # UX5: one list, filters instead of tabs
+            state = request.query_params.get("state") or ("on" if tab == "active" else "")
+            data = await _call(
+                catalog_view.ux5_page,
+                ctx,
+                request.query_params.get("cat") or "",
+                state,
+                _lang(request, ctx),
+                me,
+                system or None,
+            )
+            return render(request, ctx, me, "catalog.html", section="catalog", tab=tab, **data)
         data = await _call(catalog_view.page, ctx, tab, _lang(request, ctx), me, system or None)
     except NotFoundError as exc:  # WP-S1: a system outside the caller's scope
         from supervisor.console.errors import console_error
@@ -2801,6 +2820,30 @@ async def guardians_page(
     tab, away = await _call(_v3_section, request, ctx, me, "guardians")
     if away:
         return _v3_go(request, tab.path)
+    if ctx.settings.console_ux5 and tab.key in catalog_view.TAB_TO_CAT:
+        # UX5: Detectors / Judges / Monitors are filters of the one catalog list
+        state = request.query_params.get("state") or ""
+        system = request.query_params.get("system") or ""
+        if system:
+            _check_id(system, "system id")
+        data = await _call(
+            catalog_view.ux5_page,
+            ctx,
+            catalog_view.TAB_TO_CAT[tab.key],
+            state,
+            _lang(request, ctx),
+            me,
+            system or None,
+        )
+        return render(
+            request,
+            ctx,
+            me,
+            "catalog.html",
+            section=f"g_{tab.key}",
+            tab="catalog",
+            **data,
+        )
     data = await _call(overview_v3.guardian_cards, ctx, tab.key, _lang(request, ctx))
     return render(request, ctx, me, "guardians_cat.html", section=f"g_{tab.key}", d=data)
 

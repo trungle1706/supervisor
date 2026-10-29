@@ -5,6 +5,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_catalog') }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% include "_catalog_ux5.html" %}{% else %}
 {{ ui.crumbs([(t('nav_s_guard'), None), (t('nav_catalog'), None)]) }}
 <div class="pagehead"><h1>{{ t('nav_catalog') }}</h1><span class="pills"><span class="cat-lede">{{ t('cat_lede') }}</span></span></div>
 <nav class="subtabs" aria-label="{{ t('tabs_label') }}">
@@ -102,4 +103,5 @@
   </ul>
 </section>
 {% endfor %}
+{% endif %}
 {% endblock %}

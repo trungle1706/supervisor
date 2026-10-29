@@ -375,9 +375,17 @@ def list_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
     filters = {
         k: request.query_params.get(k, "") for k in ("state", "owner_group", "stage", "type")
     }
+    rows = ctx.guardian_promotion.annotate(svc.list_defs(filters))
+    page, pages = 1, 1
+    if ctx.settings.console_ux5:  # UX5: a table pages at 25
+        from supervisor.console import ux5
+
+        rows, page, pages = ux5.page_slice(rows, request.query_params.get("page"))
     return {
         "gl": {
-            "rows": ctx.guardian_promotion.annotate(svc.list_defs(filters)),
+            "rows": rows,
+            "page": page,
+            "pages": pages,
             "counts": svc.counts(),
             "filters": filters,
             "groups": owner_groups(),

@@ -8,6 +8,7 @@ import importlib
 
 MODULES: tuple[str, ...] = (
     "supervisor.console.i18n_ux5_base",
+    "supervisor.console.i18n_ux5_g5",
     # add one line per page package, e.g. "supervisor.console.i18n_ux5_duties",
 )
 

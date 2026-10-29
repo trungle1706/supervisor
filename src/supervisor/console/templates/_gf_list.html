@@ -1,5 +1,6 @@
 {# Guardian factory registry list (WP-G1, GUARDIAN_FACTORY). Variable: gl. #}
 {% import "_ui.html" as ui with context %}
+{% if ux5 %}{% include "_gf_list_ux5.html" %}{% else %}
 <section class="card" id="gf-list" data-section="guardian-factory">
   <div class="tiles" role="group" aria-label="{{ t('gf_state') }}">
     {% for s in gl.states %}<a class="tile {{ 'on' if gl.filters.state == s else '' }}" href="{{ gl.base }}?state={{ s }}&amp;lang={{ lang }}" hx-get="{{ gl.base }}?state={{ s }}&amp;lang={{ lang }}" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false" data-state="{{ s }}"><span class="n">{{ gl.counts[s] }}</span><span class="l">{{ t('gf_state_' ~ s) }}</span></a>
@@ -33,3 +34,4 @@
   </table>
   </div>
 </section>
+{% endif %}

@@ -2,6 +2,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('nav_playground') }}{% endblock %}
 {% block content %}
+{% if ux5 %}{% include "_playground_ux5.html" %}{% else %}
 {{ ui.crumbs([(t('nav_g_onboard'), None), (t('nav_playground'), None)]) }}
 {{ ui.pagehead(t('nav_playground'), ui.pill(t('dry_run_pill'), 'teal')) }}
 {{ ui.purpose(t('playground_purpose'), t('playground_why')) }}
@@ -49,4 +50,5 @@
     {{ ui.empty(t('pg_empty'), t('pg_empty_line')) }}
   </section>
 </div>
+{% endif %}
 {% endblock %}

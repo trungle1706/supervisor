@@ -245,3 +245,86 @@ def page(
 def _judge_is_mock(settings: Any) -> bool:
     """No JUDGE_T1_MODEL (or LLM_MOCK=1): the judges run the mock judge, labelled mock."""
     return bool(getattr(settings, "llm_mock", False)) or not getattr(settings, "judge_t1_model", "")
+
+
+# --- UX5 (CONSOLE_UX5): one filterable list; effect chip, On/Off, docs and flags for admins only
+_EFFECT = {
+    "blocks": "cat_eff_blocks",
+    "transforms": "cat_eff_masks",
+    "advises": "cat_eff_advises",
+    "watches": "cat_eff_reports",
+    "proves": "cat_eff_proves",
+}
+_EFFECT_CLASS = {
+    "blocks": "bad",
+    "transforms": "info",
+    "advises": "warn",
+    "watches": "na",
+    "proves": "ok",
+}
+# Guardians tabs (Detectors / Judges / Monitors) are filters of this one list.
+TAB_TO_CAT = {"detectors": "detect", "judges": "judge", "monitors": "monitor"}
+
+
+def ux5_page(
+    ctx: Any,
+    cat: str = "",
+    state: str = "",
+    lang: str = "en",
+    me: Any = None,
+    system: str | None = None,
+) -> dict[str, Any]:
+    """The catalog as one list: ``groups`` (filtered), counts for the filter strip, and the
+    per-system switches. ``cat`` is a category key or empty; ``state`` is ``on``, ``off`` or empty."""
+    from supervisor.detectors.config import load_config
+
+    base = page(ctx, "catalog", lang, me, system)
+    try:
+        conf = load_config(ctx.settings.detectors_config)
+        det = {slug: (bool(e.fail_closed), e.mrm_status) for slug, e in conf.detectors.items()}
+    except Exception:  # noqa: BLE001 - a bad detector file is the gate's error
+        det = {}
+    if cat not in {k for k, _ in CATEGORIES}:
+        cat = ""
+    if state not in ("on", "off"):
+        state = ""
+    counts = {k: 0 for k, _ in CATEGORIES}
+    groups = []
+    for g in base["cats"]:
+        counts[g["key"]] = len(g["cards"])
+        if cat and g["key"] != cat:
+            continue
+        rows = []
+        for c in g["cards"]:
+            if (state == "on" and not c["on"]) or (state == "off" and c["on"]):
+                continue
+            e = c["e"]
+            required, mrm = det.get(e.key, (False, ""))
+            if e.key == "injection_classifier":
+                eff_key, eff_cls = "cat_eff_pauses", "bad"
+            else:
+                eff_key, eff_cls = _EFFECT[e.kind], _EFFECT_CLASS[e.kind]
+            rows.append(
+                {**c, "eff_key": eff_key, "eff_cls": eff_cls, "required": required, "mrm": mrm}
+            )
+        if rows:
+            groups.append({"key": g["key"], "label": g["label"], "rows": rows})
+    admin = "admin" in getattr(me, "roles", ())
+    tech: list[tuple[str, str]] = []
+    if admin:
+        for g in base["cats"]:
+            for c in g["cards"]:
+                e = c["e"]
+                if e.env or e.doc:
+                    tech.append((e.key, " · ".join(x for x in (e.env, e.doc) if x)))
+    return {
+        "groups": groups,
+        "cat": cat,
+        "state": state,
+        "counts": counts,
+        "n_all": base["n_all"],
+        "n_on": base["n_on"],
+        "gb": base["gb"],
+        "tech": tech,
+        "admin": admin,
+    }

@@ -3,12 +3,16 @@
 {% set b = gp.base %}
 <div id="gf-promo" data-panel="promotion" data-def="{{ gp.id }}" data-state="{{ gp.state }}">
   <p class="hint">{{ t('gf_p_purpose') }}</p>
+  {% if ux5 %}
+  <details class="g5-adv"><summary>{{ x5.gf_p_slug_details }}</summary><div>{{ t('gf_version') }} {{ gp.version }} - {{ x5.gf_p_slug_label }}: <span class="mono" data-slug="1">{{ gp.slug }}</span>{% if gp.live_version %} - {{ t('gf_p_live_version') }}: {{ gp.live_version }}{% endif %}</div></details>
+  {% else %}
   <ol class="steps" data-steps="1">
     {% for s in gp.steps %}<li data-step="{{ s.state }}" data-done="{{ '1' if s.done else '0' }}"{% if s.current %} aria-current="step"{% endif %}>{{ t('gf_state_' ~ s.state) }}</li>{% endfor %}
   </ol>
   <p class="idline">{{ t('gf_version') }} {{ gp.version }} - {{ t('gf_p_slug') }}: <span class="mono" data-slug="1">{{ gp.slug }}</span>
     {% if gp.live_version %} - {{ t('gf_p_live_version') }}: {{ gp.live_version }}{% endif %}</p>
 
+  {% endif %}
   {% if gp.state in ('shadow', 'approved') %}
   <h5>{{ t('gf_p_approvals') }}</h5>
   <ul data-approvals="{{ gp.approvals|length }}">
