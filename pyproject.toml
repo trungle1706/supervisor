@@ -97,3 +97,5 @@ ignore = [
 "src/supervisor/detectors/injection_classifier/concepts.py" = ["E501"]  # lexicon lines
 "src/supervisor/detectors/injection_classifier/validation.py" = ["E501"]  # report tables
 "schema/generate.py" = ["T20"]
+"src/supervisor/demo/showcase*.py" = ["T20"]  # WP-D2 showcase CLIs
+"tools/showcase_sources.py" = ["T20"]  # WP-D2 dev tool
