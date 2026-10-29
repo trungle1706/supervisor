@@ -8,11 +8,9 @@
 <div class="g5-two playgrid">
   <form class="u5-panel pgform" id="pg-form" hx-post="/console/playground/run" hx-target="#result" hx-swap="innerHTML" hx-push-url="false" aria-describedby="pg-note">
     {% if samples %}
-    <label for="pg-sample">{{ t('pg_sample_pick') }}</label>
-    <select id="pg-sample" aria-label="{{ t('pg_samples') }}" onchange="if(this.value){location.href=this.value}">
-      <option value="">{{ t('pg_sample_pick') }}</option>
-      {% for sm in samples %}<option value="/console/playground?sample={{ sm.id }}&amp;lang={{ lang }}"{{ ' selected' if prefill and prefill.sample_id == sm.id else '' }}>{{ sm['title_' ~ lang] or sm.title_en }}</option>{% endfor %}
-    </select>
+    <div class="pg-samples" role="group" aria-label="{{ t('pg_samples') }}"><span class="muted">{{ t('pg_sample_pick') }}</span>
+      {% for sm in samples %}<a href="/console/playground?sample={{ sm.id }}&amp;lang={{ lang }}"{% if prefill and prefill.sample_id == sm.id %} aria-current="true"{% endif %}>{{ sm['title_' ~ lang] or sm.title_en }}</a>{% endfor %}
+    </div>
     {% if prefill and prefill.note %}<p class="hint">{{ prefill.note }}</p>{% endif %}
     {% endif %}
     <label for="pg-agent">{{ t('agent') }}</label>

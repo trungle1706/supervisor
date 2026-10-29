@@ -18,7 +18,7 @@
 <form class="g4-searchbar" method="get" action="/console/catalogues">
   <input type="hidden" name="tab" value="{{ d.tab }}"><input type="hidden" name="lang" value="{{ lang }}">
   <input type="search" name="q" value="{{ d.ux.q }}" placeholder="{{ t('g4_search') }}" aria-label="{{ t('g4_search') }}">
-  <select name="status" aria-label="{{ t('status') }}" onchange="this.form.submit()">
+  <select name="status" aria-label="{{ t('status') }}">
     <option value="">{{ t('g4_all_statuses') }}</option>
     {% for s in ['active', 'unmanaged', 'allowlisted'] if d.ux.counts.get(s) %}<option value="{{ s }}"{% if d.ux.status == s %} selected{% endif %}>{{ t('nv3_ast_' ~ s) }} ({{ d.ux.counts[s] }})</option>{% endfor %}
   </select>

@@ -22,9 +22,9 @@
   {% if gb %}
   <form class="g5-sys" method="get" action="/console/catalog">
     <input type="hidden" name="cat" value="{{ cat }}"><input type="hidden" name="state" value="{{ state }}"><input type="hidden" name="lang" value="{{ lang }}">
-    <input id="gb-system" name="system_name" type="text" list="gb-systems" value="{{ gb.system.name if gb.system else '' }}" placeholder="{{ t('cat_sys_pick') }}" aria-label="{{ t('cat_sys_pick') }}" autocomplete="off" maxlength="200" onchange="this.form.submit()">
+    <input id="gb-system" name="system_name" type="text" list="gb-systems" value="{{ gb.system.name if gb.system else '' }}" placeholder="{{ t('cat_sys_pick') }}" aria-label="{{ t('cat_sys_pick') }}" autocomplete="off" maxlength="200">
     <datalist id="gb-systems">{% for s in gb.systems %}<option value="{{ s.name }}">{% endfor %}</datalist>
-    <noscript><button class="btn" type="submit">{{ t('gb_show') }}</button></noscript>
+    <button class="btn" type="submit">{{ t('gb_show') }}</button>
   </form>
   {% endif %}
 </div>
