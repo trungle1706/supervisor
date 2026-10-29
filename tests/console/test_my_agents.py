@@ -520,3 +520,18 @@ def test_recommended_action_rule_order(mya: Console) -> None:
     assert act(ctx, _card(kind="policy_only"), None, none)["key"] == "register"
     cand = act(ctx, _card(kind="candidate", node_id="inv_x"), None, none)
     assert cand["href"] == "/console/systems/new?from=inv_x"
+
+
+def test_total_tile_counts_all_kinds_and_says_so(mya: Console) -> None:
+    """UX5-BUG: Overview counts registered agents; My agents Total adds policy-only agents and
+    candidates. Both stay, and each label says what it counts."""
+    from supervisor.console import readmodels
+
+    _, rows = my_agents.build_rows(mya.ctx, _me(mya), "all")
+    kinds = [r["kind"] for r in rows]
+    registered = len(readmodels.agent_cards(mya.ctx, _me(mya)))
+    assert kinds.count("registered") == registered
+    assert len(rows) == registered + kinds.count("policy_only") + kinds.count("candidate")
+    html = mya.get("/console/my/agents?scope=all&lang=en").text
+    assert "Total, all kinds" in html
+    assert i18n.translator("en")("ov4_t_agents_gate") == "Registered agents"

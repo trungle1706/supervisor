@@ -4378,7 +4378,7 @@ _T.update(
             "Try the scope All, or clear the filters.",
             "Thử phạm vi Tất cả, hoặc xóa bộ lọc.",
         ),
-        "mya_tile_total": ("Total", "Tổng"),
+        "mya_tile_total": ("Total, all kinds", "Tổng, mọi loại"),
         "mya_tile_running": ("Running", "Đang chạy"),
         "mya_tile_shadow": ("Shadow", "Giám sát"),
         "mya_tile_stopped": ("Paused or quarantined", "Tạm dừng hoặc cách ly"),
@@ -4668,7 +4668,7 @@ _T.update(
         "ov4_risk_critical": ("Critical", "Nghiêm trọng"),
         "ov4_totals": ("Totals", "Tổng số"),
         "ov4_t_systems": ("AI systems", "Hệ thống AI"),
-        "ov4_t_agents_gate": ("Agents", "Tác tử"),
+        "ov4_t_agents_gate": ("Registered agents", "Tác tử đã đăng ký"),
         "ov4_gate_split": (
             "{r} running · {s} shadow · {p} paused",
             "{r} đang chạy · {s} chế độ bóng · {p} tạm dừng",
