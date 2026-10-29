@@ -44,11 +44,19 @@ GitHub (`trungle1706/supervisor`, branch `main`). Written 2026-10-28.
 * Schema merges: two WPs may both append tables to `schema/model.yaml`. Keep both appends, then
   `python -m schema.generate` and `python -m supervisor.databricks.notebook`, both with `--check`
   after. Never hand-merge the DDL files.
-* Full suite once per release: `PYTHONPATH=src SUPERVISOR_ENV_FILE=/dev/null .venv/bin/python -m
-  pytest tests -q -p no:cacheprovider` (about 60 minutes, 7,600+ tests). One known load-only
-  failure: `tests/detectors/test_documents_gate.py::test_m1_...` passes alone.
-* Do not mix `tests/test_schema.py` or `tests/test_o*_schema.py` with console or governance
-  tests in one pytest command (fixture artifact); run them apart.
+* Test commands (WP-T1, details and measurements in `docs/testing.md`): daily
+  `PYTHONPATH=src SUPERVISOR_ENV_FILE=/dev/null .venv/bin/python -m pytest tests -q -p no:cacheprovider -m "not slow" -n 6`;
+  full run (before a release) the same without `-m "not slow"`. Use `-n 6` on this shared host,
+  `-n auto` only in CI. `pytest --testmon -n 0` re-runs only what a diff can affect; the explicit
+  targeted list stays the fallback. Run a single test with `-n 0`.
+* A release tag needs a green CI run (`.github/workflows/tests.yml`) on the tagged commit. CI uses no
+  secret.
+* Fixtures that build a store copy a per-process template (`tests/_seed.py`); the RegKB load is
+  cached by file content (`tests/_cache.py`). A test that writes RegKB files and reads them back
+  should call `tests._cache.clear_regkb_cache()` (the key follows the content anyway).
+* `tests/test_schema.py` and `tests/test_o*_schema.py` mixed with console or governance tests: the
+  old fixture artifact is not seen with xdist (each worker is its own process); the full `-n 6` run
+  passes. In a serial run, still run them apart.
 * Commit trailer on every commit:
   `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` and
   `Claude-Session: <the session URL>`.

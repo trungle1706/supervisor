@@ -18,3 +18,7 @@ node_modules/
 data/*.log
 config/agent_keys.yaml
 regulations/sources/*/incoming/
+
+# WP-T1: pytest-testmon database and the junit report
+.testmondata*
+reports/
