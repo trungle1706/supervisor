@@ -1,0 +1,183 @@
+/* UX5 console redesign (CONSOLE_UX5). Linked after console.css only when the flag is on, and every
+   rule sits under .ux5 so the off path is untouched. Rules: docs/console-ux5.md.
+   Colors, 6-step type scale (32/24/18/15/14/12), 1px panels, chips with dot+word, tick strip. */
+
+.ux5 {
+  --u5-ground: #F6F6F4; --u5-panel: #FFFFFF; --u5-inset: #EFEFEC; --u5-ink: #16181B;
+  --u5-body: #2A2D31; --u5-muted: #5E636B; --u5-line: #E3E4E1; --u5-line-soft: #F0F1EE;
+  --u5-brand: #E4002B; --u5-brand-text: #B8001F; --u5-brand-soft: #FDECEF;
+  --u5-crit: #B3261E; --u5-high: #C2410C; --u5-warn: #A16207; --u5-ok: #2F6B4F; --u5-info: #1F5F8B;
+  --u5-na: #9DA2A8; --u5-attn-bg: #FFF6F7; --u5-attn-line: #F3C7CF;
+  --u5-gap: #B3261E; --u5-partial: #D9A441; --u5-bank: #1F5F8B; --u5-closed: #2F6B4F;
+  --u5-hover: #F0F1EE;
+  --bg: var(--u5-ground); --surface: var(--u5-panel); --surface-2: var(--u5-inset);
+  --fg: var(--u5-ink); --muted: var(--u5-muted); --line: var(--u5-line);
+  --r: 10px; --r-s: 8px; --shadow: none; --bg-glow: var(--u5-ground);
+  --brand-text: var(--u5-ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]).ux5 {
+    --u5-ground: #121212; --u5-panel: #1c1c1c; --u5-inset: #262626; --u5-ink: #ededea;
+    --u5-body: #d6d6d1; --u5-muted: #b4b4ae; --u5-line: #333331; --u5-line-soft: #2a2a28;
+    --u5-brand-text: #ff6b82; --u5-brand-soft: #3a1a21;
+    --u5-crit: #ff6b82; --u5-high: #f08a5d; --u5-warn: #e0a04a; --u5-ok: #7cc38a; --u5-info: #4fb3d3;
+    --u5-na: #77777a; --u5-attn-bg: #2a1a1e; --u5-attn-line: #5a2a33;
+    --u5-gap: #ff6b82; --u5-partial: #e0a04a; --u5-bank: #4fb3d3; --u5-closed: #7cc38a;
+    --u5-hover: #262626;
+  }
+}
+:root[data-theme="dark"].ux5 {
+  --u5-ground: #121212; --u5-panel: #1c1c1c; --u5-inset: #262626; --u5-ink: #ededea;
+  --u5-body: #d6d6d1; --u5-muted: #b4b4ae; --u5-line: #333331; --u5-line-soft: #2a2a28;
+  --u5-brand-text: #ff6b82; --u5-brand-soft: #3a1a21;
+  --u5-crit: #ff6b82; --u5-high: #f08a5d; --u5-warn: #e0a04a; --u5-ok: #7cc38a; --u5-info: #4fb3d3;
+  --u5-na: #77777a; --u5-attn-bg: #2a1a1e; --u5-attn-line: #5a2a33;
+  --u5-gap: #ff6b82; --u5-partial: #e0a04a; --u5-bank: #4fb3d3; --u5-closed: #7cc38a;
+  --u5-hover: #262626;
+}
+
+/* ---- base: ground, type scale, tabular figures, mono only for ids ------------------------ */
+.ux5 body { background: var(--u5-ground); background-image: none; color: var(--u5-body);
+  font-size: 14px; line-height: 1.55; word-spacing: .05em; font-variant-numeric: tabular-nums; }
+.ux5 h1 { font-size: 24px; line-height: 1.25; letter-spacing: -.01em; font-weight: 700; color: var(--u5-ink); text-wrap: balance; }
+.ux5 h2, .ux5 h2.sec { font-size: 18px; line-height: 1.3; font-weight: 700; color: var(--u5-ink); }
+.ux5 h3, .ux5 .card h3 { font-size: 15px; line-height: 1.35; font-weight: 600; color: var(--u5-ink); letter-spacing: 0; }
+.ux5 h4 { font-size: 14px; font-weight: 600; }
+.ux5 .u5-display { font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.ux5 .u5-label, .ux5 label { font-size: 12px; font-weight: 600; color: var(--u5-muted); }
+.ux5 small, .ux5 .muted, .ux5 .hint { font-size: 12px; color: var(--u5-muted); }
+.ux5 code, .ux5 .mono, .ux5 .idline { font-family: var(--f-mono); font-size: 12px; color: var(--u5-muted); background: none; }
+.ux5 pre, .ux5 pre code { background: var(--u5-inset); border-radius: 8px; }
+.ux5 .num, .ux5 td.n, .ux5 th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.ux5 .pill.mono, .ux5 .nav .k, .ux5 .side .k { font-family: var(--f-body); font-size: 12px; font-weight: 600; }
+.ux5 .lede, .ux5 .purpose .why, .ux5 .greet-sub { max-width: 72ch; font-size: 14px; color: var(--u5-muted); }
+.ux5 p, .ux5 li { max-width: 72ch; }
+.ux5 td p, .ux5 td li, .ux5 .u5-panel p { max-width: none; }
+
+/* ---- no uppercase labels ------------------------------------------------------------------ */
+.ux5 th, .ux5 .side-h, .ux5 .side-k, .ux5 .kicker, .ux5 .eyebrow, .ux5 [class*="label"],
+.ux5 .pill, .ux5 .chipbtn, .ux5 .btn, .ux5 .brand small, .ux5 .sres-h, .ux5 .cat-h, .ux5 .sec-tabs-t,
+.ux5 .ov4-rec .l, .ux5 .wstep b { text-transform: none; letter-spacing: 0; }
+.ux5 .sec-tabs-t, .ux5 .cat-h, .ux5 .ov4-rec .l { font-size: 12px; font-weight: 600; color: var(--u5-muted); }
+
+/* ---- links: ink + 600, underline on hover; red only for the primary action ------------------ */
+.ux5 a { color: var(--u5-ink); font-weight: 600; text-decoration: none; }
+.ux5 a:hover { text-decoration: underline; }
+.ux5 .btn, .ux5 .chipbtn, .ux5 .side a, .ux5 .nav a, .ux5 .tabs a { text-decoration: none; }
+.ux5 .btn:hover, .ux5 .chipbtn:hover { text-decoration: none; }
+.ux5 .btn.primary, .ux5 .btn.primary:hover { background: var(--u5-brand); border-color: var(--u5-brand); color: #fff; }
+.ux5 .btn { border-radius: 8px; font-size: 13px; font-weight: 600; background: var(--u5-panel); color: var(--u5-ink); }
+.ux5 .btn.gold, .ux5 .btn.dark { background: var(--u5-panel); border-color: var(--u5-line); color: var(--u5-ink); }
+.ux5 .btn.primary { color: #fff; }
+.ux5 :focus-visible { outline: 2px solid var(--u5-ink); outline-offset: 2px; }
+
+/* ---- panels: 1px line, 10px radius, no shadow ---------------------------------------------- */
+.ux5 .card, .ux5 .u5-panel, .ux5 .panel, .ux5 .cat-card {
+  background: var(--u5-panel); border: 1px solid var(--u5-line); border-radius: 10px; box-shadow: none; }
+.ux5 .u5-panel { padding: 20px; }
+.ux5 .u5-inset { background: var(--u5-inset); border-radius: 8px; padding: 12px; }
+.ux5 .u5-attn { border: 1px solid var(--u5-attn-line); background: var(--u5-attn-bg); border-radius: 10px; padding: 16px 20px; }
+.ux5 .u5-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); background: var(--u5-panel);
+  border: 1px solid var(--u5-line); border-radius: 10px; }
+.ux5 .u5-strip > * { padding: 16px 20px; border-left: 1px solid var(--u5-line); }
+.ux5 .u5-strip > *:first-child { border-left: 0; }
+.ux5 .u5-strip b { display: block; font-size: 24px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+.ux5 .u5-strip span { font-size: 12px; color: var(--u5-muted); }
+.ux5 main { max-width: 1160px; padding: 20px 40px 56px; }
+.ux5 footer.foot { max-width: 1160px; }
+
+/* ---- chips: dot + word ----------------------------------------------------------------------- */
+.ux5 .pill, .ux5 .u5-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+  line-height: 1.4; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--u5-line);
+  background: var(--u5-panel); color: var(--u5-body); white-space: nowrap; }
+.ux5 .pill .dot, .ux5 .u5-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; display: inline-block; }
+.ux5 .pill.ok, .ux5 .u5-chip.ok { color: var(--u5-ok); background: var(--u5-panel); }
+.ux5 .pill.warn, .ux5 .u5-chip.warn { color: var(--u5-warn); background: var(--u5-panel); }
+.ux5 .pill.bad, .ux5 .pill.crit, .ux5 .u5-chip.bad { color: var(--u5-crit); background: var(--u5-panel); }
+.ux5 .pill.info, .ux5 .pill.teal, .ux5 .u5-chip.info { color: var(--u5-info); background: var(--u5-panel); }
+.ux5 .pill.neutral, .ux5 .pill.gold, .ux5 .u5-chip.na { color: var(--u5-muted); background: var(--u5-panel); }
+.ux5 .u5-chip.na .u5-dot { background: var(--u5-na); }
+.ux5 .u5-chip[title] { cursor: help; }
+
+/* ---- tables: 12px muted headers, row lines, sticky header helper ---------------------------- */
+.ux5 table { font-size: 13px; }
+.ux5 th { font-size: 12px; font-weight: 600; color: var(--u5-muted); padding: 8px 10px; border-bottom: 1px solid var(--u5-line); white-space: nowrap; }
+.ux5 td { padding: 10px; border-bottom: 1px solid var(--u5-line-soft); vertical-align: top; }
+.ux5 tbody tr:last-child td { border-bottom: 0; }
+.ux5 th[aria-sort] { color: var(--u5-ink); }
+.ux5 td a.head { color: var(--u5-ink); font-weight: 600; }
+.ux5 .u5-sticky thead th { position: sticky; top: 0; z-index: 2; background: var(--u5-panel); }
+.ux5 .u5-scroll { overflow: auto; max-height: 70vh; }
+.ux5 .u5-textcol { min-width: 40ch; }
+
+/* ---- page head, about, footer helpers ---------------------------------------------------------- */
+.ux5 .u5-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; margin: 4px 0 16px; }
+.ux5 .u5-head-main { flex: 1 1 420px; min-width: 0; }
+.ux5 .u5-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ux5 .u5-title h1 { margin: 0; }
+.ux5 .u5-purpose { margin: 4px 0 0; color: var(--u5-muted); max-width: 72ch; }
+.ux5 .u5-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ux5 .u5-info { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--u5-line); background: var(--u5-panel);
+  color: var(--u5-muted); font: 600 12px/1 var(--f-body); display: inline-grid; place-items: center; cursor: help; padding: 0; }
+.ux5 details.u5-about, .ux5 details.u5-tech { flex: 1 1 100%; }
+.ux5 details.u5-about > summary, .ux5 details.u5-tech > summary { cursor: pointer; color: var(--u5-muted); font-size: 13px; }
+.ux5 details.u5-about > div, .ux5 details.u5-tech > div { margin-top: 8px; max-width: 72ch; }
+.ux5 .u5-kv { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr); gap: 4px 16px; margin: 8px 0 0; font-size: 13px; }
+.ux5 .u5-kv dt { color: var(--u5-muted); } .ux5 .u5-kv dd { margin: 0; overflow-wrap: anywhere; }
+.ux5 .u5-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 2px 0; font-size: 12px; color: var(--u5-muted); }
+.ux5 .u5-foot a { font-size: 13px; }
+.ux5 .u5-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.ux5 .u5-pager .off { opacity: .45; }
+.ux5 .u5-fold { padding: 10px; color: var(--u5-muted); font-size: 13px; }
+.ux5 tr.u5-fold-row td { color: var(--u5-muted); font-size: 13px; background: var(--u5-inset); }
+
+/* ---- tick strip: one 3px mark per item; height and color encode status ------------------------- */
+.ux5 .u5-ticks { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; vertical-align: middle; }
+.ux5 .u5-ticks i { display: block; width: 3px; border-radius: 1px; flex: none; }
+.ux5 .u5-ticks i.gap { height: 18px; background: var(--u5-gap); }
+.ux5 .u5-ticks i.partial { height: 12px; background: var(--u5-partial); }
+.ux5 .u5-ticks i.bank { height: 8px; background: var(--u5-bank); }
+.ux5 .u5-ticks i.closed { height: 6px; background: var(--u5-closed); }
+.ux5 .u5-ticks .more { font-size: 12px; color: var(--u5-muted); margin-left: 4px; align-self: center; }
+.ux5 .u5-legend { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12px; color: var(--u5-muted); margin: 6px 0; }
+.ux5 .u5-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ux5 .u5-legend i { display: inline-block; width: 3px; border-radius: 1px; }
+.ux5 .u5-legend i.gap { height: 18px; background: var(--u5-gap); }
+.ux5 .u5-legend i.partial { height: 12px; background: var(--u5-partial); }
+.ux5 .u5-legend i.bank { height: 8px; background: var(--u5-bank); }
+.ux5 .u5-legend i.closed { height: 6px; background: var(--u5-closed); }
+
+/* ---- segmented sidebar (v3): brand | home | Govern | Supervise | settings, 1px lines ---------- */
+.ux5 .side-v3 { padding: 0; gap: 0; background: var(--u5-panel); border-right: 1px solid var(--u5-line); }
+.ux5 .side-v3 .side-head { min-height: 64px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--u5-line); box-sizing: border-box; }
+.ux5 .side-v3 .brand { font-size: 16px; font-weight: 700; color: var(--u5-ink); }
+.ux5 .side-v3 .brand .mark { border-radius: 7px; width: 28px; height: 28px; font-family: var(--f-body); font-size: 13px; }
+.ux5 .side-v3 .brand small { font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.ux5 .side-v3 nav { flex: 1 1 auto; display: flex; flex-direction: column; }
+.ux5 .side-v3 nav > .side-group { margin: 0; padding: 12px 10px; border-bottom: 1px solid var(--u5-line); }
+.ux5 .side-v3 .side-sec { margin: 0; padding: 12px 10px; border-top: 0; border-bottom: 1px solid var(--u5-line); }
+.ux5 .side-v3 .side-sec-h { padding: 6px 10px 8px; }
+.ux5 .side-v3 .side-sec-h:hover { background: none; }
+.ux5 .side-v3 .side-k { display: none; }
+.ux5 .side-v3 .side-t { font-size: 12px; font-weight: 700; color: var(--u5-ink); }
+.ux5 .side-v3 .side-group.sub { margin: 0; padding: 0; border-left: 0; }
+.ux5 .side-v3 li a { padding: 7px 10px; border-radius: 7px; font-weight: 500; font-size: 14px; color: var(--u5-body); text-decoration: none; }
+.ux5 .side-v3 li a:hover { background: var(--u5-hover); text-decoration: none; }
+.ux5 .side-v3 li a.active { background: var(--u5-brand-soft); color: var(--u5-brand-text); font-weight: 600; }
+.ux5 .side-v3 li a.active .ni3 { color: inherit; }
+.ux5 .side-v3 .k { background: none; padding: 0; font-size: 12px; color: var(--u5-muted); font-weight: 400; }
+.ux5 .side-v3 .k.hot, .ux5 .side-v3 li a.active .k { background: none; color: var(--u5-brand-text); font-weight: 600; }
+.ux5 .side-v3 .side-foot { padding: 12px 10px 16px; border-top: 0; font-family: var(--f-body); font-size: 12px; }
+.ux5 .gear-btn { border-radius: 8px; font-weight: 500; }
+
+/* ---- top bar: search, dev-identity chip ------------------------------------------------------ */
+.ux5 .topbar { max-width: 1160px; margin: 0 auto; padding: 20px 40px 0; width: 100%; box-sizing: border-box; }
+.ux5 .gsearch input[type="search"] { border: 1px solid var(--u5-line); border-radius: 8px; background: var(--u5-panel); font: inherit; font-size: 14px; }
+.ux5 .notice { max-width: 1160px; padding: 0 40px; color: var(--u5-muted); }
+.ux5 .notice.notice-chip { margin: 8px auto 0; width: 100%; }
+.ux5 .notice { box-sizing: border-box; }
+.ux5 .notice .dot { background: var(--u5-warn); }
+
+/* ---- forms ---------------------------------------------------------------------------------------- */
+.ux5 input, .ux5 select, .ux5 textarea { font: inherit; font-size: 14px; border: 1px solid var(--u5-line); border-radius: 8px;
+  background: var(--u5-panel); color: var(--u5-ink); }

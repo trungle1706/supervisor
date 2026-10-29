@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}"{% if ux5 %} class="ux5"{% endif %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +7,8 @@
 <title>{% block title %}{{ t('app') }}{% endblock %} - Supervisor</title>
 <link rel="preload" href="/console/static/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/console/static/console.css">
-<script src="/console/static/console.js"></script>
+{% if ux5 %}<link rel="stylesheet" href="/console/static/ux5.css">
+{% endif %}<script src="/console/static/console.js"></script>
 <script src="/console/static/htmx.min.js" defer></script>
 </head>
 <body class="{{ 'nav-side' if side_nav else 'nav-top' }}">
@@ -23,7 +24,7 @@
 {% else %}
 {% include "_c_header_top.html" %}
 {% endif %}
-{% if auth_kind == 'dev_header' or sh.demo %}<div class="notice"{% if sh.demo %} data-demo="1"{% endif %}><span class="dot"></span>{% if auth_kind == 'dev_header' %}{{ t('dev_banner') }}{% endif %}{% if sh.demo %} {{ t('demo_line') }}{% endif %}</div>{% endif %}
+{% if ux5 and auth_kind == 'dev_header' and not sh.demo %}<div class="notice notice-chip"><span class="u5-chip warn" tabindex="0" title="{{ t('dev_banner') }}"><span class="u5-dot"></span>{{ t('ux5_dev_chip') }}</span></div>{% elif auth_kind == 'dev_header' or sh.demo %}<div class="notice"{% if sh.demo %} data-demo="1"{% endif %}><span class="dot"></span>{% if auth_kind == 'dev_header' %}{{ t('dev_banner') }}{% endif %}{% if sh.demo %} {{ t('demo_line') }}{% endif %}</div>{% endif %}
 {% if schema_banner is defined and schema_banner %}<div class="notice warn" role="alert" data-schema-banner="1"><span class="dot"></span>{{ t('sch_banner', tables=schema_banner.tables, cols=schema_banner.cols) }} <a href="/console/admin/schema?lang={{ lang }}">{{ t('sch_banner_link') }}</a></div>{% endif %}
 {% if me.kind == 'service_principal' %}<div class="notice sp"><span class="dot"></span>{{ t('sp_banner') }}</div>{% endif %}
 <main id="main" tabindex="-1">

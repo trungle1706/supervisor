@@ -1,0 +1,68 @@
+{# UX5 macros (CONSOLE_UX5). Use: {% import "_ux5.html" as u5 with context %} (with context so t() works).
+   Only call these when `ux5` is true; page templates keep their old markup in the else branch.
+   Docs: docs/console-ux5.md. #}
+
+{% macro status_chip(kind, label) -%}
+{# kind: ok | warn | bad | info | na  -> dot + word, never color alone #}
+<span class="u5-chip {{ kind }}"><span class="u5-dot" aria-hidden="true"></span>{{ label }}</span>
+{%- endmacro %}
+
+{% macro page_head(title, purpose, about=None, actions=None) -%}
+{# purpose: ONE sentence, 15 words or fewer. about: longer text (tooltip + "About this page"). #}
+<header class="u5-head">
+  <div class="u5-head-main">
+    <div class="u5-title"><h1>{{ title }}</h1>
+      {%- if about %}<button type="button" class="u5-info" title="{{ about|striptags|truncate(240) }}" aria-label="{{ t('ux5_info') }}">i</button>{% endif %}</div>
+    {% if purpose %}<p class="u5-purpose">{{ purpose }}</p>{% endif %}
+  </div>
+  {% if actions %}<div class="u5-actions">{{ actions }}</div>{% endif %}
+  {% if about %}<details class="u5-about"><summary>{{ t('ux5_about') }}</summary><div>{{ about }}</div></details>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro disclaimer(text) -%}
+{# One per page, next to the title: a chip with the text as tooltip. #}
+<span class="u5-chip na" tabindex="0" title="{{ text }}"><span class="u5-dot" aria-hidden="true"></span>{{ text|truncate(28, True, '...') }}</span>
+{%- endmacro %}
+
+{% macro tick_strip(counts, cap=60) -%}
+{# counts: list of (status, n); status gap|partial|bank|closed. Worst first is the caller's order. #}
+{% set ns = namespace(shown=0, total=0, label=[]) %}
+{% for s, n in counts %}{% set ns.total = ns.total + n %}{% set ns.label = ns.label + [n ~ ' ' ~ t('ux5_' ~ s)|lower] %}{% endfor %}
+<span class="u5-ticks" role="img" aria-label="{{ ns.label|join(', ') }}">
+{%- for s, n in counts %}{% for _ in range([n, cap - ns.shown]|min if cap > ns.shown else 0) %}<i class="{{ s }}"></i>{% endfor %}{% set ns.shown = ns.shown + ([n, cap - ns.shown]|min if cap > ns.shown else 0) %}{% endfor -%}
+{%- if ns.total > cap %}<span class="more">{{ t('ux5_more', n=ns.total - cap) }}</span>{% endif -%}
+</span>
+{%- endmacro %}
+
+{% macro tick_legend(statuses) -%}
+{# One line per table: statuses = ['gap','partial','bank','closed'] (any subset, any order). #}
+<div class="u5-legend">{% for s in statuses %}<span><i class="{{ s }}"></i>{{ t('ux5_' ~ s) }}</span>{% endfor %}</div>
+{%- endmacro %}
+
+{% macro view_all(shown, total, href) -%}
+<div class="u5-foot"><span>{{ t('ux5_shown_of', shown=shown, total=total) }}</span>{% if total > shown %}<span aria-hidden="true">&middot;</span><a href="{{ href }}">{{ t('ux5_view_all') }}</a>{% endif %}</div>
+{%- endmacro %}
+
+{% macro pager(page, pages, base_href) -%}
+{# base_href already holds its query string without page, e.g. "/console/x?lang=en"; &page=N is added. #}
+{% set sep = '&amp;' if '?' in base_href else '?' %}
+<nav class="u5-foot" aria-label="{{ t('ux5_page_of', page=page, pages=pages) }}"><span>{{ t('ux5_page_of', page=page, pages=pages) }}</span>
+  <span class="u5-pager">
+    {% if page > 1 %}<a href="{{ base_href }}{{ sep }}page={{ page - 1 }}" rel="prev">{{ t('ux5_prev') }}</a>{% else %}<span class="off">{{ t('ux5_prev') }}</span>{% endif %}
+    {% if page < pages %}<a href="{{ base_href }}{{ sep }}page={{ page + 1 }}" rel="next">{{ t('ux5_next') }}</a>{% else %}<span class="off">{{ t('ux5_next') }}</span>{% endif %}
+  </span></nav>
+{%- endmacro %}
+
+{% macro fold(n, text, cols=1) -%}
+{# One line standing for n identical rows. Inside a table pass cols=<column count> and it is a <tr>. #}
+{% if cols and cols > 1 %}<tr class="u5-fold-row"><td colspan="{{ cols }}"><b>{{ n }}</b> {{ text }}</td></tr>
+{% else %}<div class="u5-fold"><b>{{ n }}</b> {{ text }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro technical(rows) -%}
+{# Admin-only disclosure. rows: list of (label, value). Gate with the role check in the caller. #}
+{% if rows %}<details class="u5-tech"><summary>{{ t('ux5_technical') }}</summary><div><dl class="u5-kv">
+{%- for k, v in rows %}<dt>{{ k }}</dt><dd><code>{{ v }}</code></dd>{% endfor -%}
+</dl></div></details>{% endif %}
+{%- endmacro %}

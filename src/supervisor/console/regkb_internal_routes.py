@@ -197,7 +197,7 @@ def ctx_t(request: Request, ctx: ConsoleContext, key: str, **kw: Any) -> str:
     from supervisor.console.i18n import translator
     from supervisor.console.routes import _lang
 
-    return str(translator(_lang(request, ctx))(key, **kw))
+    return str(translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(key, **kw))
 
 
 @router.post(

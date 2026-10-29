@@ -106,6 +106,7 @@ STATIC = {
     "htmx.min.js": "application/javascript",
     "console.js": "application/javascript",
     "console.css": "text/css",
+    "ux5.css": "text/css",  # UX5-F: linked only with CONSOLE_UX5
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -208,7 +209,8 @@ def render(
     compliance_on = data["compliance_enabled"]
     integration_on = bool(ctx.settings.console_integration_enabled)
     body = _env.get_template(template).render(
-        t=translator(lang),
+        t=translator(lang, ux5=bool(ctx.settings.console_ux5)),
+        ux5=bool(ctx.settings.console_ux5),
         dur=lambda secs: views.duration_text(secs, lang),
         shell=shell,
         side_nav=ctx.settings.console_nav != "top",  # CONSOLE_NAV=top is the rollback
@@ -701,7 +703,7 @@ async def _case_action(
     await _call(action, data)
     page = await _call(_case_data, ctx, case_id, me)
     resp = render(request, ctx, me, "_case_body.html", **page)
-    t = translator(_lang(request, ctx))
+    t = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
     resp.body = resp.body + message_html(f"{t('saved')} {done}", ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))
     return resp
@@ -845,7 +847,9 @@ async def signoff(
     resp.body = (
         resp.body
         + message_html(
-            translator(_lang(request, ctx))("signoff_recorded"), ok=True, oob=True
+            translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))("signoff_recorded"),
+            ok=True,
+            oob=True,
         ).encode()
     )
     resp.headers["content-length"] = str(len(resp.body))
@@ -1165,7 +1169,7 @@ async def intake_run(
     touched = await _call(case_intake.run, ctx.cases)
     data = await _call(_queue_data, ctx, request)
     resp = render(request, ctx, me, "_queue_rows.html", **data)
-    t = translator(_lang(request, ctx))
+    t = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
     note = f"{t('refresh_cases')}: {len(set(touched))}"
     resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))
@@ -2188,7 +2192,7 @@ async def transparency_generate(
     request.state.audit_detail = f"generate:{len(made)}"
     data = await _call(transparency_views.list_view, ctx, me)
     resp = render(request, ctx, me, "_transparency_list.html", **data)
-    t = translator(_lang(request, ctx))
+    t = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
     note = (
         t("tp_generated", v=max(r["version"] for r in made))
         if made

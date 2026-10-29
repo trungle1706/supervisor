@@ -4573,13 +4573,15 @@ _T.update(
 )
 
 
-def translator(lang: str) -> Callable[..., str]:
+def translator(lang: str, ux5: bool = False) -> Callable[..., str]:
     """``t(key)`` or ``t(key, n=3, ...)`` (``str.format`` placeholders). Unknown keys come
-    back unchanged, so a template never fails on a label."""
+    back unchanged, so a template never fails on a label. With ``ux5`` True (CONSOLE_UX5) the
+    ``i18n_ux5_*`` overrides are looked up first; with it False nothing changes."""
     idx = 1 if lang == "vi" else 0
+    over = ux5_overrides() if ux5 else {}
 
     def t(key: str, **kw: object) -> str:
-        pair = _T.get(key)
+        pair = over.get(key) or _T.get(key)
         text = pair[idx] if pair else key
         if kw:
             try:
@@ -4589,6 +4591,13 @@ def translator(lang: str) -> Callable[..., str]:
         return text
 
     return t
+
+
+def ux5_overrides() -> dict[str, tuple[str, str]]:
+    """All UX5 text overrides (console/i18n_ux5.py lists the modules)."""
+    from supervisor.console.i18n_ux5 import load
+
+    return load()
 
 
 def keys() -> list[str]:
@@ -4863,3 +4872,24 @@ _T.update(_RG3)
 from supervisor.console.i18n_factory_gate import FG as _FG  # noqa: E402  (WP-F3, prefix fg_)
 
 _T.update(_FG)
+
+
+# --- UX5-F --- strings of the UX5 shell and macros (templates/_ux5.html); used with CONSOLE_UX5
+_T.update(
+    {
+        "ux5_dev_chip": ("Dev identity", "Danh tính dev"),
+        "ux5_about": ("About this page", "Về trang này"),
+        "ux5_info": ("Information", "Thông tin"),
+        "ux5_technical": ("Technical details", "Chi tiết kỹ thuật"),
+        "ux5_shown_of": ("{shown} of {total} shown", "Hiển thị {shown} / {total}"),
+        "ux5_view_all": ("View all", "Xem tất cả"),
+        "ux5_page_of": ("Page {page} of {pages}", "Trang {page} / {pages}"),
+        "ux5_prev": ("Previous", "Trước"),
+        "ux5_next": ("Next", "Sau"),
+        "ux5_gap": ("Gap", "Thiếu"),
+        "ux5_partial": ("Partial", "Một phần"),
+        "ux5_bank": ("Bank process", "Quy trình của ngân hàng"),
+        "ux5_closed": ("Met", "Đạt"),
+        "ux5_more": ("+{n} more", "+{n} nữa"),
+    }
+)

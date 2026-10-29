@@ -530,6 +530,9 @@ class Settings(BaseSettings):
     # (they open a "coming in WP-UX3" page).
     console_nav: Literal["sidebar", "top"] = "sidebar"
     console_nav_placeholders: bool = False
+    # UX5 redesign foundation (new: off; off = the console as before): links ux5.css, adds the
+    # ux5 class on <html>, and applies the i18n_ux5_* text overrides. See docs/console-ux5.md.
+    console_ux5: bool = False
     # Two-section sidebar: "AI Management and Governance" and "AI Guardian and Supervisor",
     # each holding the groups above (new: off; off = the six-group sidebar as before).
     console_nav_sections: bool = False

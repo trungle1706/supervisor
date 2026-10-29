@@ -323,7 +323,7 @@ async def _wf_answer(
         return _done(request, True, system_id, "tasks")
     data = await _call(systems_views.detail_view, ctx, me, system_id, "tasks")
     resp = render(request, ctx, me, "_system_tasks.html", **data)
-    msg = translator(_lang(request, ctx))(ok_key)
+    msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(ok_key)
     resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))
     return resp
@@ -487,7 +487,7 @@ async def _duty_answer(
         return _done(request, True, system_id, "duties")
     data = await _call(systems_views.detail_view, ctx, me, system_id, "duties", {})
     resp = render(request, ctx, me, "_system_duties.html", **data)
-    msg = translator(_lang(request, ctx))(ok_key)
+    msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(ok_key)
     resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))
     return resp
@@ -581,7 +581,7 @@ async def _rd_answer(
         return _done(request, True, system_id, systems_riskdim.TAB)
     data = await _call(systems_views.detail_view, ctx, me, system_id, systems_riskdim.TAB, {})
     resp = render(request, ctx, me, "_system_riskdim.html", **data)
-    msg = translator(_lang(request, ctx))(ok_key)
+    msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(ok_key)
     resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
     resp.headers["content-length"] = str(len(resp.body))
     return resp
@@ -652,7 +652,7 @@ async def _orch_panel(
     data = await _call(systems_views.detail_view, ctx, me, system_id, systems_riskdim.TAB, {})
     resp = render(request, ctx, me, "_system_orch_panel.html", **data)
     if note:
-        msg = translator(_lang(request, ctx))(note)
+        msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(note)
         resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
         resp.headers["content-length"] = str(len(resp.body))
     return resp

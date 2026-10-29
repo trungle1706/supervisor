@@ -51,7 +51,7 @@ async def _panel(
     data = await _call(view.panel_data, ctx, me, system)
     resp = render(request, ctx, me, "_smart_guardian_panel.html", s=system, **data)
     if note:
-        msg = translator(_lang(request, ctx))(note)
+        msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(note)
         resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
         resp.headers["content-length"] = str(len(resp.body))
     return resp
