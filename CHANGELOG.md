@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.9.0 (phases 11 and 12: compliance-first onboarding, agent factory, guardian factory, regulation watch) - 2026-10-29
 
 - WP-W2 (phase 11): **law change to re-evaluation**, `REGKB_CHANGE_LOOP` (default `0`; needs
   `LAWAGENT_ENABLED` and `GOVERNANCE_ENABLED`; off: HTTP 400 `change_loop_off`, no override loaded, no
