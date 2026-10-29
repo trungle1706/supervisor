@@ -1,4 +1,6 @@
-"""Showcase seeders: ``python -m supervisor.demo.showcase portfolio | journeys | traffic | factory``.
+"""Showcase seeders.
+
+``python -m supervisor.demo.showcase portfolio | journeys | traffic | factory``.
 
 A tiny dispatcher shared by WP-D1 (portfolio), WP-D2 (journeys) and WP-D3 (factory). Each
 subcommand lives in its own module ``showcase_<name>`` and exposes ``main(argv) -> int``. A module

@@ -58,7 +58,7 @@ STEPS = (
 DECIDER = "reviewer.an"  # decides, asks, requests RUNNING
 APPROVER = "reviewer.binh"  # second person: approves (in the policy reviewers list)
 DEFAULT_CONSOLE = "http://127.0.0.1:8130"
-FIXTURES = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "showcase"
+FIXTURES = Path(__file__).resolve().parent / "showcase_data"
 
 # settings attribute -> environment name; all of them must be on
 REQUIRED_FLAGS: dict[str, str] = {
@@ -460,7 +460,7 @@ def step_source(rig: Rig, cand: Candidate, j: Journey, say: Say, base: str) -> N
     else:
         if not cand.zip_path.is_file():
             raise ShowcaseError(
-                f"source_missing: {cand.zip_path.name} is not in tests/fixtures/showcase "
+                f"source_missing: {cand.zip_path.name} is not in src/supervisor/demo/showcase_data "
                 "(python tools/showcase_sources.py builds it)"
             )
         got = intake.submit_zip(j.node_id, cand.zip_path.read_bytes(), cand.zip_path.name, DECIDER)
@@ -672,7 +672,7 @@ def step_duties(rig: Rig, cand: Candidate, j: Journey, say: Say, base: str) -> N
     say(f"     open: {url(base, f'/console/register/{j.draft_id}/step/6')}")
 
 
-LIMIT_TAG_MAX = 120  # characters of one tag value (governance/model.check_tags)
+LIMIT_TAG_MAX = 600  # model.LONG_TAGS["autonomy_limits"]
 
 
 def fit_limits(lines: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
@@ -709,11 +709,20 @@ def step_guardians(rig: Rig, cand: Candidate, j: Journey, say: Say, base: str) -
     if cur["status"] == "proposed" and not lines:
         say("[OK] smart guardian: nothing to accept, the floor guardians cover this class")
     elif cur["status"] == "proposed":
+        held = [
+            ln for ln in lines if ln["group"] == "autonomy_limits" and ln["subject"] == "max_level"
+        ]
+        lines = [ln for ln in lines if ln not in held]
+        if held:
+            say(
+                "[NEXT] the autonomy cap (max_level) is left for the presenter to accept live: "
+                "after it, every money call of this agent pauses for a person (GATE-AUTONOMY-CAP)"
+            )
         lines, left = fit_limits(lines)
         if left:
             say(
                 f"[SKIP] {len(left)} autonomy limit lines left out ({', '.join(left)}): the system "
-                "tag autonomy_limits holds 120 characters at most (open issue of WP-G4)"
+                "tag autonomy_limits holds 600 characters at most"
             )
         got = sg.accept(
             ctx,

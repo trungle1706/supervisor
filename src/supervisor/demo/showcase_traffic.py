@@ -1,7 +1,7 @@
 """Databricks showcase, act 2 and 5 (WP-D2): synthetic traffic for a journey agent.
 
-    python -m supervisor.demo.showcase traffic --candidate ID --minutes M --rate R
-        [--seed N] [--url APP_URL [--key-file F | --bearer-env VAR]] [--no-resume] [--dry-run]
+python -m supervisor.demo.showcase traffic --candidate ID --minutes M --rate R [--seed N] [--url
+APP_URL [--key-file F | --bearer-env VAR]] [--no-resume] [--dry-run]
 
 Sends ``R`` calls per minute for ``M`` minutes to the gate. The calls are synthetic and made to
 produce the four decisions the audience should see on the agent page and in Activity, in the
@@ -19,15 +19,14 @@ proportions of ``MIXES``:
 
 In process (the default) the call goes to the gate of this process, built from the settings
 (``DETECTORS_ENABLED=1``, ``INLINE_REDACTION_ENABLED=1``, and the showcase policy next to the
-baseline: ``POLICY_DIR=policies:tests/fixtures/showcase/policy``). A pause stops the whole agent
-(a rule of the product); the generator then does the two-person resume as the synthetic owner and
-reviewer so that the stream goes on. ``--no-resume`` leaves it paused for the presenter.
+baseline: ``POLICY_DIR=policies:src/supervisor/demo/showcase_data/policy``). A pause stops the
+whole agent (a rule of the product); the generator then does the two-person resume as the synthetic
+owner and reviewer so that the stream goes on. ``--no-resume`` leaves it paused for the presenter.
 
-With ``--url`` the calls go to a deployed Supervisor App over HTTP with the agent credential
-(HMAC key file, or a bearer token read from the environment variable named by ``--bearer-env``;
-the token is never printed). No resume is possible there: run the pause-free candidate or resume in
-the console. Needs ``SHOWCASE_ENABLED=1``. Synthetic data only. ASCII output.
-"""
+With ``--url`` the calls go to a deployed Supervisor App over HTTP with the agent credential (HMAC
+key file, or a bearer token read from the environment variable named by ``--bearer-env``; the token
+is never printed). No resume is possible there: run the pause-free candidate or resume in the
+console. Needs ``SHOWCASE_ENABLED=1``. Synthetic data only. ASCII output."""
 
 from __future__ import annotations
 
@@ -243,8 +242,8 @@ def in_process_gate(rig: Any, cid: str) -> tuple[Callable[..., Mapping[str, Any]
         known = False
     if not known:
         notes.append(
-            "the policy has no entry for this agent: put tests/fixtures/showcase/policy in "
-            "POLICY_DIR (second folder)"
+            "the policy has no entry for this agent: put "
+            "src/supervisor/demo/showcase_data/policy in POLICY_DIR (second folder)"
         )
     return gw.check, "; ".join(notes)
 

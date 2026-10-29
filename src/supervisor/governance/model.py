@@ -204,8 +204,12 @@ def check_tags(value: Any) -> dict[str, str]:
             raise SystemsError("a tag name must be 1 to 40 characters from A-Z a-z 0-9 _ . : -")
         if isinstance(v, bool) or not isinstance(v, (str, int)):
             raise SystemsError("a tag value must be text or a whole number")
-        out[k] = _text(str(v), "tag value", 120) or ""
+        out[k] = _text(str(v), "tag value", LONG_TAGS.get(k, 120)) or ""
     return dict(sorted(out.items()))
+
+
+# Structured tags written by the product (JSON text) may be longer than a person's tag.
+LONG_TAGS: dict[str, int] = {"autonomy_limits": 600}
 
 
 _CHOICES: dict[str, tuple[str, ...]] = {

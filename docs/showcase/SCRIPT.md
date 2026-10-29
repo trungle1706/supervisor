@@ -4,14 +4,14 @@
 > "Not legal advice. Bank counsel must confirm." stays on the screen.
 
 Code: `python -m supervisor.demo.showcase journeys | traffic` (`src/supervisor/demo/showcase_journeys.py`,
-`showcase_traffic.py`). Plan: `SHOWCASE_PLAN.md` sections 1, 2, 5. Sources: `tests/fixtures/showcase/*.zip`
+`showcase_traffic.py`). Plan: `SHOWCASE_PLAN.md` sections 1, 2, 5. Sources: `src/supervisor/demo/showcase_data/*.zip`
 (rebuilt by `python tools/showcase_sources.py`).
 
 ## 0. Before the session
 
 | What | Command or setting |
 |---|---|
-| Flags on the App and on the shell that runs the commands | `SHOWCASE_ENABLED`, `GOVERNANCE_ENABLED`, `CONSOLE_SYSTEMS_ENABLED`, `CONSOLE_REGISTER_V2`, `REGISTER_V3`, `CLASSIFICATION_V2`, `RISK_DIMENSIONS`, `ONBOARD_INTAKE`, `ONBOARD_FACTS`, `ONBOARD_PREDEPLOY`, `ONBOARD_ORCHESTRATOR`, `SMART_GUARDIAN`, `GUARDIAN_BINDINGS_ENABLED`, `CONSOLE_STATE_ACTIONS`, `INVENTORY_ENABLED` (all `=1`); for the traffic also `DETECTORS_ENABLED=1`, `INLINE_REDACTION_ENABLED=1`, `POLICY_DIR=policies:tests/fixtures/showcase/policy` |
+| Flags on the App and on the shell that runs the commands | `SHOWCASE_ENABLED`, `GOVERNANCE_ENABLED`, `CONSOLE_SYSTEMS_ENABLED`, `CONSOLE_REGISTER_V2`, `REGISTER_V3`, `CLASSIFICATION_V2`, `RISK_DIMENSIONS`, `ONBOARD_INTAKE`, `ONBOARD_FACTS`, `ONBOARD_PREDEPLOY`, `ONBOARD_ORCHESTRATOR`, `SMART_GUARDIAN`, `GUARDIAN_BINDINGS_ENABLED`, `CONSOLE_STATE_ACTIONS`, `INVENTORY_ENABLED` (all `=1`); for the traffic also `DETECTORS_ENABLED=1`, `INLINE_REDACTION_ENABLED=1`, `POLICY_DIR=policies:src/supervisor/demo/showcase_data/policy` |
 | Model path | Set `LLM_BASE_URL` (the gateway model) to get model claims in the facts card. With it empty the run says `[SKIP] LLM_BASE_URL is empty` and uses the rule path |
 | Console URL printed in the run | `--console-url https://FILL-ME-supervisor-app-url` (or env `CONSOLE_URL`) |
 | Deployed candidate Apps (optional) | env `SHOWCASE_APP_URL_KB_HELPDESK_BOT`, `..._CS_ASSISTANT`, `..._PAYMENT_OPS_COPILOT` before step 1: the node then has an App URL and the pre-deploy report can run the packs against the live App (`PREDEPLOY_HTTP_TARGET=1`, `PREDEPLOY_HTTP_ALLOWED_HOSTS`). Without it the stored code is read, not run, and the report says `no_go` |
@@ -132,7 +132,7 @@ Total for 5 minutes at 20 per minute: 100 calls. The counts above scale with the
 | Target | The Supervisor App URL (the gate). The candidate Apps call it with their own service principal; the generator does the same without the App |
 | Credential | Option 1: HMAC key file of the agent (`--key-file`; first line is the secret, mode 600; issue it with `python -m supervisor.gateway.ingress_auth issue <agent-id> --out-key-file F`). Option 2: an OAuth token of a service principal that `config/agent_identities.yaml` maps to the agent: put it in an environment variable and give the name with `--bearer-env VAR` (the value is never printed) |
 | Command | `python -m supervisor.demo.showcase traffic --candidate payment-ops-copilot --url https://FILL-ME-supervisor-app-url --bearer-env SHOWCASE_TOKEN --minutes 5 --rate 20` |
-| Policy | The App needs the showcase policy next to the baseline (`POLICY_DIR` second folder = `tests/fixtures/showcase/policy`) and the three agents; otherwise the masking and the limits do not apply to these ids |
+| Policy | The App needs the showcase policy next to the baseline (`POLICY_DIR` second folder = `src/supervisor/demo/showcase_data/policy`) and the three agents; otherwise the masking and the limits do not apply to these ids |
 | Pause | Over HTTP the generator cannot resume. After the first pause the rest of the calls answer `GATE-PAUSED`. Resume in the console (two people) or run with a pause-free candidate (`kb-helpdesk-bot`) |
 | Isolation | Decision rows are append-only evidence. `--reset` does not remove them; they stay tagged by the call context `source: demo:showcase` |
 
@@ -261,6 +261,16 @@ rows with the table of the Databricks run (gateway model) before the show.
 
 <!-- act 5: WP-D2 -->
 
+
+> Act order matters for the payments story. Before act 4, an over-limit transfer from
+> `payment-ops-copilot` is paused by the policy rule SHOW-PAY-01. After act 4, the new guardian
+> `transfer-above-limit-needs-approval` is live on the same agent and blocks it
+> (GATE-GUARDIAN-BLOCK). Run `traffic --candidate payment-ops-copilot` again after act 4 to show it.
+>
+> Pre-deploy on Databricks: set `PREDEPLOY_HTTP_TARGET=1`, the allow-list `*.databricksapps.com`
+> and `SHOWCASE_APP_URL_<ID>` for each candidate App, or the pre-deploy verdict stays NO-GO (no
+> running agent to test). The law-change banner of act 5 is on My overview once a change is
+> applied (REGKB_CHANGE_LOOP).
 
 ## 3. Act 5: proof (2 minutes)
 

@@ -22,7 +22,7 @@ from supervisor.demo import showcase_journeys as sj
 from supervisor.demo import showcase_traffic as st
 from supervisor.jobs import bootstrap_schema
 
-FIXTURES = REPO_ROOT / "tests" / "fixtures" / "showcase"
+FIXTURES = REPO_ROOT / "src" / "supervisor" / "demo" / "showcase_data"
 EXPECTED = {
     "kb-helpdesk-bot": "low",
     "cs-assistant": "medium",
@@ -266,7 +266,8 @@ def test_the_class_changes_what_the_orchestrator_assesses(
     assert all(g.startswith("session_max") for g in guards["kb-helpdesk-bot"])  # limits only
     assert any(g.startswith("session_monitor") for g in guards["cs-assistant"])
     assert any(g.startswith("monitor_split_payment") for g in guards["payment-ops-copilot"])
-    assert any(g.startswith("max_level") for g in guards["payment-ops-copilot"])
+    # the autonomy cap is left for the presenter to accept live (SCRIPT.md, act 2)
+    assert not any(g.startswith("max_level") for g in guards["payment-ops-copilot"])
 
 
 def test_step_stops_and_a_later_run_continues(rig: sj.Rig) -> None:

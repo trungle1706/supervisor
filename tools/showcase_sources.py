@@ -1,14 +1,13 @@
 """Dev tool (WP-D2): build the three synthetic candidate source zips of the Databricks showcase.
 
-    python tools/showcase_sources.py [--candidates-dir DIR] [--out-dir DIR] [--check]
+python tools/showcase_sources.py [--candidates-dir DIR] [--out-dir DIR] [--check]
 
-Reads the testbed candidates (read only) and writes ``tests/fixtures/showcase/<name>.zip``:
-text files only, an explicit allow-list of paths per candidate, the agent ids renamed to the
-showcase names, scrubbed with the same scrubber the intake uses, and a final secret check. No
-``.env`` file, key file, wheel, binary or log is ever added. The zips are deterministic (fixed
-timestamps, sorted names), so a second run changes nothing. ``--check`` only verifies the zips on
-disk. ASCII output.
-"""
+Reads the testbed candidates (read only) and writes
+``src/supervisor/demo/showcase_data/<name>.zip``: text files only, an explicit allow-list of paths
+per candidate, the agent ids renamed to the showcase names, scrubbed with the same scrubber the
+intake uses, and a final secret check. No ``.env`` file, key file, wheel, binary or log is ever
+added. The zips are deterministic (fixed timestamps, sorted names), so a second run changes
+nothing. ``--check`` only verifies the zips on disk. ASCII output."""
 
 from __future__ import annotations
 
@@ -26,7 +25,7 @@ sys.path.insert(0, str(REPO / "src"))
 from supervisor.onboard.scrub import scrub_text  # noqa: E402
 
 DEFAULT_CANDIDATES = Path("~/supervisor-testbed/candidates").expanduser()
-DEFAULT_OUT = REPO / "tests" / "fixtures" / "showcase"
+DEFAULT_OUT = REPO / "src" / "supervisor" / "demo" / "showcase_data"
 FIXED_TIME = (2026, 10, 29, 0, 0, 0)
 MAX_FILE = 64 * 1024
 TEXT_SUFFIXES = {".py", ".md", ".txt", ".yaml", ".yml", ".json"}

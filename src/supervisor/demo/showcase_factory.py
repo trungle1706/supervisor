@@ -55,7 +55,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from supervisor.config import REPO_ROOT, Settings, load_settings
+from supervisor.config import Settings, load_settings
 from supervisor.core.errors import SupervisorError
 
 TAG = "demo:showcase"
@@ -69,8 +69,19 @@ GUARD2 = "transfer-above-limit-needs-approval"
 LIMIT_VND = 20_000_000  # integer minor units (VND has no minor unit: 1 VND = 1)
 APPROVAL_ARG = "approval_id"
 DEFAULT_PAYMENTS_AGENT = "payments"
+# Journey 3 of the showcase (WP-D2): the guardians also bind to it, so acts 2 and 4 show one rule.
+JOURNEY_PAYMENTS_AGENT = "payment-ops-copilot"
 
-POLICY_DIR = REPO_ROOT / "tests" / "fixtures" / "showcase" / "policies"
+
+def scoped_agents(kit: Kit) -> list[str]:
+    """The agents the two showcase guardians cover: the chosen payments agent and journey 3."""
+    out = [kit.payments_agent]
+    if JOURNEY_PAYMENTS_AGENT not in out:
+        out.append(JOURNEY_PAYMENTS_AGENT)
+    return out
+
+
+POLICY_DIR = Path(__file__).resolve().parent / "showcase_data" / "policies"
 RESULTS_NAME = "factory-results.json"
 MANIFEST_NAME = "factory-manifest.json"
 FAKE_LABEL = "fake model"
@@ -113,8 +124,16 @@ class Person:
 
 
 # The same ids, roles and groups as config/users.yaml (a test checks it). Synthetic names only.
-AUTHOR = Person("reviewer.an", frozenset({"reviewer"}))
-REVIEWER = Person("reviewer.binh", frozenset({"reviewer", "approver"}))
+AUTHOR = Person(
+    "reviewer.an",
+    frozenset({"reviewer"}),
+    frozenset({"model_risk", "data", "cyber", "legal", "third_party", "ethics"}),
+)
+REVIEWER = Person(
+    "reviewer.binh",
+    frozenset({"reviewer", "approver"}),
+    frozenset({"model_risk", "data", "cyber", "legal", "third_party", "ethics"}),
+)
 LEAD_MODEL = Person("lead.model", frozenset({"approver"}), frozenset({"model_risk"}))
 LEAD_DATA = Person("lead.data", frozenset({"approver"}), frozenset({"data"}))
 LEAD_CYBER = Person("lead.cyber", frozenset({"approver"}), frozenset({"cyber"}))
@@ -1044,7 +1063,7 @@ def g1_definition(kit: Kit) -> dict[str, Any]:
         "owner_group": "data",
         "type": "regex",
         "stage": "tool_call",
-        "scope": {"agents": [kit.payments_agent], "tools": "*", "data_classes": []},
+        "scope": {"agents": scoped_agents(kit), "tools": "*", "data_classes": []},
         "action_on_fail": "redact",
         "sensitivity": 2,
         "config": got["config"],
@@ -1068,7 +1087,7 @@ def g2_definition(kit: Kit) -> dict[str, Any]:
         "owner_group": "cyber",
         "type": "policy",
         "stage": "tool_call",
-        "scope": {"agents": [kit.payments_agent], "tools": ["transfer"], "data_classes": []},
+        "scope": {"agents": scoped_agents(kit), "tools": ["transfer"], "data_classes": []},
         "action_on_fail": "block",
         "sensitivity": 2,
         "config": {
