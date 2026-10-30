@@ -257,7 +257,8 @@ def my_overview(
     ctx: Any, me: Any, scope_raw: str | None, now: dt.datetime, query: Any
 ) -> dict[str, Any]:
     rows = systems_overview._visible(ctx, me)  # noqa: SLF001 - same scope rules as UX4b
-    scope = systems_overview.parse_scope(scope_raw, rows, ctx, me)
+    # My overview opens on All; Mine and My team stay one click away (owner, 2026-10-31)
+    scope = systems_overview.parse_scope(scope_raw or "all", rows, ctx, me)
     scoped = systems_overview.in_scope(ctx, me, scope, rows)
     comps = systems_overview.components_by_system(ctx)
     cards = readmodels.agent_cards(ctx, me)

@@ -196,6 +196,8 @@ def editor_data(
     if ctx.settings.console_ux5:  # --- UX5 G6 ---
         data["stages"] = factory_ux5.stages(data["steps"])
         data["ux_events"] = factory_ux5.event_rows(data["events"])
+        data["step_state"] = factory_ux5.step_status(data)
+        data["next_step"] = factory_ux5.next_step(data["step_state"], data["steps"])
     return {"ed": data}
 
 
@@ -233,6 +235,7 @@ def _step_extra(
     elif step == "preview":
         out["plan"] = None
         out["picked"] = ""
+        out["chosen"] = []
         out["nodes"] = fact_nodes(ctx)
         out["drafts"] = _drafts(ctx, row, "result_explainer", status="")
     elif step == "gate":

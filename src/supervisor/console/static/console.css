@@ -638,7 +638,8 @@ mark.hl sup { font-size: 10px; margin-left: 2px; }
 
 /* ------------------------------------------------------------------ catalog page */
 .cat-lede { color: var(--muted); font-size: 13px; }
-.subtabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); margin: 4px 0 12px; overflow-x: auto; }
+.subtabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); margin: 4px 0 12px; overflow-x: auto;
+  overflow-y: hidden; } /* overflow-x alone makes y auto: the -1px tab underline gave a vertical scroll bar */
 .subtabs a { padding: 8px 0 9px; color: var(--muted); font-weight: 600; font-size: 14px; text-decoration: none;
   border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
 .subtabs a:hover { color: var(--fg); }

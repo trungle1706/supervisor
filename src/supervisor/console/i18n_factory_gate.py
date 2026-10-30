@@ -28,8 +28,8 @@ FG: dict[str, tuple[str, str]] = {
         "{n} nhãn hiệu chuẩn (cần {m}): đạt",
     ),
     "fg_golden_gate_hint": (
-        "{n} gate case(s) and {m} calibration label(s). A gate case holds the inputs of a run (JSON with inputs, expected, expected_evidence_refs, rubric_notes). A label is {case_id, finding_id, human_verdict, label_by, labelled_at}.",
-        "{n} ca cổng và {m} nhãn hiệu chuẩn. Ca cổng chứa đầu vào của một lần chạy (JSON với inputs, expected, expected_evidence_refs, rubric_notes). Nhãn là {case_id, finding_id, human_verdict, label_by, labelled_at}.",
+        "{n} gate case(s) and {m} calibration label(s). A gate case holds the inputs of a run (JSON with inputs, expected, expected_evidence_refs, rubric_notes). A label is {{case_id, finding_id, human_verdict, label_by, labelled_at}}.",
+        "{n} ca cổng và {m} nhãn hiệu chuẩn. Ca cổng chứa đầu vào của một lần chạy (JSON với inputs, expected, expected_evidence_refs, rubric_notes). Nhãn là {{case_id, finding_id, human_verdict, label_by, labelled_at}}.",
     ),
     "fg_upload_labels": ("Upload labels (JSON)", "Tải nhãn lên (JSON)"),
     "fg_run": ("Run", "Chạy"),

@@ -22,16 +22,16 @@
   {% endif %}
   {% endif %}
   <h4>{{ t('fa_strat') }}</h4>
-  <table class="queue" data-table="stratification"><thead><tr><th scope="col">{{ t('fa_f_id') }}</th><th scope="col">{{ t('fa_golden_cases') }}</th></tr></thead><tbody>
-  {% for item, n in ed.strat.per_item.items() %}<tr data-strat-item="{{ item }}"><td class="mono">{{ item }}</td><td>{{ ui.barcell(n, ed.strat.total or 1) }}</td></tr>{% endfor %}
+  <table class="queue{{ ' g7-table g7-strat' if ux5 }}" data-table="stratification"><thead><tr><th scope="col">{{ t('fa_f_id') }}</th><th scope="col">{{ t('fa_golden_cases') }}</th></tr></thead><tbody>
+  {% for item, n in ed.strat.per_item.items() %}<tr data-strat-item="{{ item }}"><td class="mono">{{ item }}</td><td>{{ ui.barcell(n, (ed.strat.per_item.values()|max) if ed.strat.per_item else 1) }}</td></tr>{% endfor %}
   </tbody></table>
   <p class="idline" data-per-verdict="1">{% for v, n in ed.strat.per_verdict.items() %}<span class="pill">{{ v }} {{ n }}</span> {% endfor %}</p>
   {% if ed.strat.uncovered %}<p class="notice" data-uncovered="1"><span class="dot"></span>{{ t('fa_golden_uncovered', ids=ed.strat.uncovered|join(', ')) }}</p>{% endif %}
   {% if ed.golden_total < ed.golden_min %}<p class="hint">{{ t('fa_golden_min', n=ed.golden_min) }}</p>
   {% else %}<p class="hint" data-gate-min-met="1">{{ t('fa_golden_min_met', n=ed.golden_total) }}</p>{% endif %}
-  <table class="queue" data-table="cases"><tbody>
+  <div class="tablewrap flat"><table class="queue{{ ' g7-table g7-cases' if ux5 }}" data-table="cases">{% if ux5 %}<thead><tr><th scope="col" class="c-id">{{ t('fa_f_id') }}</th><th scope="col" class="c-id">{{ t('u7_h_check') }}</th><th scope="col" class="c-exp">{{ t('u7_h_expected') }}</th><th scope="col">{{ t('u7_h_input') }}</th></tr></thead>{% endif %}<tbody>
   {% for c in ed.cases %}<tr data-case="{{ c.case_id }}"><td class="mono">{{ c.case_id }}</td><td class="mono">{{ c.checklist_id }}</td><td>{{ c.expected_verdict }}</td><td class="wrap" lang="vi">{{ c.input }}</td></tr>{% endfor %}
-  </tbody></table>
+  </tbody></table></div>
 </section>
 
 <section class="card" data-helper="golden_generator">
@@ -54,3 +54,4 @@
   {% else %}<tr><td class="hint">{{ t('fa_h_none') }}</td></tr>{% endfor %}
   </tbody></table>
 </section>
+{% if ux5 and g7_shell is not defined and ed.stages is defined %}{{ fu.stepper(ed, True) }}{% endif %}

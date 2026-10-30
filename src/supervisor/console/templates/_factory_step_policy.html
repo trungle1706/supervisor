@@ -33,3 +33,4 @@
   <p class="hint" data-internal-note="1">{{ t('fa_policy_internal') }}</p>
   {% endif %}
 </section>
+{% if ux5 and g7_shell is not defined and ed.stages is defined %}{{ fu.stepper(ed, True) }}{% endif %}

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.core.canonical import format_ts
+from supervisor.transparency.model import FAILED_RECORD_TYPE, RECORD_TYPE
 
 OPEN_STATUSES = ("open", "triaged", "contained")
 _ROOT = "root"
@@ -225,7 +226,14 @@ class Facts:
     def chain_lane(self, agent_id: str) -> dict[str, Any] | None:
         """Head of the agent lane: entry count and head hash (None when the lane is empty)."""
         lane = f"agent:{agent_id}"
-        rows = self.src.tables.query("chain_entry", {"lane": lane}, order_by=("-seq",), limit=1)
+        # The report's own chain records are left out: they are written by the run that builds
+        # the report, so counting them would make every run see changed facts in the next run.
+        own = (RECORD_TYPE, FAILED_RECORD_TYPE)
+        rows = self.src.tables.query("chain_entry", {"lane": lane}, order_by=("-seq",), limit=50)
+        rows = [r for r in rows if r["record_type"] not in own]
+        if not rows:  # 50 own records in a row: look at the whole lane (rare)
+            rows = self.src.tables.query("chain_entry", {"lane": lane}, order_by=("-seq",))
+            rows = [r for r in rows if r["record_type"] not in own]
         if not rows:
             return None
         head = rows[0]
@@ -236,8 +244,8 @@ class Facts:
         if not sig:
             return None
         s = sig[0]
+        # No ``seq``: the root lane moves with every signed head, so it would change on each run.
         return {
-            "seq": int(s["seq"]),
             "key_id": str(s["key_id"]),
             "key_kind": str(s["key_kind"]),
             "algorithm": str(s["algorithm"]),

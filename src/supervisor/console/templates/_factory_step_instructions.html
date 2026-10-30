@@ -19,3 +19,4 @@
   <h4>{{ t('fa_lint') }}</h4>
   {{ fu.lint_list(ed.lint) }}
 </section>
+{% if ux5 and g7_shell is not defined and ed.stages is defined %}{{ fu.stepper(ed, True) }}{% endif %}

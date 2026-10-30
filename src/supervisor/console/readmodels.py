@@ -425,7 +425,77 @@ def allowed_tools(rules: Mapping[str, Mapping[str, Any]], agent_id: str) -> list
     return _allowed_tools(rules, agent_id)
 
 
-def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
+class _Prefetch:
+    """Reads of the append-only tables for all agents of one card list, in one statement each
+    (``query_by``) instead of one per agent. Lazy: a table nobody asks for is not read."""
+
+    def __init__(self, ctx: Any, agent_ids: list[str]) -> None:
+        self.ctx = ctx
+        self.ids = agent_ids
+        self._cache: dict[str, dict[Any, list[dict[str, Any]]]] = {}
+
+    def _get(
+        self,
+        name: str,
+        table: str,
+        columns: list[str],
+        where: dict[str, Any] | None,
+        order_by: tuple[str, ...],
+        limit: int,
+    ) -> dict[Any, list[dict[str, Any]]]:
+        if name not in self._cache:
+            by = getattr(self.ctx.tables, "query_by", None)
+            if by is not None:
+                self._cache[name] = by(
+                    table,
+                    "agent_id",
+                    self.ids,
+                    columns=columns,
+                    where=where,
+                    order_by=order_by,
+                    per_key_limit=limit,
+                )
+            else:  # a store without the batch read: one query per agent, as before
+                self._cache[name] = {
+                    a: self.ctx.tables.query(
+                        table, {**(where or {}), "agent_id": a}, order_by=order_by, limit=limit
+                    )
+                    for a in self.ids
+                }
+        return self._cache[name]
+
+    def trace_coverage(self, aid: str) -> list[dict[str, Any]]:
+        return self._get("tc", "trace_coverage", ["agent_id", "missing"], None, (), 200).get(
+            aid, []
+        )
+
+    def gate_tools(self, aid: str) -> list[dict[str, Any]]:
+        return self._get(
+            "gt",
+            "agent_event",
+            ["agent_id", "tool_name", "ts"],
+            {"event_type": "gate_decision"},
+            ("-ts",),
+            2000,
+        ).get(aid, [])
+
+    def event_types(self, aid: str) -> list[dict[str, Any]]:
+        return self._get(
+            "et", "agent_event", ["agent_id", "event_type", "ts"], None, ("-ts",), 2000
+        ).get(aid, [])
+
+    def verdicts(self, aid: str) -> list[dict[str, Any]]:
+        return self._get(
+            "vd",
+            "verdict",
+            ["agent_id", "tier", "model_family", "model_id", "is_mock", "ts"],
+            None,
+            ("-ts",),
+            500,
+        ).get(aid, [])
+
+
+def _coverage(ctx: Any, agent_id: str, pre: _Prefetch | None = None) -> dict[str, Any]:
     """Coverage in basis points and where the number comes from.
 
     1. ``coverage`` rows with capabilities ``on`` (capabilities on / all);
@@ -433,7 +503,11 @@ def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
     3. else gate decisions / tool calls over the agent's newest 2000 events.
     Capabilities an Onboard plan proposed but nobody merged yet (``planned``) are named,
     never counted as on. ``trace_coverage`` rows add what a trace path cannot see."""
-    reduced = ctx.tables.query("trace_coverage", {"agent_id": agent_id}, limit=200)
+    reduced = (
+        pre.trace_coverage(agent_id)
+        if pre
+        else ctx.tables.query("trace_coverage", {"agent_id": agent_id}, limit=200)
+    )
     missing = sorted({m for r in reduced for m in (jloads(r.get("missing"), []) or [])})
     rows = ctx.state.query("coverage", {"agent_id": agent_id})
     status = [str(r.get("status", "")).lower() for r in rows]
@@ -457,7 +531,11 @@ def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
             "source": "cov_src_metric",
             "detail": str(latest["metric_date"]),
         }
-    events = ctx.tables.query("agent_event", {"agent_id": agent_id}, order_by=("-ts",), limit=2000)
+    events = (
+        pre.event_types(agent_id)
+        if pre
+        else ctx.tables.query("agent_event", {"agent_id": agent_id}, order_by=("-ts",), limit=2000)
+    )
     calls = sum(1 for e in events if e["event_type"] == "tool_call")
     gated = sum(1 for e in events if e["event_type"] == "gate_decision")
     if calls == 0 and gated == 0:
@@ -471,8 +549,12 @@ def _coverage(ctx: Any, agent_id: str) -> dict[str, Any]:
     }
 
 
-def _judge_family(ctx: Any, agent_id: str) -> dict[str, Any]:
-    rows = ctx.tables.query("verdict", {"agent_id": agent_id}, order_by=("-ts",), limit=500)
+def _judge_family(ctx: Any, agent_id: str, pre: _Prefetch | None = None) -> dict[str, Any]:
+    rows = (
+        pre.verdicts(agent_id)
+        if pre
+        else ctx.tables.query("verdict", {"agent_id": agent_id}, order_by=("-ts",), limit=500)
+    )
     judge = next((v for v in rows if int(v["tier"]) >= 1), None)
     if judge is not None:
         return {
@@ -539,7 +621,10 @@ def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, An
     for c in open_cases(ctx):
         open_by_agent[c["agent_id"]] = open_by_agent.get(c["agent_id"], 0) + 1
     cards = []
-    for a in sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"]):
+    agents = sorted(ctx.state.query("agent"), key=lambda r: r["agent_id"])
+    # many cards: read the append-only tables once for all agents (one card keeps its own reads)
+    pre = _Prefetch(ctx, [a["agent_id"] for a in agents]) if only is None else None
+    for a in agents:
         aid = a["agent_id"]
         if only is not None and aid != only:
             continue
@@ -558,16 +643,17 @@ def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, An
         ]
         fail_modes = sorted({r.get("fail_mode") or "-" for r in scoped})
         tools = _allowed_tools(rules, aid)
-        seen = {
-            e["tool_name"]
-            for e in ctx.tables.query(
+        gate_events = (
+            pre.gate_tools(aid)
+            if pre
+            else ctx.tables.query(
                 "agent_event",
                 {"agent_id": aid, "event_type": "gate_decision"},
                 order_by=("-ts",),
                 limit=2000,
             )
-            if e.get("tool_name")
-        }
+        )
+        seen = {e["tool_name"] for e in gate_events if e.get("tool_name")}
         tools += sorted(t for t in seen if t not in tools)
         money = [t for t in tools if classes.get(t) == "money"]
         me_role = (
@@ -589,13 +675,13 @@ def agent_cards(ctx: Any, me: Any, only: str | None = None) -> list[dict[str, An
                 "me_approved": me.user_id in approved,
                 "me_policy_admin": me.user_id in admins,
                 "stages": lifecycle(state, onboard_artefacts(ctx.settings, aid)),
-                "coverage": _coverage(ctx, aid),
+                "coverage": _coverage(ctx, aid, pre),
                 "open_cases": open_by_agent.get(aid, 0),
                 "tools_n": len(tools),
                 "money_n": len(money),
                 "fail_mode": fail_modes[0] if len(fail_modes) == 1 else "mixed",
                 "rules_n": len(scoped),
-                "judge": _judge_family(ctx, aid),
+                "judge": _judge_family(ctx, aid, pre),
                 "d33": decision33(ctx, a),
             }
         )

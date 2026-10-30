@@ -483,3 +483,8 @@ python -m supervisor.cli export-delta --out C:\supervisor-export\2026-10-15 --ta
 | RTO (maximum time to recover) | FILL-ME: bank decision |
 | Backup schedule and retention | FILL-ME: bank decision |
 | Backup storage location (and who holds the signing key copy) | FILL-ME: bank decision |
+
+
+## Read snapshot for a large portfolio (STORE_READ_CACHE)
+
+`STORE_READ_CACHE=1` (default `0`) opens a read snapshot for each GET/HEAD request and each scheduler job run. The first read of a state table loads the whole table (one SELECT) and later reads of it are filtered in memory; a store write drops that table. Append-only tables keep one answer per identical query until the next append. A table above `STORE_READ_CACHE_MAX_ROWS` (5000) is read from SQL as before. Why: on Databricks every read is one Statement API call (0.2 to 0.5 s). With 300 systems the My overview page needed 4,122 reads and the App stopped answering; with the flag it needs about 20. Set it to `1` on a Databricks deploy with a large portfolio. A snapshot lives for one request or one job run, so it cannot show a row written by another process during that time.

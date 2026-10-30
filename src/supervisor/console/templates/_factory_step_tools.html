@@ -25,3 +25,4 @@
     {% if ed.editable %}<button class="btn primary" data-act="save">{{ t('fa_save') }}</button>{% endif %}
   </form>
 </section>
+{% if ux5 and g7_shell is not defined and ed.stages is defined %}{{ fu.stepper(ed, True) }}{% endif %}

@@ -267,6 +267,23 @@ class RateLimitMiddleware:
         await self.app(scope, receive, send)
 
 
+class ReadScopeMiddleware:
+    """STORE_READ_CACHE: one read snapshot per GET/HEAD request (pure ASGI)."""
+
+    def __init__(self, app: Any, max_rows: int = 5000) -> None:
+        self.app = app
+        self.max_rows = max_rows
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope.get("method") not in ("GET", "HEAD"):
+            await self.app(scope, receive, send)
+            return
+        from supervisor.adapters.sql.store import read_scope
+
+        with read_scope(self.max_rows):
+            await self.app(scope, receive, send)
+
+
 def install(app: Any, settings: Any) -> None:
     """Register the middlewares on a FastAPI/Starlette app (last added = outermost)."""
     if settings.rate_limit_enabled:
@@ -297,6 +314,8 @@ def install(app: Any, settings: Any) -> None:
         from supervisor.console.degraded_guard import DegradedWriteGuard
 
         app.add_middleware(DegradedWriteGuard)
+    if getattr(settings, "store_read_cache", False):  # off: no scope, every read is SQL
+        app.add_middleware(ReadScopeMiddleware, max_rows=int(settings.store_read_cache_max_rows))
     app.add_middleware(RequestIdMiddleware, header=settings.request_id_header)
 
 
@@ -304,6 +323,7 @@ __all__ = [
     "CSP",
     "BodyLimitMiddleware",
     "RateLimitMiddleware",
+    "ReadScopeMiddleware",
     "RequestIdMiddleware",
     "SecurityHeadersMiddleware",
     "TokenBuckets",

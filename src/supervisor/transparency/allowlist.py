@@ -347,7 +347,6 @@ REVIEWED: frozenset[str] = frozenset(
         "evidence.root.algorithm",
         "evidence.root.key_id",
         "evidence.root.key_kind",
-        "evidence.root.seq",
         "evidence.verify.failures",
         "evidence.verify.how",
         "evidence.verify.state",

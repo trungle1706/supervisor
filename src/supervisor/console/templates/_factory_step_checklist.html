@@ -1,6 +1,69 @@
 {# Editor step 3: the checklist table editor, and the checklist drafter helper (WP-F2). #}
 {% import "_ui.html" as ui with context %}
 {% import "_factory_ui.html" as fu with context %}
+{% if ux5 %}
+{% macro chips(kinds) %}<span class="g7-chips">{% for k in kinds %}<span class="g7-chip" data-evidence="{{ k }}">{% set x = t('u6_x_' ~ k) %}{{ k if x == 'u6_x_' ~ k else x }}</span>{% else %}<span class="muted">{{ t('u7_no_evidence') }}</span>{% endfor %}</span>{% endmacro %}
+<section class="card g7-panel" id="factory-step-panel" data-step="checklist">
+  <div class="g7-sechead"><h3>3. {{ t('fa_step_checklist') }} <span class="k">{{ ed.defn.checklist|length }}</span></h3>
+  <p class="hint">{{ t('fa_checklist_hint', max=ed.caps.CHECKLIST_MAX) }}</p></div>
+  <ul class="g7-items" data-table="checklist">
+  {% for c in ed.defn.checklist %}
+    <li class="g7-item" data-item="{{ c.id }}">
+      <div class="g7-item-row">
+        <span class="g7-item-id mono">{{ c.id }}</span>
+        <div class="g7-item-body">
+          <p class="g7-q">{{ c.question }}</p>
+          <p class="g7-rule"><span class="g7-k">{{ t('fa_f_pass_rule') }}</span> {{ c.pass_rule }}</p>
+          {{ chips(c.evidence) }}
+        </div>
+        <span class="g7-item-sev">{{ ui.sev(c.severity) }}</span>
+      </div>
+      {% if ed.editable %}
+      <details class="g7-edit">
+        <summary class="g7-edit-sum">{{ t('u7_edit') }}</summary>
+        <form id="edit-{{ c.id }}" hx-post="/console/factory/{{ ed.agent.id }}/step/checklist" hx-target="#factory-step" hx-swap="innerHTML" method="post" class="g7-form">
+          {{ fu.hid(ed) }}<input type="hidden" name="op" value="edit"><input type="hidden" name="id" value="{{ c.id }}">
+          <label class="g7-field">{{ t('fa_f_question') }}<textarea name="question" data-field="question" rows="2" maxlength="{{ ed.caps.QUESTION_MAX }}" required>{{ c.question }}</textarea></label>
+          <label class="g7-field">{{ t('fa_f_pass_rule') }}<textarea name="pass_rule" data-field="pass_rule" rows="2" maxlength="{{ ed.caps.PASS_RULE_MAX }}" required>{{ c.pass_rule }}</textarea></label>
+          <div class="g7-two">
+            <fieldset class="g7-ev"><legend>{{ t('fa_f_evidence') }}</legend>
+              {% for k in ed.caps.EVIDENCE_KINDS %}<label class="g7-check"><input type="checkbox" name="ev_{{ k }}" {{ 'checked' if k in c.evidence }}> {% set x = t('u6_x_' ~ k) %}{{ k if x == 'u6_x_' ~ k else x }}</label>{% endfor %}
+            </fieldset>
+            <label class="g7-field">{{ t('fa_f_severity') }}<select name="severity" data-field="severity">{% for s in ed.caps.SEVERITIES %}<option value="{{ s }}" {{ 'selected' if s == c.severity }}>{{ t(s) }}</option>{% endfor %}</select></label>
+          </div>
+        </form>
+        <form id="drop-{{ c.id }}" hx-post="/console/factory/{{ ed.agent.id }}/step/checklist" hx-target="#factory-step" hx-swap="innerHTML" hx-confirm="{{ t('u7_confirm_drop') }}" method="post">
+          {{ fu.hid(ed) }}<input type="hidden" name="op" value="drop"><input type="hidden" name="id" value="{{ c.id }}">
+        </form>
+        <div class="g7-actionrow">
+          <button class="btn primary" form="edit-{{ c.id }}" data-act="edit-item">{{ t('fa_save') }}</button>
+          <button class="g7-danger" form="drop-{{ c.id }}" data-act="drop-item">{{ t('fa_drop') }}</button>
+        </div>
+      </details>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+  {% if ed.editable %}
+  <details class="g7-add" data-add="1">
+    <summary class="btn">+ {{ t('fa_add_item') }}</summary>
+    <form hx-post="/console/factory/{{ ed.agent.id }}/step/checklist" hx-target="#factory-step" hx-swap="innerHTML" method="post" class="g7-form" data-form="add-item">
+      {{ fu.hid(ed) }}<input type="hidden" name="op" value="add">
+      <label class="g7-field g7-id">{{ t('fa_f_id') }}<input name="id" data-field="id" maxlength="64" required></label>
+      <label class="g7-field">{{ t('fa_f_question') }}<textarea name="question" data-field="question" rows="2" maxlength="{{ ed.caps.QUESTION_MAX }}" required></textarea></label>
+      <label class="g7-field">{{ t('fa_f_pass_rule') }}<textarea name="pass_rule" data-field="pass_rule" rows="2" maxlength="{{ ed.caps.PASS_RULE_MAX }}" required></textarea></label>
+      <div class="g7-two">
+        <fieldset class="g7-ev"><legend>{{ t('fa_f_evidence') }}</legend>
+          {% for k in ed.caps.EVIDENCE_KINDS %}<label class="g7-check"><input type="checkbox" name="ev_{{ k }}"> {% set x = t('u6_x_' ~ k) %}{{ k if x == 'u6_x_' ~ k else x }}</label>{% endfor %}
+        </fieldset>
+        <label class="g7-field">{{ t('fa_f_severity') }}<select name="severity" data-field="severity">{% for s in ed.caps.SEVERITIES %}<option value="{{ s }}" {{ 'selected' if s == 'medium' }}>{{ t(s) }}</option>{% endfor %}</select></label>
+      </div>
+      <div class="g7-actionrow"><button class="btn primary" data-act="add-item">{{ t('fa_add') }}</button></div>
+    </form>
+  </details>
+  {% endif %}
+</section>
+{% else %}
 <section class="card" id="factory-step-panel" data-step="checklist">
   <h3>3. {{ t('fa_step_checklist') }} <span class="k">{{ ed.defn.checklist|length }}</span></h3>
   <p class="hint">{{ t('fa_checklist_hint', max=ed.caps.CHECKLIST_MAX) }}</p>
@@ -45,6 +108,7 @@
   </form>
   {% endif %}
 </section>
+{% endif %}
 
 <section class="card" data-helper="checklist_drafter">
   <h3>{{ t('fa_h_checklist_drafter') }}</h3>
@@ -69,3 +133,4 @@
   {% else %}<tr><td class="hint">{{ t('fa_h_none') }}</td></tr>{% endfor %}
   </tbody></table>
 </section>
+{% if ux5 and g7_shell is not defined and ed.stages is defined %}{{ fu.stepper(ed, True) }}{% endif %}

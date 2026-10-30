@@ -658,6 +658,14 @@ class Settings(BaseSettings):
     controls_starter_dir: Path = Path("config/controls")
     tasks_config: Path = Path("config/tasks.yaml")
 
+    # STORE_READ_CACHE (new: off; off = every store read is one SQL statement, as before): inside
+    # one GET request or one scheduler job run, the first read of a state table loads the whole
+    # table once and later reads of it are filtered in memory; a store write drops that table.
+    # A table with more rows than STORE_READ_CACHE_MAX_ROWS is read from SQL as before.
+    # Set it to 1 on Databricks when the portfolio is large (every read there is an API call).
+    store_read_cache: bool = False
+    store_read_cache_max_rows: int = Field(default=5000, ge=100, le=100000)
+
     # --- WP31 --- transparency report (ADR D31, docs/transparency-report.md). Off by default.
     # TRANSPARENCY_ENABLED: /v1/transparency routes, the scheduler job and the CLI build and sign
     # reports. CONSOLE_TRANSPARENCY_ENABLED: the Transparency page and the Agent tab (needs the

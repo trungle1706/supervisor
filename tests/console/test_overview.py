@@ -92,3 +92,14 @@ def test_overview_demo_line_only_on_a_demo_store(console: Console, tmp_path: obj
         assert 'data-demo="1"' in r.text and "demo data" in r.text
     finally:
         marker.unlink()
+
+
+def test_agent_cards_are_the_same_inside_a_read_scope(console: Console) -> None:
+    """STORE_READ_CACHE: the batch reads and the snapshot give the cards the plain reads give."""
+    from supervisor.adapters.sql.store import read_scope
+
+    me = SimpleNamespace(user_id="reviewer.an", display_name="An")
+    plain = readmodels.agent_cards(console.ctx, me)
+    with read_scope():
+        scoped = readmodels.agent_cards(console.ctx, me)
+    assert plain and scoped == plain

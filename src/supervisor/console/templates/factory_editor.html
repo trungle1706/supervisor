@@ -5,23 +5,33 @@
 {% block content %}
 {{ ui.crumbs([(t('fa_title'), '/console/factory'), (ed.agent.id, None)]) }}
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g6.css">{% endif %}
-{{ ui.pagehead(ed.agent.name|replace(' demo:showcase', '') if ux5 else ed.agent.name, ui.pill(ed.agent.state, ed.agent.state_pill, True) ~ ' ' ~ ui.pill('v' ~ ed.version, 'neutral')) }}
-{% if not ux5 %}<p class="hint">{{ ed.agent.description }}</p>{% endif %}
-<p class="idline">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} &middot; {% if ux5 %}{{ t('u6_owner') }}: {% endif %}{{ ed.agent.owner_label }}
+{% if ux5 %}
+{% import "_factory_ui.html" as fu with context %}
+<header class="g7-head" data-section="header">
+  <div class="g7-head-top">
+    <h1>{{ ed.agent.name|replace(' demo:showcase', '') }}</h1>
+    {{ ui.pill(ed.agent.state, ed.agent.state_pill, True) }}
+  </div>
+  <dl class="g7-meta">
+    <div><dt>{{ t('fa_f_dimension') }}</dt><dd>{{ t('fa_dim_' ~ ed.agent.dimension_id) }}</dd></div>
+    <div><dt>{{ t('fa_f_group') }}</dt><dd>{{ ed.agent.owner_label }}</dd></div>
+    <div><dt>{{ t('u7_version') }}</dt><dd class="g7-vers">
+      {% for v in ed.versions %}<a class="g7-ver{{ ' is-current' if v.version == ed.version }}" href="/console/factory/{{ ed.agent.id }}?v={{ v.version }}" data-version="{{ v.version }}"{% if v.version == ed.version %} aria-current="true"{% endif %}>v{{ v.version }}{% if v.version != ed.version %} <span class="muted">{{ v.state }}</span>{% endif %}</a>{% endfor %}
+    </dd></div>
+    <div class="g7-next"><dt>{{ t('u7_next_action') }}</dt><dd data-next-step="{{ ed.next_step }}">{% if ed.next_step %}<a href="/console/factory/{{ ed.agent.id }}?v={{ ed.version }}&amp;step={{ ed.next_step }}">{{ ed.steps.index(ed.next_step) + 1 }}. {{ t('fa_step_' ~ ed.next_step) }} &rarr;</a>{% else %}{{ t('u7_all_done') }}{% endif %}</dd></div>
+  </dl>
+</header>
+{% else %}
+{{ ui.pagehead(ed.agent.name, ui.pill(ed.agent.state, ed.agent.state_pill, True) ~ ' ' ~ ui.pill('v' ~ ed.version, 'neutral')) }}
+<p class="hint">{{ ed.agent.description }}</p>
+<p class="idline">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} &middot; {{ ed.agent.owner_label }}
   {% for v in ed.versions %}<a href="/console/factory/{{ ed.agent.id }}?v={{ v.version }}" data-version="{{ v.version }}">{{ ui.pill('v' ~ v.version ~ ' ' ~ v.state, 'info' if v.version == ed.version else 'neutral') }}</a>{% endfor %}
 </p>
+{% endif %}
 {% if ed.agent.state == 'retired' %}<p class="notice" data-retired="1"><span class="dot"></span>{{ t('fa_retired_note') }}</p>
 {% elif not ed.editable %}<p class="hint" data-readonly="1">{{ t('fa_readonly') }}</p>{% endif %}
 {% if ux5 %}
-<nav class="g6-steps" aria-label="{{ t('fa_steps') }}" data-steps="1">
-{% for st in ed.stages %}
-  <div class="g6-stage"><span class="g6-stage-name">{{ t(st.name) }}</span>
-  {% for s in st.steps %}
-    <a class="g6-step tab {{ 'current active' if s == ed.step }}" data-step-link="{{ s }}" href="/console/factory/{{ ed.agent.id }}?v={{ ed.version }}&amp;step={{ s }}"
-     hx-get="/console/factory/{{ ed.agent.id }}/step/{{ s }}?v={{ ed.version }}" hx-target="#factory-step" hx-swap="innerHTML"{% if s == ed.step %} aria-current="step"{% endif %}>{{ t('fa_step_' ~ s) }}</a>
-  {% endfor %}</div>
-{% endfor %}
-</nav>
+{{ fu.stepper(ed) }}
 {% else %}
 <nav class="tabs" aria-label="{{ t('fa_steps') }}" data-steps="1">
 {% for s in ed.steps %}
@@ -30,13 +40,13 @@
 {% endfor %}
 </nav>
 {% endif %}
-<div id="factory-step">{% include "_factory_step_" ~ ed.step ~ ".html" %}</div>
-<section class="card" data-section="actions">
+{% set g7_shell = true %}<div id="factory-step">{% include "_factory_step_" ~ ed.step ~ ".html" %}</div>
+{% if ed.can_new_version or ed.can_retire or not ux5 %}<section class="card g7-actions" data-section="actions">
   <div class="btnrow">
   {% if ed.can_new_version %}<form hx-post="/console/factory/{{ ed.agent.id }}/new-version" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><button class="btn" data-act="new-version">{{ t('fa_new_version') }}</button></form>{% endif %}
   {% if ed.can_retire %}<form hx-post="/console/factory/{{ ed.agent.id }}/retire" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><input name="reason" data-field="reason" maxlength="200" placeholder="{{ t('fa_reason') }}" required><button class="btn" data-act="retire">{{ t('fa_retire') }}</button></form>{% endif %}
   </div>
-</section>
+</section>{% endif %}
 {% if ux5 %}
 <details class="card" data-section="events">
   <summary><b>{{ t('fa_events') }}</b> ({{ ed.ux_events|length }})</summary>

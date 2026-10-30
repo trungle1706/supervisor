@@ -57,6 +57,25 @@ def test_my_overview_is_bounded_and_follows_the_board(ux: Console) -> None:
     assert "Duties closed" not in h or "Duties closed, average" in h
 
 
+def test_my_overview_opens_on_all(ux: Console) -> None:
+    def current(h: str) -> str:
+        nav = h.split('class="subtabs scope-sw"', 1)[1].split("</nav>", 1)[0]
+        return re.search(r'scope=(\w+)[^"]*" class="on"', nav).group(1)  # type: ignore[union-attr]
+
+    assert current(ux.get("/console/").text) == "all"
+    assert current(ux.get("/console/?scope=my").text) == "my"
+
+
+def test_subtabs_never_scroll_vertically() -> None:
+    from pathlib import Path
+
+    import supervisor.console as console_pkg
+
+    css = (Path(console_pkg.__file__).parent / "static" / "console.css").read_text(encoding="utf-8")
+    rule = css.split(".subtabs {", 1)[1].split("}", 1)[0]
+    assert "overflow-x: auto" in rule and "overflow-y: hidden" in rule
+
+
 def test_my_overview_past_review_rows_top5_oldest_first(ux: Console) -> None:
     h = ux.get("/console/?scope=all").text
     ids = re.findall(r'<tr data-system="([^"]+)"', h)

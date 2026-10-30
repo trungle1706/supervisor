@@ -159,6 +159,11 @@ env:
     value: "0"
   - name: TRANSPARENCY_ENABLED
     value: "1"
+  # Read snapshot per GET request and per scheduler job: one SELECT per state table instead of one
+  # per row looked up. A Databricks deploy with a large portfolio (hundreds of systems) should set
+  # this to "1": every read there is a Statement API call and the console times out without it.
+  - name: STORE_READ_CACHE
+    value: "0"
   # Scan v2 of the workspace (serving endpoints, model versions, Genie, jobs, Vector Search, UC
   # functions, UC connections): OFF until live test kit item 12 has passed. Autoregister: OFF.
   - name: INVENTORY_SCAN_V2

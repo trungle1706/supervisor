@@ -195,7 +195,7 @@ def test_factory_list_is_a_table_without_golden_count(ux: Console) -> None:
 def test_factory_editor_stages_and_harness_grid(ux: Console) -> None:
     assert create(ux).status_code == 200
     html = ux.get("/console/factory/mr-agent?step=harness").text
-    assert "g6-stage" in html and "Define" in html and "Check" in html
+    assert "g7-phase" in html and "Define" in html and "Check" in html
     assert 'class="g6-grid"' in html and 'for="g6-budget"' in html
     assert "Token budget per call" in html and "1,000 to 24,000" in html
     assert "> System facts card</label>" in html and "> facts_v1</label>" not in html

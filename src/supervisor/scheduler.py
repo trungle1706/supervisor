@@ -247,7 +247,9 @@ class SupervisorScheduler:
         lease: Lease,
         clock: Clock | None = None,
         tick_s: int = DEFAULT_TICK_S,
+        read_cache_rows: int | None = None,
     ) -> None:
+        self.read_cache_rows = read_cache_rows  # STORE_READ_CACHE: None = off
         self.jobs = {j.name: j for j in jobs}
         self.ctx = ctx
         self.lease = lease
@@ -276,7 +278,14 @@ class SupervisorScheduler:
         job = self.jobs[name]
         started = self.clock.now()
         try:
-            run = JobRun(name, "ok", job.fn())
+            if self.read_cache_rows is None:
+                result = job.fn()
+            else:
+                from supervisor.adapters.sql.store import read_scope
+
+                with read_scope(self.read_cache_rows):
+                    result = job.fn()
+            run = JobRun(name, "ok", result)
         except Exception as exc:  # noqa: BLE001 - one failing job must not stop the others
             log.exception("scheduled job %s failed", name)
             run = JobRun(name, "error", error=f"{type(exc).__name__}: {exc}"[:300])
@@ -583,6 +592,11 @@ def build_scheduler(settings: Any, runtime: Any) -> SupervisorScheduler:
         build_jobs(settings, runtime, ctx),
         ctx=ctx,
         lease=build_lease(settings, runtime.adapters.state),
+        read_cache_rows=(
+            int(settings.store_read_cache_max_rows)
+            if getattr(settings, "store_read_cache", False)
+            else None
+        ),
     )
 
 

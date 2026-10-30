@@ -24,3 +24,29 @@
 </div>
 {% endif %}
 {% endmacro %}
+
+{# UX5 stepper: phases as columns, steps as numbered rows with a state mark. oob=True re-sends it
+   with each step fragment so the current mark follows the step on screen (htmx out-of-band). #}
+{% macro stepper(ed, oob=False) %}
+<nav id="factory-nav" class="g7-stepper" aria-label="{{ t('fa_steps') }}" data-steps="1"{% if oob %} hx-swap-oob="true"{% endif %}>
+{% for st in ed.stages %}
+  <section class="g7-phase" aria-labelledby="g7-ph-{{ loop.index }}">
+    <h2 class="g7-phase-h" id="g7-ph-{{ loop.index }}">{{ t(st.name) }}</h2>
+    <ol class="g7-steplist">
+    {% for s in st.steps %}
+      {% set ss = ed.step_state.get(s, {}) %}
+      <li><a class="g7-step is-{{ ss.get('state', 'todo') }}{{ ' is-current' if s == ed.step }}" data-step-link="{{ s }}" data-state="{{ ss.get('state', 'todo') }}"
+        href="/console/factory/{{ ed.agent.id }}?v={{ ed.version }}&amp;step={{ s }}"
+        hx-get="/console/factory/{{ ed.agent.id }}/step/{{ s }}?v={{ ed.version }}" hx-target="#factory-step" hx-swap="innerHTML"
+        hx-push-url="/console/factory/{{ ed.agent.id }}?v={{ ed.version }}&amp;step={{ s }}"{% if s == ed.step %} aria-current="step"{% endif %}>
+        <span class="g7-num" aria-hidden="true">{% if ss.get('state') == 'done' %}&#10003;{% elif ss.get('state') == 'warn' %}!{% else %}{{ ed.steps.index(s) + 1 }}{% endif %}</span>
+        <span class="g7-sname">{{ t('fa_step_' ~ s) }}</span>
+        <span class="g7-snote">{% if ss.get('note') %}{{ ss.note }}{% endif %}</span>
+        <span class="sr-only">({{ t('u7_st_' ~ ss.get('state', 'todo')) if ss.get('state') in ('done', 'warn', 'todo') else '' }}{% if s == ed.step %}, {{ t('u7_st_current') }}{% endif %})</span>
+      </a></li>
+    {% endfor %}
+    </ol>
+  </section>
+{% endfor %}
+</nav>
+{% endmacro %}

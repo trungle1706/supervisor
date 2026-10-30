@@ -21,6 +21,7 @@ writes the two ``console_action`` rows (``@audited``) and a ``factory_agent_even
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -259,8 +260,14 @@ async def preview(
     def work() -> dict[str, Any]:
         row = fv.load_row(ctx, agent_id, q.get("v", ""))
         data = fv.editor_data(ctx, me, agent_id, row["version"], "preview")
-        data["ed"]["plan"] = fv.preview_data(ctx, row, q.get("nodes", ""))
-        data["ed"]["picked"] = q.get("nodes", "")
+        typed = q.get("nodes", "")
+        merged = [n for n in re.split(r"[,\s]+", typed) if n]
+        for n in q.getlist("pick"):
+            if n not in merged:
+                merged.append(n)
+        data["ed"]["plan"] = fv.preview_data(ctx, row, ", ".join(merged))
+        data["ed"]["picked"] = typed
+        data["ed"]["chosen"] = merged
         return data
 
     data = await _call(work)
