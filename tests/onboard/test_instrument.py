@@ -187,3 +187,32 @@ def test_dirty_target_is_reported(
     (target / "notes.txt").write_text("uncommitted\n", encoding="utf-8")
     (res, _), _ = _run(target, tmp_path / "w4", discoveries, profiles)
     assert any("uncommitted" in w for w in res.warnings)
+
+
+def test_detached_checkout_base_ref_is_the_commit(tmp_path: Path) -> None:
+    # CI checks out a tag (detached HEAD): the base must name the commit, not "HEAD", because
+    # HEAD in the work clone moves to the onboarding branch.
+    from supervisor.onboard.instrument import prepare_work_repo
+
+    def g(*args: str) -> str:
+        res = sandbox.git(list(args), cwd=src, identity=("t", "t@example.invalid"))
+        assert res.ok, res.stderr
+        return res.stdout.strip()
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "app.py").write_text("print('hi')\n", encoding="utf-8")
+    g("init", "-q")
+    g("add", "--all")
+    g("commit", "-q", "-m", "c1")
+    head = g("rev-parse", "HEAD")
+    (src / "app.py").write_text("print('later')\n", encoding="utf-8")
+    g("add", "--all")
+    g("commit", "-q", "-m", "c2")
+    g("checkout", "-q", head)  # detached on c1; no branch points at it (like a tag checkout)
+    assert g("rev-parse", "--abbrev-ref", "HEAD") == "HEAD"
+    mode, repo, _target, base, _warnings = prepare_work_repo(src, tmp_path / "work")
+    assert mode == "clone"
+    assert base == head
+    res = sandbox.git(["rev-parse", base], cwd=repo)
+    assert res.ok and res.stdout.strip() == head

@@ -348,6 +348,8 @@ def prepare_work_repo(target: Path, work_dir: Path) -> tuple[str, Path, Path, st
             )
         _git(["clone", "--quiet", "--no-hardlinks", str(top), str(dest)], work_dir, 300.0)
         base = _git(["rev-parse", "--abbrev-ref", "HEAD"], dest)
+        if base == "HEAD":  # detached (a tag or commit checkout): name the commit, not HEAD
+            base = _git(["rev-parse", "HEAD"], dest)
         return "clone", dest, dest / prefix if prefix else dest, base, warnings
     skipped: list[str] = []
 
