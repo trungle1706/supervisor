@@ -354,3 +354,23 @@ env:
   #   value: "policies:src/supervisor/demo/showcase_data/policy"
   # - name: INLINE_REDACTION_ENABLED
   #   value: "1"
+  # Showcase only: shortest guardian trial run in hours (default 24; a smaller value counts only
+  # with SHOWCASE_ENABLED, and the trial page then shows a "Demo setting" chip).
+  # - name: GUARDIAN_SHADOW_MIN_HOURS
+  #   value: "24"
+  # v0.11.0 UX5: the redesigned console (shorter pages, tick strips, segmented sidebar;
+  # docs/console-ux5.md). Off by default; the old console stays unchanged.
+  # - name: CONSOLE_UX5
+  #   value: "1"
+  # v0.11.0: per-call model time limits in seconds (5..900; defaults shown). Raise them for a slow
+  # model; the gateway model works with the defaults.
+  # - name: GUARDIAN_AUTHOR_TIMEOUT_S
+  #   value: "30"
+  # - name: FACTORY_HELPER_TIMEOUT_S
+  #   value: "60"
+  # - name: FACTORY_JUDGE_TIMEOUT_S
+  #   value: "60"
+  # - name: FACTORY_CALL_TIMEOUT_S
+  #   value: "90"
+  # - name: LAWAGENT_TIMEOUT_S
+  #   value: "180"

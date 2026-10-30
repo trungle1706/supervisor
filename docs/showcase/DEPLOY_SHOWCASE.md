@@ -20,7 +20,7 @@ Databricks run is the test. Report every `[FAIL]` line.
 ```
  laptop (you, OAuth profile)              workspace
  +----------------------------+  deploy  +--------------------------------------------+
- | bundle (v0.10.0)           | -------> | App: Guardian (console + gate)  [STOP for   |
+ | bundle (v0.11.0)           | -------> | App: Guardian (console + gate)  [STOP for   |
  | bootstrap_schema (SQL)     | -- SQL ->|   steps 5.2 to 5.4, START for the show]     |
  | act 1 seed (state tables)  | -- SQL ->| Delta tables  catalog.schema (86 tables)    |
  +----------------------------+          | Volume: keys, spool, anchors, DATA_DIR files|
@@ -51,7 +51,7 @@ console had not yet exited; nothing broke, the run stopped. Wait for the state `
 
 ## 3. Bundle, values, flags (step 1)
 
-1. Unzip `supervisor-databricks-0.10.0-<sha>.zip` to `C:\work\supervisor`. Check the hash with
+1. Unzip `supervisor-databricks-0.11.0-<sha>.zip` to `C:\work\supervisor`. Check the hash with
    `certutil -hashfile <zip> SHA256` against `SHA256SUMS.txt`.
 2. Fill in `databricks.yml` and `app.yaml` as in `LAUNCH_DATABRICKS.md` section 3, or copy the two
    files from the FILLED zip (already filled for your sandbox workspace).
@@ -59,7 +59,7 @@ console had not yet exited; nothing broke, the run stopped. Wait for the state `
 
 | Group | Variables (all `"1"`) |
 |---|---|
-| Showcase | `SHOWCASE_ENABLED` (demo workspace only, never a production App) |
+| Showcase | `SHOWCASE_ENABLED` (demo workspace only, never a production App), `CONSOLE_UX5` (the new console design) |
 | Governance and register | `GOVERNANCE_ENABLED`, `CONSOLE_SYSTEMS_ENABLED`, `CONSOLE_NAV_V3`, `CONSOLE_OVERVIEW_V4`, `CONSOLE_REGISTER_V2`, `CONSOLE_REGISTER_DUTIES`, `REGISTER_V3`, `CLASSIFICATION_V2`, `RISK_DIMENSIONS`, `RISK_DUTIES`, `OVERVIEW_PORTFOLIO`, `INVENTORY_ENABLED`, `CONSOLE_STATE_ACTIONS`, `CONSOLE_WORKFLOW_ACTIONS` |
 | Onboarding | `ONBOARD_INTAKE`, `ONBOARD_FACTS`, `ONBOARD_PREDEPLOY`, `ONBOARD_ATTACH_VIEW`, `ONBOARD_ORCHESTRATOR`, `SMART_GUARDIAN`, `GUARDIAN_BINDINGS_ENABLED` |
 | Gate | `DETECTORS_ENABLED`, `INLINE_REDACTION_ENABLED` |
