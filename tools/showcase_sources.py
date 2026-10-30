@@ -162,7 +162,13 @@ def build_policy(base: Path) -> str:
             agent["owner_user"], agent["owner_team"] = owner, team
             agent["initial_state"] = "SHADOW"
             doc["agents"][aid] = agent
-        doc["rules"].extend(frag.get("rules") or [])
+        # The renamed rules differ from the candidate rules with the same id (agent scope): a
+        # workspace that ran the candidates holds those ids at version 1, and a deployed version
+        # never changes content. The showcase copies therefore start at version 2.
+        doc["rules"].extend(
+            {**r, "version": max(2, int(r.get("version") or 1) + 1)}
+            for r in frag.get("rules") or []
+        )
     # tools that the traffic generator calls although the rules do not approve them: the policy
     # must know them (an unknown tool is a different block) so that the approved-tools rule acts
     doc["tools"].update({"export_all_documents": "read_only", "delete_customer": "money"})
@@ -171,6 +177,8 @@ def build_policy(base: Path) -> str:
         "# Showcase policy for the three journey agents (WP-D2). Built by\n"
         "# tools/showcase_sources.py from the candidate fragments; synthetic owners.\n"
         "# Put it next to baseline.yaml in POLICY_DIR (second folder) for the traffic generator.\n"
+        "# Rules taken from a candidate are one version above it (a workspace that ran the\n"
+        "# candidates holds their version 1, and a deployed version never changes content).\n"
     )
     return head + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
 

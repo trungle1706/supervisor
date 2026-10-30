@@ -204,6 +204,38 @@ def test_the_showcase_policy_loads_next_to_the_baseline() -> None:
     assert any(r.id == "SHOW-PAY-01" for r in pol.doc.rules)
 
 
+def test_the_showcase_policy_deploys_over_the_candidate_rules(tmp_path: Path) -> None:
+    # A workspace that ran the three candidates holds KB-*, CSA-* and PAYOPS-* at version 1 with
+    # the candidate agent ids. The showcase copies (renamed agents) must deploy next to them.
+    from supervisor.gateway.policy import deploy_policy, load_policy_dirs, load_policy_texts
+
+    settings = settings_for(tmp_path / "data")
+    adapters = build_adapters(settings)
+    try:
+        bootstrap_schema.run(settings, adapters)
+        show = load_policy_dirs([REPO_ROOT / "policies", FIXTURES / "policy"])
+        import yaml
+
+        base = yaml.safe_load((FIXTURES / "policy" / "showcase_agents.yaml").read_text("utf-8"))
+        ids = {r["id"] for r in base["rules"]} - {"SHOW-PAY-01"}
+        shared = [r for r in show.doc.rules if r.id in ids]
+        assert len(shared) == 17 and all(r.version >= 2 for r in shared)
+        old = {
+            **base,
+            "rules": [
+                {**r, "version": 1, "agent_scope": ["cs_agent"]}
+                for r in base["rules"]
+                if r["id"] != "SHOW-PAY-01"
+            ],
+        }
+        old["agents"] = {**base["agents"], "cs_agent": base["agents"]["cs-assistant"]}
+        candidate = load_policy_texts([("candidate.yaml", yaml.safe_dump(old, sort_keys=False))])
+        deploy_policy(candidate, adapters.state, adapters.clock)
+        deploy_policy(show, adapters.state, adapters.clock)  # must not raise
+    finally:
+        adapters.close()
+
+
 # ----------------------------------------------------------------------------- journeys
 
 
