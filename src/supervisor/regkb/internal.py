@@ -38,6 +38,7 @@ from typing import Any
 
 import yaml
 
+from supervisor.config import timeout_setting
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import ConcurrencyError, SupervisorError
 from supervisor.core.ports import ChatModel
@@ -636,7 +637,11 @@ class InternalDocs:
         for sec in secs:
             summary.sections_read += 1
             try:
-                reply = chat.complete_json(build_messages(sec, duties), sch, TIMEOUT_S)
+                reply = chat.complete_json(
+                    build_messages(sec, duties),
+                    sch,
+                    timeout_setting("lawagent_timeout_s", TIMEOUT_S),
+                )
             except Exception as exc:  # noqa: BLE001 - one bad section must not stop the run
                 summary.model_errors += 1
                 log.warning("law agent internal: section %d failed: %s", sec.n, type(exc).__name__)

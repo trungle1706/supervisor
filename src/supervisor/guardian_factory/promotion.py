@@ -280,10 +280,14 @@ class Promotion:
         now = self.now()
         elapsed = 0
         complete = False
+        # Demo only (GUARDIAN_SHADOW_MIN_HOURS under SHOWCASE_ENABLED): a trial shorter than a day.
+        min_hours = int(getattr(self.store.settings, "effective_shadow_min_hours", 24))
+        demo_short = min_hours < 24
         if started is not None:
             seconds = max(0, int((now - started).total_seconds()))
             elapsed = min(days_total, seconds // 86_400)
-            complete = seconds >= days_total * 86_400
+            need_s = min_hours * 3_600 if demo_short else days_total * 86_400
+            complete = seconds >= need_s
         days = self.day_rows(def_id, version)
         found = [
             dict(r) for r in self.state.query(FINDINGS, {"def_id": def_id, "version": version})
@@ -298,7 +302,10 @@ class Promotion:
         if started is None:
             problems.append("the shadow run has not started")
         elif not complete:
-            problems.append(f"the shadow period is not complete: day {elapsed} of {days_total}")
+            if demo_short:
+                problems.append(f"the shadow period is not complete: less than {min_hours} h")
+            else:
+                problems.append(f"the shadow period is not complete: day {elapsed} of {days_total}")
         if reviewed and rate > max_fpr:
             problems.append(f"the reviewed false rate is {rate} percent; the limit is {max_fpr}")
         if would_act > 0 and reviewed == 0:
@@ -308,6 +315,7 @@ class Promotion:
             "started_at": format_ts(started) if started else None,
             "days_total": days_total,
             "days_elapsed": elapsed,
+            "demo_min_hours": min_hours if demo_short else None,
             "complete": complete,
             "calls_seen": sum(int(r["calls_seen"]) for r in days),
             "would_act": would_act,

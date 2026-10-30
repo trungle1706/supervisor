@@ -43,6 +43,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from supervisor.config import timeout_setting
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import ChatModel
@@ -453,7 +454,9 @@ def judge_case(
         {"role": "user", "content": json.dumps(user, ensure_ascii=False, sort_keys=True)},
     ]
     try:
-        reply = model.complete_json(messages, MATCH_SCHEMA, JUDGE_TIMEOUT_S)
+        reply = model.complete_json(
+            messages, MATCH_SCHEMA, timeout_setting("factory_judge_timeout_s", JUDGE_TIMEOUT_S)
+        )
         error = False
     except Exception:  # noqa: BLE001 - a judge that fails is a "no" and is counted
         reply, error = {}, True
@@ -518,7 +521,9 @@ def calibrate(
             {"role": "user", "content": json.dumps(user, ensure_ascii=False, sort_keys=True)},
         ]
         try:
-            reply = model.complete_json(messages, LABEL_SCHEMA, JUDGE_TIMEOUT_S)
+            reply = model.complete_json(
+                messages, LABEL_SCHEMA, timeout_setting("factory_judge_timeout_s", JUDGE_TIMEOUT_S)
+            )
         except Exception:  # noqa: BLE001
             reply = {}
         verdict = reply.get("verdict") if isinstance(reply, Mapping) else None

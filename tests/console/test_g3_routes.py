@@ -398,3 +398,17 @@ def test_registry_list_shows_days_in_shadow(gf: Any, clk: Clk) -> None:
     assert rows[0]["live_version"] is None
     lst = gf.get("/console/guardian-factory", headers=HX)
     assert 'data-state="shadow"' in lst.text and 'data-col="shadow">3<' in lst.text
+
+
+def test_trial_page_shows_the_demo_chip_only_when_shortened(
+    gf: Any, clk: Clk, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_shadow(gf, clk)
+    assert api(gf, "POST", f"{BASE}/shadow/start", {}, user=AN).status_code == 200
+    page = api(gf, "GET", f"{CON}/shadow", user=AN).text
+    assert "data-demo-trial" not in page  # default: 24 h, no chip
+    monkeypatch.setattr(gf.ctx.settings, "guardian_shadow_min_hours", 2)
+    assert "data-demo-trial" not in api(gf, "GET", f"{CON}/shadow", user=AN).text  # showcase off
+    monkeypatch.setattr(gf.ctx.settings, "showcase_enabled", True)
+    page = api(gf, "GET", f"{CON}/shadow", user=AN).text
+    assert "Demo setting: trial shortened to 2 h" in page

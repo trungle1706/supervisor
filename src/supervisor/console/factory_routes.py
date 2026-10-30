@@ -397,7 +397,22 @@ async def helper_run(
             note += f" ({len(res['refused'])} refused by the masker or the rules)"
         return row["version"], note
 
-    version, note = await _call(work)
+    try:
+        version, note = await _call(work)
+    except helpers.HelperError as exc:
+        if exc.code != "model_error":
+            raise
+        # The model gave no draft: plain words; the reason sits in the technical disclosure.
+        resp = render(
+            request,
+            ctx,
+            me,
+            "_gf_draft_failed.html",
+            gf={"draft": {"failed": True, "reason": str(exc)}},
+            section="",
+        )
+        resp.status_code = 400
+        return resp
     request.state.audit_detail = note[:200]
     return await _call(_step_response, request, ctx, me, agent_id, version, step, note)
 

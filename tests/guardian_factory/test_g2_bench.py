@@ -599,3 +599,16 @@ def test_draft_state_only_marks_and_retired_cannot_run(
     assert store.retire("account-numbers", AN)["state"] == "retired"
     with pytest.raises(GuardianFactoryError):
         svc.start_run("account-numbers", AN, background=False)
+
+
+def test_generated_cases_carry_the_scoped_agent_and_tool() -> None:
+    d = definition(
+        scope={"agents": ["payment-ops-copilot", "b"], "tools": ["send"], "data_classes": []}
+    )
+    attack, benign = bench.generate_cases(d)
+    want = {"agent_id": "payment-ops-copilot", "tool_name": "send"}
+    assert all(c.meta == want for c in [*attack, *benign])
+    assert attack[0].payload()["meta"]["agent_id"] == "payment-ops-copilot"
+    # scope "*": unchanged, no meta
+    star_attack, star_benign = bench.generate_cases(definition())
+    assert all(c.meta == {} for c in [*star_attack, *star_benign])

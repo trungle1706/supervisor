@@ -454,3 +454,52 @@ def test_job_module_runs(gadapters: Any, gstore: GuardianDefStore, sink: ListSin
     ctx = MonitorContext.from_adapters(gadapters, sink)
     out = guardian_shadow.run(ctx, gadapters.settings)
     assert out == {"allow_expired": 0, "days_closed": 0}
+
+
+def _short_trial(
+    gadapters: Any, monkeypatch: pytest.MonkeyPatch, hours: int, showcase: bool
+) -> None:
+    monkeypatch.setattr(gadapters.settings, "guardian_shadow_min_hours", hours)
+    monkeypatch.setattr(gadapters.settings, "showcase_enabled", showcase)
+
+
+def test_shadow_min_default_is_unchanged(
+    gstore: GuardianDefStore, gadapters: Any, sink: ListSink, promo: Promotion, clk: Clk
+) -> None:
+    to_shadow(gstore, gadapters, sink, promo)
+    clk.t += timedelta(hours=2)
+    st = promo.status(promo._version(DEF, None))
+    assert not st["complete"] and st["demo_min_hours"] is None
+    assert "day 0 of 7" in "; ".join(st["problems"])
+
+
+def test_shadow_min_short_value_honoured_with_showcase(
+    gstore: GuardianDefStore,
+    gadapters: Any,
+    sink: ListSink,
+    promo: Promotion,
+    clk: Clk,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _short_trial(gadapters, monkeypatch, 1, True)
+    to_shadow(gstore, gadapters, sink, promo)
+    row = promo._version(DEF, None)
+    assert not promo.status(row)["complete"]
+    clk.t += timedelta(minutes=61)
+    st = promo.status(row)
+    assert st["complete"] and st["demo_min_hours"] == 1
+
+
+def test_shadow_min_short_value_ignored_without_showcase(
+    gstore: GuardianDefStore,
+    gadapters: Any,
+    sink: ListSink,
+    promo: Promotion,
+    clk: Clk,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _short_trial(gadapters, monkeypatch, 1, False)
+    to_shadow(gstore, gadapters, sink, promo)
+    clk.t += timedelta(hours=3)
+    st = promo.status(promo._version(DEF, None))
+    assert not st["complete"] and st["demo_min_hours"] is None

@@ -24,6 +24,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from supervisor.adapters.llm import jsonschema_lite
+from supervisor.config import timeout_setting
 from supervisor.guardian_factory import caps
 from supervisor.guardian_factory.benign_sample import benign_sample
 from supervisor.guardian_factory.definition import (
@@ -149,7 +151,7 @@ class Author:
     def _from_model(self, type_: str, sentence: str) -> dict[str, Any]:
         if self.chat is None:
             raise GuardianFactoryError("model_not_configured", "model not configured")
-        cfg_schema = CONFIG_MODELS[type_].model_json_schema()
+        cfg_schema = jsonschema_lite.inline_refs(CONFIG_MODELS[type_].model_json_schema())
         schema = {
             "type": "object",
             "properties": {
@@ -168,7 +170,11 @@ class Author:
             },
         ]
         try:
-            out = self.chat.complete_json(messages, schema, caps.AUTHOR_TIMEOUT_S)
+            out = self.chat.complete_json(
+                messages,
+                schema,
+                timeout_setting("guardian_author_timeout_s", caps.AUTHOR_TIMEOUT_S),
+            )
         except Exception as exc:  # noqa: BLE001 - any model failure is a 400, never a 500
             raise GuardianFactoryError(
                 "model_failed", f"the model call failed ({type(exc).__name__})"

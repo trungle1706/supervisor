@@ -396,3 +396,16 @@ def test_live_guardian_page_is_read_only_with_new_version(gf: Any) -> None:
     # the New version action starts a draft through the existing route
     r = gf.post(url + "/new-version", {})
     assert r.status_code == 200 and 'data-state="draft"' in r.text and 'id="gf-form"' in r.text
+
+
+def test_console_failed_model_draft_is_plain_with_the_reason_in_a_disclosure(
+    gf: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chat = FakeChat(error=RuntimeError("HTTP 400 cannot resolve $ref"))
+    monkeypatch.setattr(gf.ctx, "_guardian_author", Author(chat=chat), raising=False)
+    body = {**FORM, "type": "policy", "text": "block big transfers"}
+    r = gf.post("/console/guardian-factory/new/draft", body)  # htmx path: swapped into #flash
+    assert r.status_code == 400
+    assert "The model did not return a draft. Write it by hand, or try again." in r.text
+    assert "<details" in r.text and "model_failed" in r.text
+    assert "<details" in r.text.split("did not return a draft", 1)[1][:60] or "Technical" in r.text

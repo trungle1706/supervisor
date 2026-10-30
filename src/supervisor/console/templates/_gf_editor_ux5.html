@@ -51,7 +51,9 @@
       <p class="hint">{{ t('gf_words_hint') }}</p>
       <textarea name="text" rows="3" maxlength="1000" data-field="text" aria-label="{{ t('gf_words_box') }}">{{ gf.draft.text if gf.draft else '' }}</textarea>
       <div class="btnrow"><button type="submit" class="btn" data-action="draft">{{ t('gf_draft_btn') }}</button></div>
-      {% if gf.draft %}
+      {% if gf.draft and gf.draft.get('failed') %}
+      {% include "_gf_draft_failed.html" %}
+      {% elif gf.draft %}
       <div class="msg msg-ok" data-draft="{{ gf.draft.source }}" role="status">
         {{ t('gf_draft_note') }} ({{ t('gf_draft_src_' ~ ('library' if gf.draft.source == 'library' else 'model')) }}{% if gf.draft.mock %}, mock{% endif %})
         {% for n in gf.draft.notes %}<div class="hint">{{ n }}</div>{% endfor %}

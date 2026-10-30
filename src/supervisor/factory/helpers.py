@@ -27,6 +27,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from supervisor.config import timeout_setting
 from supervisor.core.errors import ConcurrencyError, SupervisorError
 from supervisor.core.ports import ChatModel, Clock, StateStore
 from supervisor.factory import caps, golden
@@ -231,7 +232,9 @@ EXPLAIN_SCHEMA = {
 def _call(chat: ChatModel, user: str, schema: Mapping[str, Any]) -> Mapping[str, Any]:
     messages = [{"role": "system", "content": _SYSTEM}, {"role": "user", "content": user}]
     try:
-        reply = chat.complete_json(messages, schema, TIMEOUT_S)
+        reply = chat.complete_json(
+            messages, schema, timeout_setting("factory_helper_timeout_s", TIMEOUT_S)
+        )
     except Exception as exc:  # noqa: BLE001 - a model error is a message, never a 500
         log.warning("factory helper: model call failed: %s", type(exc).__name__)
         raise HelperError(

@@ -125,3 +125,50 @@ def strict_compatible(schema: Any) -> Any:
     if isinstance(schema, list):
         return [strict_compatible(x) for x in schema]
     return schema
+
+
+def inline_refs(schema: Any) -> Any:
+    """Return a copy of ``schema`` with local ``$ref`` ("#/$defs/X", "#/definitions/X") inlined.
+
+    Some OpenAI-compatible servers (Ollama) cannot resolve a ``$ref`` once the schema is nested
+    under another object. The ``$defs`` and ``definitions`` tables are dropped from the result.
+    A reference cycle is cut: the recursive reference becomes an empty schema ``{}`` (any value).
+    A schema without ``$ref`` or ``$defs`` comes back unchanged.
+    """
+    tables: dict[str, Any] = {}
+
+    def collect(node: Any) -> None:
+        if isinstance(node, Mapping):
+            for key in ("$defs", "definitions"):
+                table = node.get(key)
+                if isinstance(table, Mapping):
+                    for name, sub in table.items():
+                        tables.setdefault(f"#/{key}/{name}", sub)
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for item in node:
+                collect(item)
+
+    def walk(node: Any, seen: tuple[str, ...]) -> Any:
+        if isinstance(node, Mapping):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and ref in tables:
+                if ref in seen:
+                    return {}
+                target = walk(tables[ref], (*seen, ref))
+                extra = {
+                    k: walk(v, seen)
+                    for k, v in node.items()
+                    if k != "$ref" and not k.startswith("$")
+                }
+                return {**target, **extra} if isinstance(target, dict) else target
+            return {k: walk(v, seen) for k, v in node.items() if k not in ("$defs", "definitions")}
+        if isinstance(node, list):
+            return [walk(item, seen) for item in node]
+        return node
+
+    collect(schema)
+    if not tables:
+        return schema
+    return walk(schema, ())
