@@ -257,6 +257,7 @@ class OpenAICompatibleChat:
     def _post(self, msgs: list[dict[str, str]], schema: Mapping[str, Any], timeout: float) -> str:
         # Strict endpoints refuse some keywords: send a stripped copy, validate with the full one.
         sent = jsonschema_lite.strict_compatible(schema) if self.strict_schema else dict(schema)
+        sent = jsonschema_lite.inline_refs(sent)  # no-op without $ref; Ollama cannot resolve them
         if self.api_shape == "responses":
             body = self._responses_body(msgs, sent)
             path = "responses"

@@ -386,6 +386,16 @@ def library_entry_for(d: GuardianDefinition) -> LibraryPattern | None:
     return next((e for e in LIBRARY if e.pattern == d.config.get("pattern")), None)
 
 
+def scope_meta(d: GuardianDefinition) -> dict[str, str]:
+    """Case meta from the scope: the first named agent and the first named tool. A scope of ``*``
+    adds nothing (neutral bench ids stay), so a guardian for all agents is as before."""
+    meta: dict[str, str] = {}
+    for key, val in (("agent_id", d.scope.agents), ("tool_name", d.scope.tools)):
+        if isinstance(val, list) and val:
+            meta[key] = str(val[0])[:64]
+    return meta
+
+
 def generate_cases(d: GuardianDefinition) -> tuple[list[Case], list[Case]]:
     """(attack, benign) for a regex of the pattern library or a keyword list. Synthetic
     Vietnamese; no model. Anything else is refused with a message."""
@@ -407,11 +417,14 @@ def generate_cases(d: GuardianDefinition) -> tuple[list[Case], list[Case]]:
             "the starter pack is made for a keyword list or for a regex of the pattern library "
             "(card_number, cccd, phone_vn, amount_vnd, account_number); upload a pack instead",
         )
+    meta = scope_meta(d)
     for i, v in enumerate(values):
         tpl = _ATTACK_TEMPLATES[i % len(_ATTACK_TEMPLATES)]
-        attack.append(Case(f"att-{i + 1:03d}", d.stage, True, label, _fill(tpl, v, i)))
+        attack.append(
+            Case(f"att-{i + 1:03d}", d.stage, True, label, _fill(tpl, v, i), meta=dict(meta))
+        )
     for i, t in enumerate(benign_sample() + extra_benign):
-        benign.append(Case(f"ben-{i + 1:03d}", d.stage, False, "benign", t))
+        benign.append(Case(f"ben-{i + 1:03d}", d.stage, False, "benign", t, meta=dict(meta)))
     return attack, benign
 
 

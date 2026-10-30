@@ -1,0 +1,6 @@
+{# A failed AI draft: plain words for everyone; the technical reason only in a disclosure. #}
+{% import "_ux5.html" as u5 with context %}
+<div class="msg msg-error" data-draft-failed="1" role="alert">The model did not return a draft. Write it by hand, or try again.
+{% if ux5 %}{% if 'admin' in me.roles %}{{ u5.technical([('reason', gf.draft.reason)]) }}{% endif %}
+{% else %}<details class="tech"><summary>Technical</summary><code>{{ gf.draft.reason }}</code></details>{% endif %}
+</div>

@@ -8,7 +8,7 @@
   {% for m, n in sim.counts.items() %}<span class="pill" data-count="{{ m }}" data-n="{{ n }}">{{ t('u6_mark_' ~ m) }} {{ n }}</span> {% endfor %}
   <span class="pill warn" data-unmarked="{{ sim.unmarked }}">{{ t('fg_unmarked') }} {{ sim.unmarked }}</span>
 </p>
-{% if can_mark %}<form hx-post="/console/factory/{{ aid }}/simulation/{{ sim.run.run_id }}/marks" hx-target="#sim-review" hx-swap="innerHTML" method="post">{% endif %}
+{% if can_mark %}<form hx-post="/console/factory/{{ aid }}/simulation/{{ sim.run.run_id }}/mark" hx-target="#sim-review" hx-swap="innerHTML" method="post">{% endif %}
 {% for s in sim.systems %}
 <section class="card" data-system="{{ s.name }}">
   <h3>{{ s.system_id }}{% if s.error %} {{ ui.pill(s.error, 'bad', True) }}{% endif %}</h3>

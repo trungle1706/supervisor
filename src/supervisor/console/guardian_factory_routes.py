@@ -508,7 +508,21 @@ async def editor_draft(
     _check_id(def_id, "guardian id")
     form, plain = await form_or_plain(request)
     vals = {**vals_from_def(None), **{k: form[k] for k in _SCALARS if k in form}}
-    out = await _call(ctx.guardian_author.draft, vals["type"], form.get("text"))
+    try:
+        out = await _call(ctx.guardian_author.draft, vals["type"], form.get("text"))
+    except GuardianFactoryError as exc:
+        if exc.code not in ("model_failed", "model_output_refused"):
+            raise
+        # A model that gave no draft: a plain message; the code is in the technical disclosure.
+        failed = {"failed": True, "reason": str(exc), "text": form.get("text", "")}
+        if plain:
+            resp = await _respond(request, ctx, me, def_id, True, "", vals, failed)
+        else:  # htmx swaps a 400 into #flash: send only the message, not the editor
+            resp = render(
+                request, ctx, me, "_gf_draft_failed.html", gf={"draft": failed}, section=""
+            )
+        resp.status_code = 400
+        return resp
     vals["config_json"] = json.dumps(out["config"], indent=2, ensure_ascii=False, sort_keys=True)
     if not vals["name"].strip():
         vals["name"] = out["name"]

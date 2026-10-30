@@ -54,6 +54,7 @@ from typing import Any
 
 import yaml
 
+from supervisor.config import timeout_setting
 from supervisor.core.ports import ChatModel
 from supervisor.regkb.drafts import MAX_QUOTE, DraftStore, quote_key
 from supervisor.regkb.errors import RegKBError
@@ -472,7 +473,9 @@ def run_agent(
         summary.articles_read += 1
         try:
             reply = chat.complete_json(
-                build_messages(instrument_id, art, duties), SCHEMA, TIMEOUT_S
+                build_messages(instrument_id, art, duties),
+                SCHEMA,
+                timeout_setting("lawagent_timeout_s", TIMEOUT_S),
             )
             items = list(reply.get("drafts", []))
         except Exception as exc:  # noqa: BLE001 - one bad article must not stop the run

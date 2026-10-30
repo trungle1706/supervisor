@@ -164,3 +164,45 @@ def test_input_limits() -> None:
     with pytest.raises(GuardianFactoryError) as e:
         a.draft("magic", "text")
     assert e.value.code == "bad_type"
+
+
+class _Rec(FakeChat):
+    def complete_json(self, messages: Any, json_schema: Any, timeout_s: float) -> Any:
+        self.schema = json_schema
+        self.timeout = timeout_s
+        return super().complete_json(messages, json_schema, timeout_s)
+
+
+def _has_ref(node: Any) -> bool:
+    if isinstance(node, dict):
+        return "$ref" in node or "$defs" in node or any(_has_ref(v) for v in node.values())
+    if isinstance(node, list):
+        return any(_has_ref(v) for v in node)
+    return False
+
+
+def test_policy_draft_sends_a_schema_without_ref_and_defs() -> None:
+    chat = _Rec({"config": {"rules": []}})
+    try:
+        Author(chat=chat).draft("policy", "block transfers over a limit")
+    except GuardianFactoryError:
+        pass  # the answer may be refused; the schema that was sent is what counts
+    assert chat.calls and not _has_ref(chat.schema)
+
+
+def test_author_timeout_default_and_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    from supervisor import config
+
+    chat = _Rec({"config": {"pattern": r"ZX\d{4}"}})
+    monkeypatch.setenv("SUPERVISOR_ENV_FILE", "/dev/null")
+    monkeypatch.delenv("GUARDIAN_AUTHOR_TIMEOUT_S", raising=False)
+    config.get_settings.cache_clear()
+    try:
+        Author(chat=chat).draft("regex", "ZX refs")
+        assert chat.timeout == 30.0
+        monkeypatch.setenv("GUARDIAN_AUTHOR_TIMEOUT_S", "240")
+        config.get_settings.cache_clear()
+        Author(chat=chat).draft("regex", "ZX refs")
+        assert chat.timeout == 240.0
+    finally:
+        config.get_settings.cache_clear()

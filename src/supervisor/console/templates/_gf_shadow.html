@@ -4,6 +4,7 @@
 {% set S = gs.shadow %}
 <div id="gf-shadow" data-panel="shadow" data-def="{{ gs.id }}" data-state="{{ gs.state }}">
   <p class="hint">{{ t('gf_s_purpose') }}</p>
+  {% if S and S.demo_min_hours is not none %}<p class="chip" data-demo-trial="1" role="note">{% if lang == 'vi' %}Cài đặt demo: thời gian chạy thử rút ngắn còn {{ S.demo_min_hours }} giờ{% else %}Demo setting: trial shortened to {{ S.demo_min_hours }} h{% endif %}</p>{% endif %}
   {% if not gs.hook_on %}<div class="msg msg-error" data-shadow-hook="off" role="alert">{{ t('gf_s_hook_off') }}</div>{% endif %}
 
   {% if gs.state == 'benchmarked' %}

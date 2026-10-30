@@ -46,6 +46,7 @@ from typing import Any, Protocol
 
 from pydantic import ValidationError
 
+from supervisor.config import timeout_setting
 from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import ChatModel
 from supervisor.factory import caps, registry
@@ -55,6 +56,13 @@ from supervisor.onboard.agent_log import clean
 
 PREAMBLE_VERSION = 1
 CALL_TIMEOUT_S = 90.0
+
+
+def call_timeout() -> float:
+    """One agent call limit (setting FACTORY_CALL_TIMEOUT_S, default 90)."""
+    return timeout_setting("factory_call_timeout_s", CALL_TIMEOUT_S)
+
+
 BODY_CHARS = 600  # a fact, pack, RegKB or record body is cut to this many characters
 INDEX_MAX = 120  # names listed in the index of one call
 LABEL_CHARS = 80
@@ -555,9 +563,9 @@ class _Run:
             or self.total_tokens + prompt + reserve > self.run_budget
         ):
             return None
-        timeout = float((self.inputs.get("budget") or {}).get("seconds") or CALL_TIMEOUT_S)
+        timeout = float((self.inputs.get("budget") or {}).get("seconds") or call_timeout())
         try:
-            reply = self.model.complete_json(messages, schema, min(CALL_TIMEOUT_S, timeout))
+            reply = self.model.complete_json(messages, schema, min(call_timeout(), timeout))
         except Exception:  # noqa: BLE001 - a failed call leaves the items as question
             reply = {}
         used = prompt + _tokens(json.dumps(reply, default=str) if reply else "")

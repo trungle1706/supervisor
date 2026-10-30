@@ -44,6 +44,7 @@ from pydantic import (
     Field,
     SecretStr,
     ValidationError,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -862,6 +863,17 @@ class Settings(BaseSettings):
     # budget in milliseconds per call; a shadow detector over the budget is skipped and counted.
     guardian_shadow: bool = False
     guardian_shadow_budget_ms: int = Field(default=20, ge=1, le=1000)
+    # Per-call model time limits that were fixed in code (CPU models need more). Defaults are the
+    # old values; a value outside 5..900 or not a number falls back to the default.
+    guardian_author_timeout_s: int = 30  # AI draft of a guardian (GUARDIAN_AUTHOR_TIMEOUT_S)
+    factory_helper_timeout_s: int = 60  # factory AI helpers (FACTORY_HELPER_TIMEOUT_S)
+    factory_judge_timeout_s: int = 60  # gate match and label judge calls
+    factory_call_timeout_s: int = 90  # one agent call in a factory gate, sample or simulation run
+    lawagent_timeout_s: int = 180  # law agent duty drafting, one call per section
+    # Demo only: shortest guardian trial run in hours. 24 = the real minimum (one day). A smaller
+    # value counts only when SHOWCASE_ENABLED is on; otherwise it is ignored. Range 0..168.
+    guardian_shadow_min_hours: int = 24
+    showcase_enabled: bool = False
     # The daily job: retire expired allow-list entries, one chain record per closed shadow day.
     sched_guardian_shadow_s: int = Field(default=86_400, ge=300)
     # --- WP-G1 --- lifecycle, stage approvals, reviews, outbound events (docs/governance.md).
@@ -978,6 +990,33 @@ class Settings(BaseSettings):
         if not value.is_absolute():
             value = REPO_ROOT / value
         return Path(os.path.abspath(value))
+
+    @field_validator(
+        "guardian_author_timeout_s",
+        "factory_helper_timeout_s",
+        "factory_judge_timeout_s",
+        "factory_call_timeout_s",
+        "lawagent_timeout_s",
+        "guardian_shadow_min_hours",
+        mode="before",
+    )
+    @classmethod
+    def _bounded_or_default(cls, value: object, info: ValidationInfo) -> object:
+        name = info.field_name or ""
+        default = cls.model_fields[name].default
+        low, high = (0, 168) if name == "guardian_shadow_min_hours" else (5, 900)
+        try:
+            number = int(str(value).strip())
+        except (TypeError, ValueError):
+            return default
+        return number if low <= number <= high else default
+
+    @property
+    def effective_shadow_min_hours(self) -> int:
+        """Shortest guardian trial in hours. Below 24 only with SHOWCASE_ENABLED (demo)."""
+        if self.guardian_shadow_min_hours < 24 and not self.showcase_enabled:
+            return 24
+        return self.guardian_shadow_min_hours
 
     @field_validator("risk_duties_sweep_s", mode="after")
     @classmethod
@@ -1299,3 +1338,11 @@ def load_settings(**overrides: object) -> Settings:
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return load_settings()
+
+
+def timeout_setting(field: str, fallback: float) -> float:
+    """A per-call model time limit from settings; ``fallback`` when settings cannot load."""
+    try:
+        return float(getattr(get_settings(), field))
+    except Exception:  # noqa: BLE001 - a broken config must not turn a draft into a crash
+        return fallback

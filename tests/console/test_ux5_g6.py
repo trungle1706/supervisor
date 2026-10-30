@@ -258,3 +258,26 @@ def test_simulation_review_questions_and_one_save(
         "viewer.hoa",
     )
     assert denied.status_code == 403
+
+
+def test_simulation_save_form_posts_to_a_route_that_exists(
+    ux: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The Save form action must be the real route (it was /marks: HTTP 404)."""
+    import re
+
+    monkeypatch.setattr(gate, "system_inputs", lambda ctx, sid, dim: fake_inputs(sid, dim))
+    create(ux)
+    assert start(ux, "simulation", systems="sys-a, sys-b").status_code == 200
+    run = gate.latest_runs(gate.GateEnv.from_console(ux.ctx), "mr-agent")[0]
+    url = f"/console/factory/mr-agent/simulation/{run['run_id']}"
+    page = ux.get(url, "reviewer.binh").text
+    actions = [a for a in re.findall(r'hx-post="([^"]+)"', page) if "/simulation/" in a]
+    assert actions and all(a.endswith("/mark") for a in actions)
+    assert "/marks" not in page
+    r = ux.post(
+        actions[0],
+        {"sys_1": "sys-a", "fid_1": "f-MR-01", "mark_1": "agree", "orig_1": "||"},
+        "reviewer.binh",
+    )
+    assert r.status_code == 200
