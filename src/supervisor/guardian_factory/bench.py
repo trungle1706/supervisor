@@ -388,7 +388,7 @@ def library_entry_for(d: GuardianDefinition) -> LibraryPattern | None:
 
 def scope_meta(d: GuardianDefinition) -> dict[str, str]:
     """Case meta from the scope: the first named agent and the first named tool. A scope of ``*``
-    adds nothing (the case keeps the neutral bench ids), so a guardian for all agents is unchanged."""
+    adds nothing (the case keeps the neutral bench ids), so a guardian for all agents is as before."""
     meta: dict[str, str] = {}
     for key, val in (("agent_id", d.scope.agents), ("tool_name", d.scope.tools)):
         if isinstance(val, list) and val:
