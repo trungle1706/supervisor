@@ -165,7 +165,7 @@ sys.path.insert(0, "/Workspace/FILL-ME-bundle-folder/src")
 os.chdir("/Workspace/FILL-ME-bundle-folder")
 V = "/Volumes/FILL-ME-catalog/FILL-ME-schema/FILL-ME-volume/supervisor"
 os.environ.update({
-    "SQL_BACKEND": "databricks_rest", "DATA_DIR": V + "/data", "SIGNER_KEY_PATH": V + "/keys/signer.key",
+    "SQL_BACKEND": "databricks_rest", "DATA_DIR": V + "/data", "SIGNER_KEY_PATH": V + "/keys/evidence_ed25519.pem",
     "SPOOL_DIR": V + "/spool", "ANCHOR_PATH": V + "/anchors",
     "POLICY_DIR": "policies:src/supervisor/demo/showcase_data/policy",
     "CONSOLE_URL": "https://FILL-ME-supervisor-app-url",
