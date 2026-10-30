@@ -267,7 +267,7 @@ def test_hard_timeout_applies_fail_mode(
     adapters: Adapters, evidence: MemoryEvidence, mini: Policy
 ) -> None:
     g = Gateway(
-        _SlowPolicy(mini, 0.6),
+        _SlowPolicy(mini, 2.0),
         adapters.tables,
         adapters.state,
         evidence,
@@ -278,10 +278,11 @@ def test_hard_timeout_applies_fail_mode(
     money = call(g, "a1", "pay", customer_id="C1", amount_minor=1)
     read = call(g, "a1", "read", n=1)
     elapsed = time.perf_counter() - t
-    assert elapsed < 1.0
+    # 2 x 0.2 s with the timeout; 4 s without it. The wide gap keeps a slow CI runner green.
+    assert elapsed < 2.0
     assert money["allow"] is False and money["fail_mode"] == "closed"
     assert read["allow"] is True and read["action"] == "alert" and read["fail_mode"] == "open"
-    time.sleep(0.8)  # let the abandoned workers finish: they must not record an allow
+    time.sleep(2.2)  # let the abandoned workers finish: they must not record an allow
     g.close()
     rows = adapters.tables.query("verdict", {"agent_id": "a1"})
     assert {r["label"] for r in rows} == {"fail_closed", "fail_open"}
