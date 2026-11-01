@@ -2,7 +2,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('cases') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nav_g_act'), None), (t('cases') if filters.status != 'closed' else t('archive'), None)]) }}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('cases') if filters.status != 'closed' else t('archive'), None)]) }}
 {% if ux5 %}
 {% import "_ux5.html" as u5 with context %}
 {{ u5.page_head(t('cases') if filters.status != 'closed' else t('archive'), t('cases_purpose'), about=t('cases_why') ~ ' ' ~ t('cases_note')) }}

@@ -32,6 +32,7 @@ from supervisor.assurance.gates import JudgeNotValidatedError as _PackGateError
 from supervisor.config import Settings
 from supervisor.core.errors import SupervisorError
 from supervisor.core.ports import Masker, TableStore
+from supervisor.core.timeutil import parse_utc_strict
 from supervisor.judge.masking import IdentityMasker, mask_version_of
 from supervisor.judge.mrm import identity as ident_mod
 from supervisor.judge.mrm.identity import JudgeIdentity
@@ -77,10 +78,7 @@ def current_identity(
     )
 
 
-def _ts(value: Any) -> datetime:
-    if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=UTC)
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(UTC)
+_ts = parse_utc_strict
 
 
 def _validations(tables: TableStore) -> list[dict[str, Any]]:

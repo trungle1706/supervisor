@@ -17,7 +17,7 @@
   {% if enabled %}
   <div class="hint">{{ t('start_hint') }}</div>
   {% else %}
-  <div class="hint" data-onboard-off="1">{{ t('onboard_off') }} {% if not ux5 or 'admin' in me.roles %}<code>python -m supervisor.onboard --target src\supervisor_agents\payments --out out\payments --mock-llm</code>{% endif %}</div>
+  <div class="hint" data-onboard-off="1"{{ flag_title('CONSOLE_ONBOARD_ENABLED') }}>{{ t('onboard_off') }} {% if not ux5 or 'admin' in me.roles %}{{ t('b3_cmd_line') }} <code>python -m supervisor.onboard --target src\supervisor_agents\payments --out out\payments --mock-llm</code>{% endif %}</div>
   {% endif %}
   {% if job %}
   <div class="progress" data-job="{{ job.status }}">

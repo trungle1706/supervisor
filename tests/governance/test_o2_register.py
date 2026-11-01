@@ -67,9 +67,11 @@ def sg_of(c: Console, did: str) -> dict[str, Any]:
 
 def test_prefill_uses_the_facts_with_reason_keys_and_pointers(facts_on: Console) -> None:
     nid = seed_node(facts_on)
-    before = sg_of(facts_on, new(facts_on, f"?from={nid}"))
+    first = new(facts_on, f"?from={nid}")
+    before = sg_of(facts_on, first)
     assert before["money_movement"]["reason_key"] == "rg2_why_money_tool"  # the scan, no facts yet
     build_facts(facts_on, nid)
+    facts_on.post(f"/console/register/{first}/abandon", {}, user=ME)  # one open draft per object
     did = new(facts_on, f"?from={nid}")
     sg = sg_of(facts_on, did)
     assert sg["purpose"]["reason_key"] == "rg2_why_fact_purpose"
@@ -93,7 +95,11 @@ def test_prefill_uses_the_facts_with_reason_keys_and_pointers(facts_on: Console)
     assert all(v["source"] == "scan" for v in sg.values())
     # the page shows the reason and the pointer
     html = facts_on.get(f"/console/register/{did}/step/2?lang=en").text
-    assert 'data-suggest="purpose"' in html and "facts card" in html and 'data-fact="1"' in html
+    assert (
+        'data-suggest="purpose"' in html
+        and "from the facts of the saved code" in html
+        and 'data-fact="1"' in html
+    )
     assert "agent.py:3" in html
 
 

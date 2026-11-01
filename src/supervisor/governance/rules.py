@@ -28,6 +28,7 @@ from typing import Any
 
 import yaml
 
+from supervisor.core.flags import truthy
 from supervisor.governance import conditions as cond
 from supervisor.governance import model as gm
 from supervisor.governance.conditions import FieldSpec, RulesError
@@ -314,8 +315,7 @@ def facts_of(
 ) -> dict[str, Any]:
     """The facts a rule can see, from the ``ai_system`` row and what the parts add. Pure."""
 
-    def on(v: Any) -> bool:
-        return v.strip().lower() in ("1", "true") if isinstance(v, str) else bool(v)
+    on = truthy
 
     facts: dict[str, Any] = {k: system.get(k) for k in _SYSTEM_FIELDS if k in system}
     facts["money_movement"] = on(system.get("money_movement"))

@@ -56,10 +56,6 @@ MAX_REASON_CHARS = 240
 MAX_DETAIL_DEPTH = 8
 
 
-class EngineError(SupervisorError):
-    """The engine cannot run (bad arguments), as opposed to a failing pack."""
-
-
 class _SystemClock:
     def now(self) -> datetime:
         return datetime.now(UTC)

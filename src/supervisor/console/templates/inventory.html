@@ -13,10 +13,15 @@
 {{ ui.purpose(t('inv_purpose'), t('inv_why')) }}
 {% endif %}
 <div id="inventory-body" data-inventory="1">
+{% if ux5 and shell().ov4 %}
+{# UI-022: the unmanaged items are the Candidates list (My overview). One owner page; this page keeps the registered nodes. #}
+<p class="hint" data-unmanaged-link>{{ t('inv_unmanaged') }} {{ ui.pill(unmanaged|length, 'bad' if unmanaged else 'ok') }} <a href="/console/candidates?lang={{ lang }}">{{ t('ov4_t_candidates') }}</a></p>
+{% else %}
 <h2>{{ t('inv_unmanaged') }} {{ ui.pill(unmanaged|length, 'bad' if unmanaged else 'ok') }}</h2>
 <div id="um-list">
 {% include "_inventory_unmanaged.html" %}
 </div>
+{% endif %}
 
 {% if agents %}
 <h2>{{ t('inv_tree') if not ux5 else t('inv_nodes') }}</h2>
@@ -27,7 +32,7 @@
     {% for a in agents %}<option value="{{ a }}" {{ 'selected' if a == agent else '' }}>{{ a }}</option>{% endfor %}
   </select>
   <noscript><button type="submit" class="chipbtn">OK</button></noscript>
-  {% if agent %}<a class="chipbtn" href="/console/agents/{{ agent }}?tab=inventory&amp;lang={{ lang }}">{{ t('open_agent_page') }}</a>{% endif %}
+  {% if agent and agent_registered %}<a class="chipbtn" href="/console/agents/{{ agent }}?tab=inventory&amp;lang={{ lang }}">{{ t('open_agent_page') }}</a>{% elif agent %}<span class="chipbtn muted" aria-disabled="true" title="{{ t('b1_not_registered_tip') }}">{{ t('open_agent_page') }}</span>{% endif %}
 </form>
 {% if not ux5 %}<pre class="excerpt" id="inv-tree">{{ tree }}</pre>{% endif %}
 {% if not ux5 %}<h2>{{ t('inv_nodes') }}</h2>{% endif %}
@@ -37,7 +42,7 @@
   <tbody>
   {% for r in node_rows %}
     <tr class="row">
-      <td>{{ r.kind }}</td><td class="mono">{{ r.name }}</td>
+      <td>{{ label_for('kind', r.kind) }}</td><td class="mono">{{ r.name }}</td>
       <td>{{ r.own_risk or '-' }}</td><td>{{ r.effective_risk or '-' }}</td>
       <td class="mono">{% if ux5 %}<details><summary>{{ t('g4_evidence') }}</summary>{{ r.evidence }}</details>{% else %}{{ r.evidence }}{% endif %}</td>
     </tr>

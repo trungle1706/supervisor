@@ -1,5 +1,8 @@
 """Directory groups -> console roles (WP11 stub, OFF by default; Entra ID via SCIM).
 
+Not wired to a feature yet: nothing in ``src/`` imports this module; only
+``tests/integrations/test_integrations.py`` does. It is kept on purpose (planned integration).
+
 Direction: bank directory (Entra ID) --SCIM--> Databricks workspace groups --> Supervisor
 reads group membership. Supervisor never writes to the directory.
 

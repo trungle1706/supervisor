@@ -105,10 +105,10 @@ def test_step3_off_or_without_a_report_keeps_the_folder_scan(
     did = new(reg, f"?from={nid}")
     html = reg.get(f"/console/register/{did}/step/3?lang=en").text
     assert 'data-register="step3"' in html and 'data-register="predeploy"' not in html
-    assert 'name="repo_path"' in html or "ux4b_f_repo" in html or "Readiness advisor" in html
+    assert 'name="repo_path"' in html or "ux4b_f_repo" in html or "Readiness check" in html
     monkeypatch.setattr(reg.ctx.settings, "onboard_predeploy", True)  # on, but no report yet
     html = reg.get(f"/console/register/{did}/step/3?lang=en").text
-    assert 'data-register="predeploy"' not in html and "Readiness advisor" in html
+    assert 'data-register="predeploy"' not in html and "Readiness check" in html
 
 
 def test_step3_shows_the_verdict_and_links_to_the_panel_instead_of_the_scan(

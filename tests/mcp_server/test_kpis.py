@@ -176,9 +176,9 @@ def test_a_figure_that_cannot_be_computed_says_why(rig: Rig) -> None:
     assert k["quality"]["risk_treatment_coverage_bp"] is None
     assert k["unavailable"]["risk_treatment_coverage_bp"] == "risk_register_off"
     assert k["unavailable"]["control_readiness_bp"] == "controls_off"
-    assert (
-        k["speed"]["overdue_tasks"] is None and k["unavailable"]["overdue_tasks"] == "controls_off"
-    )
+    # UI-040: the task rows are read with the control catalogue off, as My overview does
+    assert isinstance(k["speed"]["overdue_tasks"], int)
+    assert "overdue_tasks" not in k["unavailable"]
 
 
 # ------------------------------------------------------------------------ the endpoint
@@ -236,8 +236,10 @@ def test_the_overview_page_shows_the_block_in_both_languages(
     r = rig.console.get(f"/console/governance?lang={lang}&scope=all", user="admin.chi")
     assert r.status_code == 200, r.text[:300]
     assert 'data-section="kpis"' in r.text and title in r.text
-    for table in ("kpi-coverage", "kpi-quality", "kpi-speed"):
+    # UI-043: the quality block is all "feature off" here, so it is one line, not a table of rows
+    for table in ("kpi-coverage", "kpi-speed"):
         assert f'data-table="{table}"' in r.text
+    assert 'data-table="kpi-quality"' not in r.text and "data-kpi-off" in r.text
     assert "g6_" not in r.text  # every key has a text
 
 

@@ -18,20 +18,19 @@ Limit
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from supervisor.core.ports import TableStore
+from supervisor.core.rows import rows_by
+from supervisor.core.timeutil import parse_utc_strict
 
 CLOSE_RESOLUTIONS = {"close:confirmed": "confirmed", "close:false_alarm": "false_alarm"}
 JUDGE_LABEL = "suspicious"
 DEFAULT_MIN_PAIRS = 5
 
 
-def _ts(value: Any) -> datetime:
-    if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=UTC)
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(UTC)
+_ts = parse_utc_strict
 
 
 def agree_bp(agree: int, pairs: int) -> int | None:
@@ -41,14 +40,25 @@ def agree_bp(agree: int, pairs: int) -> int | None:
     return (agree * 20000 + pairs) // (2 * pairs)
 
 
-def _judge_verdicts_by_case(tables: TableStore) -> dict[str, list[str]]:
+def _judge_verdicts_by_case(
+    tables: TableStore, links: list[dict[str, Any]] | None = None
+) -> dict[str, list[str]]:
+    links = tables.query("case_link") if links is None else links
+    # One batch read of the verdicts of every gate link, not one query per link.
+    gate = rows_by(
+        tables,
+        "verdict",
+        "event_id",
+        [str(lk["source_ref"]) for lk in links if lk["source_kind"] == "gate"],
+        columns=("event_id", "verdict_id", "tier"),
+    )
     out: dict[str, list[str]] = defaultdict(list)
-    for link in tables.query("case_link"):
+    for link in links:
         kind, ref, case_id = link["source_kind"], str(link["source_ref"]), str(link["case_id"])
         if kind == "judge":
             out[case_id].append(ref)
         elif kind == "gate":
-            for v in tables.query("verdict", {"event_id": ref}):
+            for v in gate.get(ref, []):
                 if int(v["tier"]) in (1, 2):
                     out[case_id].append(str(v["verdict_id"]))
     return {k: sorted(set(v)) for k, v in out.items()}
@@ -58,7 +68,11 @@ def agreement_pairs(
     tables: TableStore, *, since: datetime | None = None, until: datetime | None = None
 ) -> list[dict[str, Any]]:
     """Pairs whose closing sign-off ts is in ``since <= ts < until`` (either bound optional)."""
-    judged = _judge_verdicts_by_case(tables)
+    links = tables.query("case_link")
+    judged = _judge_verdicts_by_case(tables, links)
+    agent_of: dict[str, str] = {}
+    for lk in links:  # the agent is the same on every link of a case
+        agent_of.setdefault(str(lk["case_id"]), str(lk["agent_id"]))
     closes: dict[str, tuple[datetime, str]] = {}
     for s in tables.query("signoff"):
         resolution = CLOSE_RESOLUTIONS.get(str(s["decision"]))
@@ -72,8 +86,7 @@ def agreement_pairs(
     for case_id, (ts, resolution) in sorted(closes.items(), key=lambda kv: (kv[1][0], kv[0])):
         if (since is not None and ts < since) or (until is not None and ts >= until):
             continue
-        rows = tables.query("case_link", {"case_id": case_id})
-        agent_id = str(rows[0]["agent_id"])
+        agent_id = agent_of[case_id]
         out.append(
             {
                 "case_id": case_id,

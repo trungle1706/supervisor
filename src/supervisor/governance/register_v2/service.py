@@ -74,7 +74,7 @@ def duties_view(
     """Step "Duties": the matrix rows, filtered and paged by the query (``f``, ``p``)."""
     raw_page = str(query.get("p") or "1")
     if not (raw_page.isascii() and raw_page.isdigit()) or int(raw_page) < 1 or len(raw_page) > 6:
-        raise rm.RegisterError("p", "must be a page number")
+        raise rm.RegisterError("p", "Enter a page number, for example 1.")
     return dut.view(
         ctx, draft, flt=str(query.get("f") or "gaps"), page=int(raw_page), posted=posted
     )
@@ -161,7 +161,7 @@ def system_draft(ctx: Any, me: Any, draft: Mapping[str, Any]) -> dict[str, Any]:
         f for f in ("user_segment", "personal_data", "human_control") if out.get(f) in ("", None)
     ]
     if missing:
-        raise rm.RegisterError(missing[0], "is required")
+        raise rm.RegisterError(missing[0], "Fill this in to continue.")
     return out
 
 
@@ -192,44 +192,79 @@ def fact_rows(ctx: Any, node_id: str) -> list[dict[str, Any]]:
     return [r for r in card["rows"] if r["kind"] != "summary"]
 
 
+def _open_draft_of(ctx: Any, kind: str, ref: str | None) -> dict[str, Any] | None:
+    """The newest open draft of any person made from this scanned object or agent, or ``None``.
+    A second draft of the same object would make a second AI system with the same name at
+    step 3."""
+    if kind == "blank" or not ref:
+        return None
+    rows = ctx.state.query(
+        "registration_draft", {"source_kind": kind, "source_ref": ref, "status": "draft"}
+    )
+    return dict(max(rows, key=lambda r: str(r["updated_at"]))) if rows else None
+
+
 def start(
     ctx: Any, me: Any, node_id: str = "", agent_id: str = "", *, dry: bool = False
 ) -> dict[str, Any]:
     """Make a draft with the prefill of a scanned node, of a policy-only agent, or blank.
     ``dry``: run every check, write nothing (the confirm page of a GET), return ``{}``."""
     if me.kind != "user":
-        raise rm.RegisterError("user", "registering needs a signed-in person")
+        raise rm.RegisterError("user", "Sign in as a person to register an AI system.")
     uid = str(me.user_id)
     node_id, agent_id = (node_id or "").strip(), (agent_id or "").strip()
     if node_id and agent_id:
-        raise rm.RegisterError("from", "give a scanned object or an agent, not both")
+        raise rm.RegisterError("from", "Choose either a scanned object or an agent, not both.")
     sg: dict[str, Any] = {}
     kind, ref = "blank", None
     if node_id:
         if not rm.ID_RE.match(node_id):
-            raise rm.RegisterError("from", "is not a node id")
+            raise rm.RegisterError(
+                "from", "This is not a valid scanned object id. Pick the object from the inventory."
+            )
         graph = InventoryStore(ctx.state, ctx.clock).load_graph()
         node = graph.nodes.get(node_id)
         if node is None or node.status == "gone":
-            raise rm.RegisterError("from", "this scanned object does not exist")
+            raise rm.RegisterError(
+                "from", "This scanned object was not found. Pick another from the inventory."
+            )
         if ctx.state.query("system_component", {"ref_id": node_id}):
-            raise rm.RegisterError("from", "this object is already linked to an AI system")
+            raise rm.RegisterError(
+                "from", "This object is already part of an AI system. Open that system instead."
+            )
         if scoped(ctx, me) and node.status != "unmanaged":
-            raise rm.RegisterError("from", "this object is not a candidate for registration")
+            raise rm.RegisterError(
+                "from",
+                "This object cannot be registered yet. Ask your admin to check it in the "
+                "inventory.",
+            )
         sg = suggest.from_node(graph, node, GovernanceConfig.load(), fact_rows(ctx, node_id))
         kind, ref = "scan", node_id
     elif agent_id:
         if not rm.ID_RE.match(agent_id):
-            raise rm.RegisterError("agent", "must match ^[A-Za-z0-9_.:@-]{1,128}$")
+            raise rm.RegisterError(
+                "agent", "Use 1 to 128 letters, digits or the symbols _ . : @ - only."
+            )
         manifest = policy_agents(ctx).get(agent_id)
         if manifest is None:
-            raise rm.RegisterError("agent", "this agent is not in the deployed policy")
+            raise rm.RegisterError(
+                "agent", "This agent is not in the deployed policy. Check the agent id."
+            )
         if ctx.state.get("agent", {"agent_id": agent_id}) is not None:
-            raise rm.RegisterError("agent", "this agent already has a registry row")
+            raise rm.RegisterError("agent", "This agent is already registered. Open it instead.")
         sg = suggest.from_agent(agent_id, manifest, fact_rows(ctx, agent_id))
         kind, ref = "policy", agent_id
+    open_draft = _open_draft_of(ctx, kind, ref)
+    if open_draft is not None and open_draft["owner_user"] != uid:
+        raise rm.RegisterError(
+            "from",
+            f"{open_draft['owner_user']} is already registering this object (step "
+            f"{open_draft['step']}). Ask them to continue, or to drop the draft first.",
+        )
     if dry:
         return {}
+    if open_draft is not None:  # the same person again: resume the open draft, never a second one
+        return store_of(ctx).get(str(open_draft["draft_id"]), uid)
     values = {
         f: sg[f]["value"]
         for f in rm.STEP1
@@ -336,7 +371,7 @@ def run_readiness(ctx: Any, me: Any, draft: dict[str, Any], repo_path: str) -> d
 
     repo_path = (repo_path or "").strip()
     if len(repo_path) > rm.MAX_REPO:
-        raise rm.RegisterError("repo_path", "is too long")
+        raise rm.RegisterError("repo_path", "This folder path is too long. Use a shorter path.")
     data = dict(draft["data"])
     data["repo_path"] = repo_path
     try:
@@ -518,7 +553,7 @@ def save_step(
     duties = duties_on(ctx)
     n = rm.n_steps(duties)
     if not 1 <= step <= n:
-        raise rm.RegisterError("step", f"must be 1 to {n}")
+        raise rm.RegisterError("step", f"Choose a step from 1 to {n}.")
     key = rm.key_of(step, duties)
     data = {k: (dict(v) if isinstance(v, dict) else v) for k, v in draft["data"].items()}
     accept = (form.get("accept") or "").strip()
@@ -535,7 +570,7 @@ def save_step(
     elif key == "check":
         repo = (form.get("repo_path") or "").strip()
         if len(repo) > rm.MAX_REPO:
-            raise rm.RegisterError("repo_path", "is too long")
+            raise rm.RegisterError("repo_path", "This folder path is too long. Use a shorter path.")
         data["repo_path"] = repo
         if repo and form.get("run"):
             draft = store_of(ctx).save(draft, data=data)
@@ -559,7 +594,9 @@ def _accept(data: dict[str, Any], step: int, which: str) -> None:
     fields = rm.FIELDS_OF_STEP[step]
     for f in fields if which == "*" else (which,):
         if f not in fields:
-            raise rm.RegisterError("accept", "is not a field of this step")
+            raise rm.RegisterError(
+                "accept", "This suggestion does not belong to this step. Reload the page."
+            )
         s = data["sg"].get(f)
         if s is not None:
             data["v"][f] = s["value"]
@@ -584,9 +621,11 @@ def _answers_from(ctx: Any, form: Mapping[str, str], current: Mapping[str, Any])
         raw = form.get(f"a_{qid}", "")
         why = (form.get(f"j_{qid}") or "").strip()
         if raw not in ("", "yes", "no"):
-            raise rm.RegisterError(f"a_{qid}", "must be yes, no or empty")
+            raise rm.RegisterError(f"a_{qid}", "Answer Yes or No, or leave it empty.")
         if len(why) > rm.MAX_ANSWER_WHY:
-            raise rm.RegisterError(f"j_{qid}", f"at most {rm.MAX_ANSWER_WHY} characters")
+            raise rm.RegisterError(
+                f"j_{qid}", f"Too long. Keep it to {rm.MAX_ANSWER_WHY} characters or fewer."
+            )
         if raw:
             out[qid] = {"answer": raw, "justification": why}
         else:
@@ -620,9 +659,13 @@ def _why_from(
             continue
         why = (form.get(f"why_{r['slug']}") or "").strip()
         if len(why) > rm.MAX_ANSWER_WHY:
-            raise rm.RegisterError(f"why_{r['slug']}", f"at most {rm.MAX_ANSWER_WHY} characters")
+            raise rm.RegisterError(
+                f"why_{r['slug']}", f"Too long. Keep it to {rm.MAX_ANSWER_WHY} characters or fewer."
+            )
         if any(ord(c) < 32 and c not in "\n\t" for c in why):
-            raise rm.RegisterError(f"why_{r['slug']}", "has control characters")
+            raise rm.RegisterError(
+                f"why_{r['slug']}", "This contains characters that are not allowed. Remove them."
+            )
         if why:
             out[r["slug"]] = why
     return out
@@ -666,7 +709,9 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
     check is the same validation the service does). After the system exists, a later step that
     fails is reported on the result page (``steps``) and never undoes the system."""
     if draft["status"] != "draft":
-        raise rm.RegisterError("draft_id", f"this draft is {draft['status']}")
+        raise rm.RegisterError(
+            "draft_id", f"This draft is {draft['status']}, so it cannot be submitted again."
+        )
     actor = str(me.user_id)
     fields_of(ctx, me, draft)  # raises on a bad or empty field before anything is written
     v = values_of(draft)
@@ -677,9 +722,12 @@ def submit(ctx: Any, me: Any, draft: dict[str, Any]) -> dict[str, Any]:
     made = str(draft["data"].get("sys") or "")  # WP-C3: the system record made at step 3
     if v3:
         if not made:
-            raise rm.RegisterError("step", "save step 3 first: the system record is made there")
+            raise rm.RegisterError("step", "Save step 3 first. The AI system is created there.")
         if ctx.systems.get(made)["status"] != "draft":
-            raise rm.RegisterError("step", "the system of this draft is not in status draft")
+            raise rm.RegisterError(
+                "step",
+                "The AI system of this draft is no longer a draft, so it cannot be changed here.",
+            )
     # claim the draft first (optimistic version check): a second submit of the same draft, even a
     # concurrent one, finds it submitted or loses the version race, and writes nothing
     draft = store_of(ctx).save(draft, step=total_steps(ctx), status="submitted")

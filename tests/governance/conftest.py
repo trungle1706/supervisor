@@ -119,6 +119,7 @@ def mounted() -> Iterator[None]:
     from supervisor.console.classify_routes import api_router as classify_api  # WP-C1
     from supervisor.console.classify_routes import router as classify_console  # WP-C1
     from supervisor.console.smart_guardian_routes import console_router as sg_console  # WP-G4
+    from supervisor.console.stability_routes import router as stability_console  # W8
     from supervisor.console.systems_routes import router as console_router
     from supervisor.governance.guardian_routes import console_router as guardians_console  # WP-S1
     from supervisor.governance.guardian_routes import router as guardians_router  # WP-S1
@@ -141,6 +142,7 @@ def mounted() -> Iterator[None]:
     app.include_router(orchestrator_router)  # WP-F4 (400 while ONBOARD_ORCHESTRATOR is off)
     app.include_router(sg_router)  # WP-G4 (400 while SMART_GUARDIAN is off)
     app.include_router(sg_console)
+    app.include_router(stability_console)  # W8 (400 while STABILITY_TAB is off)
     try:
         yield
     finally:

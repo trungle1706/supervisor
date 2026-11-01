@@ -140,6 +140,12 @@ from supervisor.console.regkb_change_routes import router as regkb_change_consol
 
 app.include_router(regkb_change_console_router)  # /console/regkb/changes
 app.include_router(regkb_change_api_router)  # /v1/regkb/changes
+# Regulation graph: always mounted; with KBGRAPH_ENABLED=0 every route answers HTTP 400 kbgraph_off
+from supervisor.console.kbgraph_routes import api_router as kbgraph_api_router  # noqa: E402
+from supervisor.console.kbgraph_routes import router as kbgraph_console_router  # noqa: E402
+
+app.include_router(kbgraph_console_router)  # /console/regkb/graph
+app.include_router(kbgraph_api_router)  # /v1/regkb/graph
 app.include_router(tools_analytics_router, prefix="/v1")  # WP22: GET /v1/analytics/tools
 app.include_router(inventory_router)  # WP24: GET /v1/inventory/... (off unless INVENTORY_ENABLED)
 app.include_router(mcp_lock_router)  # WP26: /v1/mcp/tools/... (off unless MCP_HTTP_ENABLED)
@@ -188,6 +194,10 @@ if get_settings().console_systems_enabled:  # WP-G0: /console/systems (needs the
     from supervisor.console.systems_routes import router as systems_console_router
 
     app.include_router(systems_console_router)
+    # W8: with the systems pages; with STABILITY_TAB=0 every route answers HTTP 400
+    from supervisor.console.stability_routes import router as stability_console_router
+
+    app.include_router(stability_console_router)  # /console/systems/{id}/stability
 if get_settings().console_overview_v4:  # WP-N1: mounted only when the flag is on
     from supervisor.console.candidates_routes import api_router as candidates_api_router
     from supervisor.console.candidates_routes import router as candidates_console_router
@@ -219,6 +229,9 @@ from supervisor.console.factory_gate_routes import router as factory_gate_consol
 
 app.include_router(factory_gate_console_router)  # /console/factory/{id}/gate|simulation|promote
 app.include_router(factory_gate_api_router)  # /v1/factory/gate...
+from supervisor.console.factory_inventory_routes import router as factory_inventory_router  # noqa: E402
+
+app.include_router(factory_inventory_router)  # W4: /console/factory/{id}/inventory...
 # WP-O1: always mounted; with ONBOARD_INTAKE=0 every route answers HTTP 400 with the flag name
 from supervisor.console.intake_routes import api_router as intake_api_router  # noqa: E402
 from supervisor.console.intake_routes import router as intake_console_router  # noqa: E402
@@ -226,11 +239,15 @@ from supervisor.console.intake_routes import router as intake_console_router  # 
 app.include_router(intake_console_router)  # /console/intake/{node_id}
 app.include_router(intake_api_router)  # /v1/intake/{node_id}
 # WP-O2: always mounted; with ONBOARD_FACTS=0 every route answers HTTP 400 with the flag name
+from supervisor.console.code_agent_routes import api_router as code_agent_api_router  # noqa: E402
+from supervisor.console.code_agent_routes import router as code_agent_console_router  # noqa: E402
 from supervisor.console.facts_routes import api_router as facts_api_router  # noqa: E402
 from supervisor.console.facts_routes import router as facts_console_router  # noqa: E402
 
 app.include_router(facts_console_router)  # /console/facts/{node_id}
 app.include_router(facts_api_router)  # /v1/facts/{node_id}
+app.include_router(code_agent_console_router)  # /console/code-analysis/{node_id}
+app.include_router(code_agent_api_router)  # /v1/code-analysis/{node_id}
 # WP-O3: always mounted; with ONBOARD_PREDEPLOY=0 every route answers HTTP 400 predeploy_off
 from supervisor.console.predeploy_routes import api_router as predeploy_api_router  # noqa: E402
 from supervisor.console.predeploy_routes import router as predeploy_console_router  # noqa: E402
@@ -241,12 +258,20 @@ app.include_router(predeploy_api_router)  # /v1/predeploy/{node_id}
 from supervisor.console.attach_routes import router as attach_console_router  # noqa: E402
 
 app.include_router(attach_console_router)  # /console/attach/{node_id}
+# Guardian kit: always mounted; with GUARDIAN_KIT=0 every route answers HTTP 400 guardian_kit_off
+from supervisor.console.guardian_kit_routes import router as guardian_kit_console_router  # noqa: E402
+
+app.include_router(guardian_kit_console_router)  # /console/guardian-kit/{system_id}
 # WP-O5: always mounted; with ONBOARD_POSTDEPLOY=0 every route answers HTTP 400 postdeploy_off
 from supervisor.console.postdeploy_routes import api_router as postdeploy_api_router  # noqa: E402
 from supervisor.console.postdeploy_routes import router as postdeploy_console_router  # noqa: E402
 
 app.include_router(postdeploy_console_router)  # /console/postdeploy/{node_id}
 app.include_router(postdeploy_api_router)  # /v1/postdeploy/{node_id}
+# W7: always mounted; with REDTEAM_TAB=0 every route answers HTTP 400 redteam_tab_off
+from supervisor.console.redteam_routes import router as redteam_console_router  # noqa: E402
+
+app.include_router(redteam_console_router)  # /console/redteam/...
 if get_settings().governance_actions_enabled:  # WP-G5: mounted only when the flag is on
     from supervisor.console.incidents_routes import router as incidents_console_router
     from supervisor.governance.incident_routes import router as incidents_router

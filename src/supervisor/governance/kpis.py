@@ -30,8 +30,11 @@ import time
 from collections.abc import Iterable
 from typing import Any
 
+from supervisor.core.flags import truthy as _on
+from supervisor.core.timeutil import parse_utc as _ts
 from supervisor.governance import model as gm
 from supervisor.governance.systems import ALL
+from supervisor.tasks.service import overdue_required
 
 log = logging.getLogger("supervisor.kpis")
 STATUS_CAP = 20000
@@ -43,25 +46,9 @@ ACTION_OK = ("done",)
 ACTION_BAD = ("failed", "failed_final")
 
 
-def _on(value: Any) -> bool:
-    return str(value).strip().lower() in ("1", "true")
-
-
 def bp(n: int, of: int) -> int | None:
     """Basis points of n over of; None when there is nothing to divide by."""
     return n * 10000 // of if of > 0 else None
-
-
-def _ts(value: Any) -> dt.datetime | None:
-    if isinstance(value, dt.datetime):
-        return value if value.tzinfo else value.replace(tzinfo=dt.UTC)
-    if isinstance(value, str) and value:
-        try:
-            out = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return None
-        return out if out.tzinfo else out.replace(tzinfo=dt.UTC)
-    return None
 
 
 def _count_by(items: Iterable[str], order: Iterable[str] = ()) -> dict[str, int]:
@@ -283,15 +270,14 @@ def _compute(ctx: Any, me: Any, now: dt.datetime | None = None) -> dict[str, Any
     }
 
     # ------------------------------------------------------------------ speed
+    # One definition with the overview pages (``tasks.service.overdue_required``): the task rows
+    # are read whether or not the control catalogue (CONTROLS_ENABLED) is on.
     overdue: int | None = None
-    if not s.controls_enabled:
-        unavailable["overdue_tasks"] = "controls_off"
-    else:
-        overdue = sum(
-            1
-            for t in ctx.tasks.list_tasks()
-            if str(t["agent_id"]).lower() in task_owners and t["overdue"] and t["required"]
-        )
+    try:
+        overdue = len(overdue_required(ctx.tasks.list_tasks(), task_owners))
+    except Exception:  # noqa: BLE001 - one figure never stops the document
+        log.warning("kpis: the task list could not be read")
+        unavailable["overdue_tasks"] = "tasks_unreadable"
     inherited = sum(1 for r in rows if r.get("effective_risk_source") == "inherited")
     speed = {
         "avg_days_per_stage": _days_per_stage(ctx, sids, unavailable),

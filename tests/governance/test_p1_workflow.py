@@ -312,10 +312,10 @@ def test_waive_then_a_second_person_approves(wf: Console) -> None:
     task = _task(wf, sid)
     tid = task["task_id"]
     r = wf.post(_url(sid, f"tasks/{tid}/waive"), {"reason": REASON}, user=SECOND)
-    assert r.status_code == 200 and "Waiver asked." in r.text
+    assert r.status_code == 200 and "Waiver requested." in r.text
     got = wf.ctx.tasks.get(tid)
     assert got["waive_pending"] is True and got["waive_reason"] == REASON
-    assert "Waiver waits for a second person" in r.text
+    assert "Waiver waits for a second approver" in r.text
     # audit: action name, status before and after, the hash of the reason, never the reason
     sha = hashlib.sha256(REASON.encode()).hexdigest()[:12]
     row = _audit(wf)[-1]
@@ -390,7 +390,7 @@ def test_stage_request_approve_move(wf: Console) -> None:
     assert _audit(wf)[-1]["detail"] == "stage_approve pending>approved"
     # Move: by the person with systems.edit
     r = wf.post(_url(sid, "stage/move"), {"to_stage": "deployment"}, user=CREATOR)
-    assert r.status_code == 200 and "The system moved" in r.text
+    assert r.status_code == 200 and "The system is now in the new stage." in r.text
     assert wf.ctx.systems.get(sid)["lifecycle_stage"] == "deployment"
     assert _audit(wf)[-1]["detail"] == "stage_move initiation>deployment"
     assert "Stage of the system: Deployment" in r.text
@@ -405,7 +405,7 @@ def test_stage_requester_with_the_approver_role_is_same_person(wf: Console) -> N
     )
     assert r.status_code == 400 and "same_person" in r.text
     assert wf.ctx.lifecycle.approvals(sid)[0]["status"] == "pending"
-    assert "Waits for a second person" in _tab(wf, sid, user=SECOND).text
+    assert "Waits for a second approver" in _tab(wf, sid, user=SECOND).text
 
 
 def test_stage_reject_needs_a_reason_and_the_move_stays_blocked(wf: Console) -> None:

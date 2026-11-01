@@ -143,6 +143,7 @@ def test_strict_copy_drops_keywords_but_keeps_property_names() -> None:
     assert jsonschema_lite.strict_compatible(schema) == {
         "type": "object",
         "properties": {"pattern": {"type": "string"}},
+        "additionalProperties": False,  # strict endpoints refuse an object that leaves it out
     }
 
 

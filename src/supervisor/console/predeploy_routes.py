@@ -24,7 +24,8 @@ from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.console import agent_detail
 from supervisor.console.context import ConsoleContext, get_context
-from supervisor.console.routes import _call, _htmx_only, audited, message_html, render
+from supervisor.console.htmx import append_message
+from supervisor.console.routes import _call, _htmx_only, audited, render
 from supervisor.onboard import intake, predeploy
 
 router = APIRouter(prefix="/console", tags=["console"])
@@ -133,6 +134,4 @@ async def predeploy_again(
     data = await _call(panel_data, ctx, me, node_id)
     resp = render(request, ctx, me, "_predeploy_panel.html", **data)
     note = f"{node_id}: assessment of attempt {rep['attempt_n']} started"
-    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
+    return append_message(resp, note)

@@ -1,0 +1,133 @@
+# ruff: noqa: E501
+"""Labels of the regulation graph page (KBGRAPH_ENABLED), English and Vietnamese, prefix ``kg_``.
+Merged into ``i18n._T`` by one line in ``i18n.py``. UI text only."""
+
+from __future__ import annotations
+
+KG: dict[str, tuple[str, str]] = {
+    "kg_nav": ("Regulation graph", "Đồ thị quy định"),
+    "kg_title": ("Regulation graph", "Đồ thị quy định"),
+    "kg_purpose": (
+        "See which duties bind which AI systems, and where the gaps are.",
+        "Xem nghĩa vụ nào ràng buộc hệ thống AI nào và thiếu ở đâu.",
+    ),
+    "kg_banner": (
+        "Not legal advice. Bank counsel must confirm.",
+        "Không phải tư vấn pháp lý. Bộ phận pháp chế phải xác nhận.",
+    ),
+    "kg_about": (
+        "Each line from a duty to an AI system is one row in the Duties tab. Its colour shows coverage: gap, partial, bank process or met. Waived duties and duties still awaiting an answer are not drawn. The view is limited on purpose: choose an instrument and the systems with the most gaps show first.",
+        "Mỗi đường từ một nghĩa vụ đến một hệ thống AI là một dòng trong tab Nghĩa vụ. Màu của đường cho biết độ phủ: thiếu, một phần, quy trình của ngân hàng hoặc đạt. Nghĩa vụ được miễn và nghĩa vụ còn chờ trả lời không được vẽ. Chế độ xem được giới hạn có chủ đích: chọn một văn bản, các hệ thống thiếu nhiều nhất sẽ hiện trước.",
+    ),
+    "kg_filters": ("Filters", "Bộ lọc"),
+    "kg_f_instrument": ("Instrument", "Văn bản"),
+    "kg_f_auto": ("Most gaps (automatic)", "Nhiều thiếu nhất (tự động)"),
+    "kg_f_all_instr": ("All instruments", "Tất cả văn bản"),
+    "kg_f_risk": ("Risk level", "Mức rủi ro"),
+    "kg_f_cov": ("Coverage", "Độ phủ"),
+    "kg_f_all": ("All", "Tất cả"),
+    "kg_f_search": ("Search", "Tìm kiếm"),
+    "kg_f_search_ph": ("System or duty id", "Hệ thống hoặc mã nghĩa vụ"),
+    "kg_f_n": ("Systems shown", "Số hệ thống hiển thị"),
+    "kg_f_n_opt": ("Top {n}", "{n} đầu"),
+    "kg_f_apply": ("Apply", "Áp dụng"),
+    "kg_f_reset": ("Reset", "Đặt lại"),
+    "kg_view": ("View", "Chế độ xem"),
+    "kg_view_graph": ("Graph", "Đồ thị"),
+    "kg_view_list": ("List", "Danh sách"),
+    "kg_risk_prohibited": ("Prohibited", "Bị cấm"),
+    "kg_risk_high": ("High", "Cao"),
+    "kg_risk_medium": ("Medium", "Trung bình"),
+    "kg_risk_low": ("Low", "Thấp"),
+    "kg_risk_unspecified": ("Not set", "Chưa đặt"),
+    "kg_risk_note": ("Risk level as set on the system.", "Mức rủi ro do hệ thống đặt."),
+    "kg_s_gap": ("Gap", "Thiếu"),
+    "kg_s_partial": ("Partial", "Một phần"),
+    "kg_s_bank": ("Bank process", "Quy trình của ngân hàng"),
+    "kg_s_closed": ("Met", "Đạt"),
+    "kg_s_gap_d": ("Open, no control covers it", "Còn mở, chưa có kiểm soát nào phủ"),
+    "kg_s_partial_d": ("Open, partly covered", "Còn mở, phủ một phần"),
+    "kg_s_bank_d": ("Open, the bank process covers it", "Còn mở, quy trình của ngân hàng phủ"),
+    "kg_s_closed_d": ("Closed, the duty is met", "Đã đóng, nghĩa vụ đạt"),
+    "kg_col_instrument": ("Instrument", "Văn bản"),
+    "kg_col_obligation": ("Duty", "Nghĩa vụ"),
+    "kg_col_system": ("AI system", "Hệ thống AI"),
+    "kg_shown": (
+        "Showing {systems} of {matching} systems, {obligations} duties, {links} links.",
+        "Hiển thị {systems} / {matching} hệ thống, {obligations} nghĩa vụ, {links} đường nối.",
+    ),
+    "kg_total": (
+        "In total: {systems} systems, {obligations} duties, {instruments} instruments, {links} links.",
+        "Tổng cộng: {systems} hệ thống, {obligations} nghĩa vụ, {instruments} văn bản, {links} đường nối.",
+    ),
+    "kg_hidden": (
+        "{n} more systems match. Narrow the filters or raise the number of systems shown.",
+        "Còn {n} hệ thống khớp nữa. Hãy thu hẹp bộ lọc hoặc tăng số hệ thống hiển thị.",
+    ),
+    "kg_hidden_obl": (
+        "{n} duties with fewer gaps are left out to keep the graph readable.",
+        "{n} nghĩa vụ ít thiếu hơn được ẩn để đồ thị dễ đọc.",
+    ),
+    "kg_auto_note": (
+        "Instrument chosen automatically (most gaps): {name}",
+        "Văn bản được chọn tự động (nhiều chỗ thiếu nhất): {name}",
+    ),
+    "kg_empty": ("No link matches this filter.", "Không có đường nối nào khớp bộ lọc này."),
+    "kg_empty_hint": (
+        "Clear the search, choose all instruments or set the coverage to all.",
+        "Hãy xóa tìm kiếm, chọn tất cả văn bản hoặc đặt độ phủ về tất cả.",
+    ),
+    "kg_no_duties": (
+        "No duties yet. They are added when you register an AI system and complete the Duties step.",
+        "Chưa có nghĩa vụ nào. Nghĩa vụ được thêm khi bạn đăng ký hệ thống AI và hoàn tất bước Nghĩa vụ.",
+    ),
+    "kg_svg_label": (
+        "Graph of instruments, duties and AI systems. Lines are coloured by coverage.",
+        "Đồ thị văn bản, nghĩa vụ và hệ thống AI. Màu đường theo độ phủ.",
+    ),
+    "kg_help": (
+        "Tab moves between nodes. Enter selects a node. Escape clears the selection.",
+        "Phím Tab chuyển giữa các nút. Enter chọn nút. Escape bỏ chọn.",
+    ),
+    "kg_detail": ("Details", "Chi tiết"),
+    "kg_detail_none": (
+        "Select a node to see its links.",
+        "Chọn một nút để xem các liên kết của nó.",
+    ),
+    "kg_d_clear": ("Clear selection", "Bỏ chọn"),
+    "kg_d_system": ("AI system", "Hệ thống AI"),
+    "kg_d_obligation": ("Duty", "Nghĩa vụ"),
+    "kg_d_instrument": ("Instrument", "Văn bản"),
+    "kg_d_open_system": ("Open the system", "Mở hệ thống"),
+    "kg_d_open_duties": ("Open its duties", "Mở nghĩa vụ của hệ thống"),
+    "kg_d_drafts": (
+        "Law agent drafts of this instrument",
+        "Bản nháp của tác nhân pháp lý cho văn bản này",
+    ),
+    "kg_d_risk": ("Risk level", "Mức rủi ro"),
+    "kg_d_team": ("Owner team", "Nhóm sở hữu"),
+    "kg_d_stage": ("Stage", "Giai đoạn"),
+    "kg_d_article": ("Article", "Điều khoản"),
+    "kg_d_summary": ("Summary", "Tóm tắt"),
+    "kg_d_controls": ("Linked controls", "Kiểm soát liên quan"),
+    "kg_d_binds": (
+        "Binds {n} systems with this filter; {shown} are drawn.",
+        "Ràng buộc {n} hệ thống với bộ lọc này; {shown} hệ thống được vẽ.",
+    ),
+    "kg_d_has": (
+        "{n} duties with this filter; {shown} are drawn.",
+        "{n} nghĩa vụ với bộ lọc này; {shown} nghĩa vụ được vẽ.",
+    ),
+    "kg_d_obl_n": ("{n} duties drawn", "{n} nghĩa vụ được vẽ"),
+    "kg_d_duties": ("Duties", "Nghĩa vụ"),
+    "kg_d_systems": ("AI systems", "Hệ thống AI"),
+    "kg_d_obls": ("Duties of this instrument", "Nghĩa vụ của văn bản này"),
+    "kg_list_caption": (
+        "Every link drawn in the graph, as a table.",
+        "Mọi đường nối được vẽ trong đồ thị, dưới dạng bảng.",
+    ),
+    "kg_list_state": ("Coverage", "Độ phủ"),
+    "kg_list_article": ("Article", "Điều khoản"),
+    "kg_node_aria": ("{kind}: {label}, {n} links", "{kind}: {label}, {n} liên kết"),
+    "kg_json": ("Export as JSON", "Xuất JSON"),
+}

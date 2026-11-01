@@ -15,7 +15,7 @@ def test_case_header_story_and_decision(console: Console) -> None:
     assert r.status_code == 200, r.text
     # header: pills, plain headline from rule + tool, explanation, clocks, Decision 33 line
     assert "opened by the gate" in r.text and 'data-status="open"' in r.text
-    assert "paused: a money-moving call (ext_transfer_api) was stopped before it ran" in r.text
+    assert "paused: a money transfer (ext_transfer_api) was stopped before it ran" in r.text
     assert "Rule PAY-07 (Payments agent may call approved tools only) paused the agent" in r.text
     # UX5-BUG: one report deadline in force (preliminary), no deprecated 24 h clock
     assert "SBV 24 h report" not in r.text and "Preliminary report due" in r.text
@@ -27,13 +27,13 @@ def test_case_header_story_and_decision(console: Console) -> None:
     assert 'data-tab="story" class="on"' in r.text
     # story timeline from real rows: planned call, rule matched with latency, case opened
     assert 'data-key="st_planned"' in r.text and 'data-key="st_rule_pause"' in r.text
-    assert "Detect-to-stop" in r.text and 'data-key="ev_open"' in r.text
+    assert "ms after detection" in r.text and 'data-key="ev_open"' in r.text
     assert 'data-key="waiting"' in r.text
     # decision flow: assign first, close disabled with the reason, two-person box
     decide = r.text.split("Your decision", 1)[1]
     assert decide.index("Assign to me") < decide.index("Mark triaged") < decide.index("Close (")
-    assert "two different people must sign off" in decide and "disabled" in decide
-    assert "Triage the case first." in decide and "ITSM ticket" in decide
+    assert "sign-off from 2 different people" in decide and "disabled" in decide
+    assert "Review the case first." in decide and "ITSM ticket" in decide
     assert "Masked transcript excerpt" in r.text and "[gate] ext_transfer_api" in r.text
 
 

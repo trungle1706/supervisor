@@ -1,0 +1,41 @@
+{# The live panel of a red team run (W7, REDTEAM_TAB). Polled every second by htmx; the poll route
+   sends the finished panel (step, tab) or the report (run page) when the run has ended.
+   Variables: pg (counters, feed), rt (system, can_run), where (step | tab | run). #}
+{% set ic = {'echo_chamber': '↻', 'crescendo': '↗', 'payload_split': '÷', 'tool_poisoning': '⚙', 'memory_poison': '✎', 'policy_puppetry': '§'} %}
+{% set chip = {'stopped': 'ok', 'got_through': 'bad', 'not_reached': 'neutral', 'kept': 'ok', 'approval': 'info', 'wrongly_stopped': 'bad', 'gave_in': 'warn', 'held': 'neutral'} %}
+{% set stage_key = {'worst': 'rt_stage_worst', 'benign': 'rt_stage_benign', 'model': 'rt_stage_model'} %}
+<section class="card rt rt-live" id="rt-panel" data-rt="live" data-run="{{ pg.run_id }}" data-status="{{ pg.final }}" data-progress="{{ pg.done }}/{{ pg.total }}"{% if pg.active %} hx-get="/console/redteam/progress/{{ pg.run_id }}?where={{ where }}&amp;lang={{ lang }}" hx-trigger="every 1s" hx-swap="outerHTML"{% endif %}>
+  <div class="rt-head">
+    <h2>{{ t('rt_running_h') if pg.active else t('rt_status_' ~ pg.final) }}</h2>
+    <div class="rt-chips"><span class="rt-chip mock" title="{{ t('rt_how_agent') }}">{{ t('rt_simulated') }}</span></div>
+  </div>
+  <p class="rt-stage" data-stage="{{ pg.stage }}">{{ t(stage_key[pg.stage]) }}</p>
+  <div class="rt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ pg.total }}" aria-valuenow="{{ pg.done }}" aria-label="{{ t('rt_prog_n', done=pg.done, total=pg.total) }}"><i style="width:{{ pg.percent }}%"></i></div>
+  <p class="rt-progline"><span><b>{{ t('rt_prog_n', done=pg.done, total=pg.total) }}</b></span></p>
+  <div class="rt-live-tiles" data-tiles="live">
+    <div class="rt-tile ok" data-k="stopped"><b>{{ pg.stopped }}</b><span>{{ t('rt_k_stopped') }}</span></div>
+    <div class="rt-tile {{ 'bad' if pg.got_through else 'plain' }}" data-k="got_through"><b>{{ pg.got_through }}</b><span>{{ t('rt_k_through') }}</span></div>
+    <div class="rt-tile {{ 'bad' if pg.wrongly_stopped else 'plain' }}" data-k="wrongly_stopped"><b>{{ pg.wrongly_stopped }}</b><span>{{ t('rt_k_wrong') }}</span></div>
+    {% if pg.approval %}<div class="rt-tile plain" data-k="approval"><b>{{ pg.approval }}</b><span>{{ t('rt_k_approval') }}</span></div>{% endif %}
+    {% if pg.stage == 'model' or pg.gave_in or pg.held %}<div class="rt-tile warn" data-k="gave_in"><b>{{ pg.gave_in }}</b><span>{{ t('rt_k_gave') }} ({{ t('rt_mock') }})</span></div>{% endif %}
+  </div>
+  {% if pg.active %}<p class="hint">{{ t('rt_running_hint') }}</p>{% endif %}
+  <h3>{{ t('rt_feed_h') }}</h3>
+  <ul class="rt-feed" data-feed="1" aria-live="polite">
+  {% for e in pg.feed %}
+    <li data-result="{{ e.result }}" data-n="{{ e.n }}">
+      <span class="rt-ic" aria-hidden="true" title="{{ t('rt_fam_' ~ e.family) }}">{{ ic[e.family] }}</span>
+      <span><b>{{ t('rt_kind_' ~ e.kind) }}</b>
+        <small>{{ t('rt_feed_normal') if e.pass == 'benign' else (t('rt_feed_sim') ~ ' (' ~ t('rt_mock') ~ ')' if e.pass == 'model' else t('rt_feed_attack')) }} · {{ t('rt_fam_' ~ e.family) }} · {{ e.lang|upper }} · {{ t('rt_feed_turns', n=e.turns) }}</small></span>
+      <span class="rt-chip {{ chip[e.result] }}">{{ t('rt_res_' ~ e.result) }}</span>
+    </li>
+  {% else %}
+    <li class="rt-empty" data-empty="1"><span class="rt-empty">{{ t('rt_feed_empty') }}</span></li>
+  {% endfor %}
+  </ul>
+  {% if pg.active %}
+    {% if pg.cancel_requested %}<p class="hint" data-cancelling="1">{{ t('rt_cancelling') }}</p>
+    {% elif rt.can_run %}<p class="rt-noprint"><button class="btn" type="button" hx-post="/console/redteam/run/{{ pg.run_id }}/cancel?where={{ where }}&amp;lang={{ lang }}" hx-target="#rt-panel" hx-swap="outerHTML" data-act="cancel-redteam">{{ t('rt_cancel') }}</button></p>{% endif %}
+  {% elif pg.final == 'cancelled' %}<p class="notice" data-run-cancelled="1"><span class="dot"></span>{{ t('rt_cancelled') }}</p>
+  {% elif pg.final == 'failed' %}<p class="notice" data-run-failed="1"><span class="dot"></span>{{ t('rt_failed') }}</p>{% endif %}
+</section>

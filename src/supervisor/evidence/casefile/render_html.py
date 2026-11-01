@@ -7,7 +7,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from supervisor.evidence.casefile.builder import CaseFile
+from supervisor.evidence.casefile.builder import CaseFile, basis_label, decision33_display
 
 ICT = timezone(timedelta(hours=7))
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -35,6 +35,8 @@ def _env() -> Environment:
     )
     env.filters["utc"] = fmt_utc
     env.filters["ict"] = fmt_ict
+    env.filters["d33"] = decision33_display
+    env.filters["basis"] = basis_label
     return env
 
 

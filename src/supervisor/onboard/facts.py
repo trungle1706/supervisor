@@ -427,6 +427,19 @@ class FactsService:
         except SupervisorError as exc:
             raise FactsError("read_failed", _clean(exc, 200)) from None
         rows, skipped = collect_rows(node_id, n, disc, profile)
+        if getattr(
+            self.settings, "code_agent_enabled", False
+        ):  # source analysis agent (off by default)
+            from supervisor.onboard.codeagent.service import CodeAgentService
+
+            have = {r["fact_id"] for r in rows}
+            rows += [
+                r
+                for r in CodeAgentService(self.settings, self.state, self.clock).fact_rows(
+                    node_id, n
+                )
+                if r["fact_id"] not in have
+            ]
         rows.append(self._summary_row(node_id, n, profile, len(rows), skipped))
         with _LOCK:
             self._store(node_id, n, rows)

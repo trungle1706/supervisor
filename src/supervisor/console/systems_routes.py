@@ -21,18 +21,18 @@ from supervisor.console import (
     systems_wizard,
     systems_workflow,
 )
+from supervisor.console.authz import person
 from supervisor.console.context import ConsoleContext, get_context
-from supervisor.console.i18n import translator
+from supervisor.console.htmx import append_message
 from supervisor.console.routes import (
     ConsoleInputError,
     _call,
     _check_id,
     _drawer_query,
-    _lang,
     audited,
     form_or_plain,
-    message_html,
     render,
+    request_translator,
 )
 from supervisor.core.errors import SupervisorError
 from supervisor.governance.model import ensure_on
@@ -234,9 +234,7 @@ def _done(request: Request, plain: bool, system_id: str, tab: str) -> Response:
 
 
 def _person(me: AuthPrincipal) -> str:
-    if me.kind != "user":
-        raise PermissionDenied("this action needs a signed-in person")
-    return str(me.user_id)
+    return person(me)
 
 
 @router.post("/systems/{system_id}/rules/run", dependencies=[Depends(needs("systems.edit"))])
@@ -309,7 +307,7 @@ async def _wf_run(fn: Any, *args: Any) -> Any:
         raise
 
 
-async def _wf_answer(
+async def _tab_answer(
     request: Request,
     ctx: ConsoleContext,
     me: AuthPrincipal,
@@ -317,29 +315,36 @@ async def _wf_answer(
     system_id: str,
     note: str,
     ok_key: str,
+    *,
+    tab: str,
+    template: str,
 ) -> Response:
+    """Answer of a tab action: the refreshed tab with the result in #flash (htmx), or a 303 back
+    to the tab (plain form post)."""
     request.state.audit_detail = note
     if plain:
-        return _done(request, True, system_id, "tasks")
-    data = await _call(systems_views.detail_view, ctx, me, system_id, "tasks")
-    resp = render(request, ctx, me, "_system_tasks.html", **data)
-    msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(ok_key)
-    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
+        return _done(request, True, system_id, tab)
+    data = await _call(systems_views.detail_view, ctx, me, system_id, tab, {})
+    resp = render(request, ctx, me, template, **data)
+    return append_message(resp, request_translator(request, ctx)(ok_key))
 
 
-async def _wf_system(
-    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str
+async def _system_form(
+    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str, *, mod: Any
 ) -> tuple[dict[str, str], bool, dict[str, Any]]:
-    """Flag check, the form, and the system if it is in the caller's scope."""
+    """Flag check (``mod.ensure_on``), person check, the form, and the system if it is in the
+    caller's scope."""
     _off(ctx)
-    systems_workflow.ensure_on(ctx)
-    systems_workflow.person(me)
+    mod.ensure_on(ctx)
+    mod.person(me)
     _check_id(system_id, "system id")
     form, plain = await form_or_plain(request)
     system = await _call(systems_views._need_visible, ctx, me, system_id)
     return form, plain, system
+
+
+_wf_answer = functools.partial(_tab_answer, tab="tasks", template="_system_tasks.html")
+_wf_system = functools.partial(_system_form, mod=systems_workflow)
 
 
 @router.post(
@@ -473,36 +478,8 @@ async def system_stage_move(
 # in #flash, or a 303 back to the tab for a plain form post. Two console_action rows per POST.
 
 
-async def _duty_answer(
-    request: Request,
-    ctx: ConsoleContext,
-    me: AuthPrincipal,
-    plain: bool,
-    system_id: str,
-    note: str,
-    ok_key: str,
-) -> Response:
-    request.state.audit_detail = note
-    if plain:
-        return _done(request, True, system_id, "duties")
-    data = await _call(systems_views.detail_view, ctx, me, system_id, "duties", {})
-    resp = render(request, ctx, me, "_system_duties.html", **data)
-    msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(ok_key)
-    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
-
-
-async def _duty_system(
-    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str
-) -> tuple[dict[str, str], bool, dict[str, Any]]:
-    _off(ctx)
-    systems_duties.ensure_on(ctx)
-    systems_duties.person(me)
-    _check_id(system_id, "system id")
-    form, plain = await form_or_plain(request)
-    system = await _call(systems_views._need_visible, ctx, me, system_id)
-    return form, plain, system
+_duty_answer = functools.partial(_tab_answer, tab="duties", template="_system_duties.html")
+_duty_system = functools.partial(_system_form, mod=systems_duties)
 
 
 @router.post("/systems/{system_id}/duties/close", dependencies=[Depends(needs("systems.edit"))])
@@ -567,36 +544,10 @@ router.include_router(_register_router)
 # 303 back to the tab for a plain form post. Two console_action rows per POST (with before>after).
 
 
-async def _rd_answer(
-    request: Request,
-    ctx: ConsoleContext,
-    me: AuthPrincipal,
-    plain: bool,
-    system_id: str,
-    note: str,
-    ok_key: str,
-) -> Response:
-    request.state.audit_detail = note
-    if plain:
-        return _done(request, True, system_id, systems_riskdim.TAB)
-    data = await _call(systems_views.detail_view, ctx, me, system_id, systems_riskdim.TAB, {})
-    resp = render(request, ctx, me, "_system_riskdim.html", **data)
-    msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(ok_key)
-    resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
-
-
-async def _rd_system(
-    request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str
-) -> tuple[dict[str, str], bool, dict[str, Any]]:
-    _off(ctx)
-    systems_riskdim.ensure_on(ctx)
-    systems_riskdim.person(me)
-    _check_id(system_id, "system id")
-    form, plain = await form_or_plain(request)
-    system = await _call(systems_views._need_visible, ctx, me, system_id)
-    return form, plain, system
+_rd_answer = functools.partial(
+    _tab_answer, tab=systems_riskdim.TAB, template="_system_riskdim.html"
+)
+_rd_system = functools.partial(_system_form, mod=systems_riskdim)
 
 
 @router.post(
@@ -650,11 +601,11 @@ async def _orch_panel(
     request: Request, ctx: ConsoleContext, me: AuthPrincipal, system_id: str, note: str | None
 ) -> Response:
     data = await _call(systems_views.detail_view, ctx, me, system_id, systems_riskdim.TAB, {})
+    # the poll of a running panel carries was=run: the first answer after the end reloads the rows
+    data["orch_was_running"] = request.query_params.get("was") == "run"
     resp = render(request, ctx, me, "_system_orch_panel.html", **data)
     if note:
-        msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(note)
-        resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
-        resp.headers["content-length"] = str(len(resp.body))
+        append_message(resp, request_translator(request, ctx)(note))
     return resp
 
 
@@ -693,3 +644,32 @@ async def system_orchestrate_start(
     if plain:
         return _done(request, True, system["system_id"], systems_riskdim.TAB)
     return await _orch_panel(request, ctx, me, system["system_id"], "orch_ok_started")
+
+
+@router.get(
+    "/systems/{system_id}/orchestrate/{run_id}/brief",
+    response_class=HTMLResponse,
+    dependencies=[Depends(needs("systems.view"))],
+)
+async def system_orchestrate_brief(
+    system_id: str,
+    run_id: str,
+    request: Request,
+    ctx: ConsoleContext = _CTX,
+    me: AuthPrincipal = _ME,
+) -> Response:
+    """The brief report of one assessment run: a partial for htmx (the panel opens it in place),
+    else a full page (``dim`` opens that risk type)."""
+    _off(ctx)
+    systems_orch.ensure_on(ctx)
+    _check_id(system_id, "system id")
+    _check_id(run_id, "run id")
+    system = await _call(systems_views._need_visible, ctx, me, system_id)
+    dim = request.query_params.get("dim")
+    data = await _call(systems_orch.brief_view, ctx, system, run_id, dim)
+    if request.headers.get("HX-Request"):
+        return render(request, ctx, me, "_system_orch_brief.html", s=system, **data)
+    return render(
+        request, ctx, me, "system_orch_brief.html", section="systems", s=system, brief_page=True,
+        **data,
+    )  # fmt: skip

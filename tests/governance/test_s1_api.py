@@ -201,7 +201,7 @@ def test_a_feature_the_instance_has_off_has_no_switch(
     sid = create(gon)
     monkeypatch.setattr(gon.ctx.settings, "session_monitor_enabled", False)
     html = page(gon, sid).text
-    assert "Off in this instance" in html
+    assert "Off for the whole platform" in html
     assert f"/console/systems/{sid}/guardians/session_monitor" not in html
 
 
@@ -210,7 +210,7 @@ def test_a_person_without_edit_sees_state_and_no_button(gon: Console) -> None:
     assert not rbac.allowed(frozenset({"auditor"}), "systems.edit")
     html = page(gon, sid, user=READER).text
     assert "On for this system" in html and "/guardians/injection_regex" not in html
-    assert "You need the right to edit this system" in html
+    assert "you need edit rights on this system" in html
 
 
 def test_the_catalog_only_lists_systems_in_scope(gon: Console) -> None:

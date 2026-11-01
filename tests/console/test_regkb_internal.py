@@ -113,7 +113,7 @@ def test_draft_button_accept_on_the_drafts_page_and_the_instrument(on: Console) 
     iid = doc["instrument_id"]
     r = on.post(f"{PAGE}/{doc['doc_id']}/draft", {}, user="reviewer.an")
     assert r.status_code == 200, r.text
-    assert "3 draft(s) written" in r.text and f"/console/regkb/{iid}/drafts" in r.text
+    assert "3 draft(s) saved" in r.text and f"/console/regkb/{iid}/drafts" in r.text
     page = on.get(f"{PAGE}?lang=en")
     assert page.status_code == 200
     assert 'data-regkb-banner="1"' in page.text and f'data-doc="{doc["doc_id"]}"' in page.text

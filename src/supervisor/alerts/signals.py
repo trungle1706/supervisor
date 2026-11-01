@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.analytics.decisions import DETECTOR_FAILED_REASONS, finding_class
+from supervisor.core.rows import rows_by
 from supervisor.monitors.common import MonitorContext, as_dt, read_range
 
 log = logging.getLogger("supervisor.alerts")
@@ -113,6 +114,25 @@ def _fields_from_chain(kind: str, record_type: str, p: Mapping[str, Any]) -> dic
     }  # case
 
 
+def _payload_texts(
+    ctx: MonitorContext, entries: Iterable[Mapping[str, Any]]
+) -> dict[tuple[Any, Any], str]:
+    """The payload text of chain entries, keyed by (lane, seq): one batch read by payload hash
+    instead of one query per entry. The chain is only read."""
+    by_hash = rows_by(
+        ctx.tables,
+        "chain_payload",
+        "payload_hash",
+        [e["payload_hash"] for e in entries],
+        columns=["lane", "seq", "payload_hash", "payload"],
+    )
+    out: dict[tuple[Any, Any], str] = {}
+    for rows in by_hash.values():
+        for r in rows:
+            out.setdefault((r["lane"], r["seq"]), r["payload"])
+    return out
+
+
 def load_signals(
     ctx: MonitorContext,
     ts_from: datetime,
@@ -125,12 +145,16 @@ def load_signals(
     out: list[Signal] = []
     # decision id -> (agent state, v2 status) at the decision (WP39)
     state_of: dict[str, tuple[str, Any]] = {}
-    for e in read_range(ctx, "chain_entry", ts_from, ts_to):
-        kind = CHAIN_KINDS.get(str(e["record_type"]))
-        if kind is None:
-            continue
-        rows = ctx.tables.query("chain_payload", {"lane": e["lane"], "seq": e["seq"]})
-        p = json.loads(rows[0]["payload"]) if rows else {}
+    entries = [
+        e
+        for e in read_range(ctx, "chain_entry", ts_from, ts_to)
+        if CHAIN_KINDS.get(str(e["record_type"])) is not None
+    ]
+    payloads = _payload_texts(ctx, entries)
+    for e in entries:
+        kind = CHAIN_KINDS[str(e["record_type"])]
+        text = payloads.get((e["lane"], e["seq"]))
+        p = json.loads(text) if text is not None else {}
         if kind == "gate_decision":
             state_of[str(e["record_ref"])] = (str(p.get("agent_state") or ""), p.get("status"))
             out.append(_request_signal(f"{e['lane']}:{e['seq']}", as_dt(e["ts"]), p))
@@ -322,31 +346,43 @@ def _observe_signals(ctx: MonitorContext, ts_from: datetime, ts_to: datetime) ->
     are ``gate_finding`` signals with ``enforcement: observe`` so that AL-THREAT-NOT-ENFORCED
     reads them with the shadow findings."""
     out = []
-    for label, hint in OBSERVE_LABELS.items():
-        for v in read_range(ctx, "verdict", ts_from, ts_to, {"tier": 0, "label": label}):
-            ev = ctx.tables.query("agent_event", {"event_id": v.get("event_id")}, limit=1)
-            e = ev[0] if ev else {}
-            cov = e.get("coverage_json")
-            cov = cov if isinstance(cov, dict) else _loads(cov)
-            out.append(
-                Signal(
-                    sid=f"observe:{v['verdict_id']}",
-                    kind="gate_finding",
-                    ts=as_dt(v["ts"]),
-                    derived=True,
-                    fields={
-                        "agent_id": v["agent_id"],
-                        "code": label,
-                        "finding_class": "policy",
-                        "direction": cov.get("direction") or "input",
-                        "detector_slug": "policy",
-                        "action_hint": hint,
-                        "enforcement": "observe",
-                        "is_mock": False,
-                        "correlation_id": e.get("correlation_id"),
-                    },
-                )
+    found = [
+        (label, hint, v)
+        for label, hint in OBSERVE_LABELS.items()
+        for v in read_range(ctx, "verdict", ts_from, ts_to, {"tier": 0, "label": label})
+    ]
+    events = rows_by(
+        ctx.tables,
+        "agent_event",
+        "event_id",
+        [v["event_id"] for _, _, v in found if v.get("event_id") is not None],
+        columns=["event_id", "coverage_json", "correlation_id"],
+        per_key_limit=1,
+    )
+    for label, hint, v in found:
+        ev = events.get(v.get("event_id"))
+        e = ev[0] if ev else {}
+        cov = e.get("coverage_json")
+        cov = cov if isinstance(cov, dict) else _loads(cov)
+        out.append(
+            Signal(
+                sid=f"observe:{v['verdict_id']}",
+                kind="gate_finding",
+                ts=as_dt(v["ts"]),
+                derived=True,
+                fields={
+                    "agent_id": v["agent_id"],
+                    "code": label,
+                    "finding_class": "policy",
+                    "direction": cov.get("direction") or "input",
+                    "detector_slug": "policy",
+                    "action_hint": hint,
+                    "enforcement": "observe",
+                    "is_mock": False,
+                    "correlation_id": e.get("correlation_id"),
+                },
             )
+        )
     return out
 
 

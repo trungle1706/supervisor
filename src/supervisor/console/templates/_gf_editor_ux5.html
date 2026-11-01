@@ -43,7 +43,7 @@
       <div class="g5-grid2">
         <label>{{ t('gf_name') }} <input name="name" value="{{ v.name }}" maxlength="64"></label>
         <label>{{ t('gf_f_id') }} <input name="id" value="{{ v.id }}" maxlength="64"{% if not gf.is_new %} readonly{% endif %}></label>
-        <label>{{ t('gf_owner') }} <select name="owner_group">{% for g in gf.groups %}<option value="{{ g }}" {{ 'selected' if v.owner_group == g else '' }}>{{ g }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_owner') }} <select name="owner_group">{% for g in gf.groups %}<option value="{{ g }}" {{ 'selected' if v.owner_group == g else '' }}>{{ label_text('gf_group', g) }}</option>{% endfor %}</select></label>
         <label class="wide">{{ t('gf_description') }} <textarea name="description" rows="2" maxlength="1024">{{ v.description }}</textarea></label>
       </div>
 
@@ -63,9 +63,9 @@
 
       <h2>{{ t('gf_f_does') }}</h2>
       <div class="g5-grid2">
-        <label>{{ t('gf_f_type') }} <select name="type">{% for x in gf.types %}<option value="{{ x }}" {{ 'selected' if v.type == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
-        <label>{{ t('gf_where') }} <select name="stage">{% for x in gf.stages %}<option value="{{ x }}" {{ 'selected' if v.stage == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
-        <label>{{ t('gf_f_action') }} <select name="action_on_fail">{% for x in gf.all_actions %}<option value="{{ x }}" {{ 'selected' if v.action_on_fail == x else '' }}>{{ x }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_f_type') }} <select name="type">{% for x in gf.types %}<option value="{{ x }}" {{ 'selected' if v.type == x else '' }}>{{ label_text('gf_type', x) }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_where') }} <select name="stage">{% for x in gf.stages %}<option value="{{ x }}" {{ 'selected' if v.stage == x else '' }}>{{ label_text('gf_stage', x) }}</option>{% endfor %}</select></label>
+        <label>{{ t('gf_f_action') }} <select name="action_on_fail">{% for x in gf.all_actions %}<option value="{{ x }}" {{ 'selected' if v.action_on_fail == x else '' }}>{{ label_text('gf_act', x) }}</option>{% endfor %}</select></label>
       </div>
       <p class="hint">{{ t('gf_action_hint') }}</p>
       <h3>{{ t('gf_scope') }}</h3>

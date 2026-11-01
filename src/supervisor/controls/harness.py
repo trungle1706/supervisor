@@ -51,6 +51,7 @@ from supervisor.controls import evidence as cev
 from supervisor.controls.model import ControlError, evidence_capable, normalise
 from supervisor.controls.refs import ControlRefs
 from supervisor.controls.service import ControlService
+from supervisor.jobs._cli_common import print_verdicts, write_baseline
 from supervisor.risk.harness import _bp, load_golden, repo_catalogue, wilson_bp
 from supervisor.tasks import model as tm
 from supervisor.tasks.model import TaskError
@@ -644,28 +645,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"problems={st['problems']}"
     )
     print(f"[determinism] {res['determinism']['bp']}bp")  # noqa: T201
-    bad = 0
-    for name, v in res["verdicts"].items():
-        print(f"    {name}: {v}")  # noqa: T201
-        bad += v != "GO"
+    bad = print_verdicts(res["verdicts"])
     if args.write_baseline:
-        (fixtures / "baseline.json").write_text(
-            json.dumps(
-                {
-                    "note": "Recorded by `python -m supervisor.controls.harness --write-baseline`. "
-                    "tests/controls/test_harness.py fails if a metric drops below this.",
-                    "date": dt.date.today().isoformat(),
-                    "base_commit": BASE_COMMIT,
-                    "branch": "wp30-controls",
-                    "tasks_config_sha256": tasks_config_sha256(),
-                    "results": _baseline_view(res),
-                },
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n",
-            encoding="utf-8",
-            newline="\n",
+        write_baseline(
+            fixtures / "baseline.json",
+            {
+                "note": "Recorded by `python -m supervisor.controls.harness --write-baseline`. "
+                "tests/controls/test_harness.py fails if a metric drops below this.",
+                "date": dt.date.today().isoformat(),
+                "base_commit": BASE_COMMIT,
+                "branch": "wp30-controls",
+                "tasks_config_sha256": tasks_config_sha256(),
+                "results": _baseline_view(res),
+            },
         )
         print("[OK] wrote baseline.json")  # noqa: T201
     print("[OK] all GO" if not bad else f"[FAIL] {bad} NO-GO verdict(s)")  # noqa: T201

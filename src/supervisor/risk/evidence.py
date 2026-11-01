@@ -53,6 +53,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from supervisor.core.canonical import format_ts, sha256_hex
+from supervisor.core.rows import rows_by
 from supervisor.risk.model import CONTROL_KINDS, RiskConfig
 
 SUPERVISED_STATES = ("RUNNING", "PAUSED", "QUARANTINED")
@@ -292,14 +293,19 @@ class Collector:
     # -- one control of each kind ------------------------------------------------------
     def rule_hits(self, agents: list[str], rule_id: str, w: Window) -> tuple[int, int]:
         hits = stops = 0
+        # one statement for all agents (newest SCAN_CAP rows of each), not one per agent
+        by_agent = rows_by(
+            self.tables,
+            "verdict",
+            "agent_id",
+            agents,
+            columns=["agent_id", "ts", "advisory", "label", "is_mock", "checker_id", "action"],
+            where={"rule_id": rule_id, "tier": 0},
+            order_by=("-ts",),
+            per_key_limit=SCAN_CAP,
+        )
         for a in agents:
-            rows = self.tables.query(
-                "verdict",
-                {"agent_id": a, "rule_id": rule_id, "tier": 0},
-                order_by=("-ts",),
-                limit=SCAN_CAP,
-            )
-            for v in rows:
+            for v in by_agent.get(a, []):
                 ts = _ts(v["ts"])
                 if ts is None or not (w.start <= ts < w.end) or _true(v.get("advisory")):
                     continue
@@ -318,19 +324,27 @@ class Collector:
             return "nodata"  # a judge-scored pack is a reference, not evidence
         seen: list[str] = []
         missing = False
+        # WP41 (D28): a result on ANY target bound to the agent is evidence: the agent itself
+        # and its recorded traces (target_id is the agent id for both). The newest valid
+        # result of each target kind is read, so a fail on either one shows. One statement per
+        # target kind for all agents.
+        newest_by_kind = {
+            kind: rows_by(
+                self.tables,
+                "eval_result",
+                "target_id",
+                agents,
+                columns=["target_id", "ts", "is_mock", "status"],
+                where={"target_kind": kind, "pack_id": pack_id},
+                order_by=("-ts",),
+                per_key_limit=50,
+            )
+            for kind in PACK_TARGET_KINDS
+        }
         for a in agents:
             found = False
-            # WP41 (D28): a result on ANY target bound to the agent is evidence: the agent itself
-            # and its recorded traces (target_id is the agent id for both). The newest valid
-            # result of each target kind is read, so a fail on either one shows.
             for kind in PACK_TARGET_KINDS:
-                rows = self.tables.query(
-                    "eval_result",
-                    {"target_kind": kind, "target_id": a, "pack_id": pack_id},
-                    order_by=("-ts",),
-                    limit=50,
-                )
-                for r in rows:
+                for r in newest_by_kind[kind].get(a, []):
                     ts = _ts(r["ts"])
                     if ts is None or not (w.start <= ts < w.end) or _true(r.get("is_mock")):
                         continue
@@ -352,8 +366,15 @@ class Collector:
         """True when the newest status in the window is ``ok`` for EVERY supervised agent."""
         if monitor not in EVIDENCE_MONITORS or not agents:
             return False
+        metrics = rows_by(
+            self.state,
+            "oversight_metric",
+            "agent_id",
+            agents,
+            columns=["agent_id", "metric_date", "monitor_status"],
+        )
         for a in agents:
-            rows = self.state.query("oversight_metric", {"agent_id": a})
+            rows = metrics.get(a, [])
             dated = [(d, r) for r in rows if (d := _date(r.get("metric_date"))) is not None]
             dated = [(d, r) for d, r in dated if w.start.date() <= d < w.end.date()]
             if not dated:

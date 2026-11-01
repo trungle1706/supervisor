@@ -138,8 +138,8 @@ def test_reread_builds_the_card_grouped_with_pointers_and_a_dropped_line(on: Con
     assert "refund_fee" in html and "main.synthetic.refunds" in html
     assert 'data-pointer="1"' in html and "agent.py:" in html and "manifest.yaml:" in html
     assert 'data-dropped="0"' in html and "0 claims dropped (no evidence)" in html
-    assert 'data-facts-attempt="1"' in html and "Read from source attempt 1." in html
-    assert 'data-action="reread"' in html and "Re-read" in html
+    assert 'data-facts-attempt="1"' in html and "Based on source upload 1." in html
+    assert 'data-action="reread"' in html and "Read the source again" in html
     assert 'data-mock="1"' in html and "mock" in html  # no real model in the test setup
     assert AWS_KEY not in html and "[REDACTED:aws_access_key]" in html
     # the tab and the full page show the same card
@@ -189,7 +189,7 @@ def test_a_newer_attempt_asks_for_a_reread(on: Console) -> None:
     reread(on)
     upload(on, entries={"agent.py": "x = 1\n"})
     html = on.get("/console/agents/payments/tab/facts").text
-    assert 'data-newer="1"' in html and "attempt 2 is newer: press Re-read" in html
+    assert 'data-newer="1"' in html and "Upload 2 is newer. Read the source again." in html
     html = reread(on).text
     assert 'data-newer="1"' not in html and 'data-facts-attempt="2"' in html
 

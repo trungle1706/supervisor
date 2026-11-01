@@ -3,7 +3,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ ed.agent.name }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('fa_title'), '/console/factory'), (ed.agent.id, None)]) }}
+{{ ui.crumbs([(t('fa_title'), '/console/factory'), ((ed.agent.name|replace(' demo:showcase', '') if ux5 else ed.agent.id), None)]) }}
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g6.css">{% endif %}
 {% if ux5 %}
 {% import "_factory_ui.html" as fu with context %}
@@ -41,10 +41,12 @@
 </nav>
 {% endif %}
 {% set g7_shell = true %}<div id="factory-step">{% include "_factory_step_" ~ ed.step ~ ".html" %}</div>
-{% if ed.can_new_version or ed.can_retire or not ux5 %}<section class="card g7-actions" data-section="actions">
+{% if ed.can_new_version or ed.can_retire or ed.inventory_on or not ux5 %}<section class="card g7-actions" data-section="actions">
   <div class="btnrow">
+  {% if ed.inventory_on %}<a class="btn" data-act="inventory-run" href="/console/factory/{{ ed.agent.id }}/inventory">{{ t('finv_entry') }}</a>{% endif %}
   {% if ed.can_new_version %}<form hx-post="/console/factory/{{ ed.agent.id }}/new-version" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><button class="btn" data-act="new-version">{{ t('fa_new_version') }}</button></form>{% endif %}
-  {% if ed.can_retire %}<form hx-post="/console/factory/{{ ed.agent.id }}/retire" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><input name="reason" data-field="reason" maxlength="200" placeholder="{{ t('fa_reason') }}" required><button class="btn" data-act="retire">{{ t('fa_retire') }}</button></form>{% endif %}
+  {% if ed.can_retire %}<h3 class="sec">{{ t('fa_retire') }}</h3>
+  <form hx-post="/console/factory/{{ ed.agent.id }}/retire" hx-swap="none" method="post"><input type="hidden" name="version" value="{{ ed.version }}"><input name="reason" data-field="reason" maxlength="200" placeholder="{{ t('fa_reason') }}" required><button class="btn" data-act="retire">{{ t('fa_retire') }}</button></form>{% endif %}
   </div>
 </section>{% endif %}
 {% if ux5 %}

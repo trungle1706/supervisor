@@ -7,7 +7,8 @@
 {% if ux5 %}
 {% import "_g4.html" as g4 with context %}
 <link rel="stylesheet" href="/console/static/ux5_g4.css">
-{{ ui.crumbs([(t('nv3_catalogues'), '/console/catalogues?lang=' ~ lang), (t('agents'), '/console/agents?lang=' ~ lang), (a.get('name') or a.agent_id, None)]) }}
+{% if shell().my_agents %}{{ ui.crumbs([(t('nv3_my'), '/console/?lang=' ~ lang), (t('ov4_t_agents'), '/console/my/agents?lang=' ~ lang), (a.get('name') or a.agent_id, None)]) }}
+{% else %}{{ ui.crumbs([(t('nv3_catalogues'), '/console/catalogues?lang=' ~ lang), (t('agents'), '/console/agents?lang=' ~ lang), (a.get('name') or a.agent_id, None)]) }}{% endif %}
 <header class="g4-head">
   <h1>{{ a.get('name') or a.agent_id }}<span class="g4-id">{{ a.agent_id }}</span></h1>
   <span class="pills" id="agent-pills">{% include "_agent_pills.html" %}</span>
@@ -30,7 +31,7 @@
   'inventory': t('atab_inventory'), 'traces': t('atab_traces'), 'cases': t('atab_cases'),
   'assurance': t('atab_assurance'), 'compliance': t('atab_compliance'),
   'risks': t('atab_risks'), 'controls': t('atab_controls'), 'tasks': t('atab_tasks'),
-  'transparency': t('atab_transparency'), 'source': t('atab_source'), 'facts': t('atab_facts'), 'predeploy': t('atab_predeploy'), 'attach': t('atab_attach'), 'postdeploy': t('atab_postdeploy')} %}
+  'transparency': t('atab_transparency'), 'source': t('atab_source'), 'facts': t('atab_facts'), 'analysis': t('atab_analysis'), 'predeploy': t('atab_predeploy'), 'attach': t('atab_attach'), 'postdeploy': t('atab_postdeploy')} %}
 {{ ui.tabs(tabs, tab, tab_labels, '/console/agents/' ~ a.agent_id ~ '?tab={tab}&lang=' ~ lang, '/console/agents/' ~ a.agent_id ~ '/tab/{tab}?lang=' ~ lang, target='#tab-body', counts=tab_counts, panel='tab-body') }}
 <div id="tab-body" class="tabpanel" role="tabpanel">
 {% include "_agent_tab_" ~ tab ~ ".html" %}

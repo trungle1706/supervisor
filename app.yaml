@@ -204,6 +204,43 @@ env:
   # Off by default (docs/orchestrator.md).
   # - name: ONBOARD_ORCHESTRATOR
   #   value: "1"
+  # Demo only: run the assessment while the classification approval still waits (docs/orchestrator.md).
+  # - name: ASSESS_PENDING_CLASS
+  #   value: "1"
+  # Demo only: a pause (ms, max 5000) before each risk type of a run, so the live progress bar shows.
+  # - name: ORCH_DEMO_PACE_MS
+  #   value: "1500"
+  # Executive findings in the assessment summary: a Bottom line and Key findings per risk type (what it
+  # means for the bank, why, what to do, who acts), made by rules from the report and the code scan.
+  # Off by default (docs/orchestrator.md). Needs ONBOARD_ORCHESTRATOR and CONSOLE_UX5.
+  # - name: ORCH_EXEC_FINDINGS
+  #   value: "1"
+  # Optional, needs ORCH_EXEC_FINDINGS and LLM_BASE_URL: one model call per risk type rewords the text
+  # in executive English and Vietnamese. A line that adds a number or a name is dropped. Off by default.
+  # - name: ORCH_EXEC_LLM
+  #   value: "1"
+  # Demo only: when a risk type has no live agent, run the newest DRAFT agent of that type on the
+  # real model (not tested, not approved; the console says so). Off: only live agents run.
+  # - name: ORCH_RUN_DRAFT_AGENTS
+  #   value: "1"
+  # Time limit (seconds) of one live or draft agent (default 120) and of the whole run (default
+  # 900) in a risk assessment run. The rule runner keeps 30 s. One model call: FACTORY_CALL_TIMEOUT_S.
+  # - name: ORCH_AGENT_SECONDS
+  #   value: "600"
+  # - name: ORCH_TOTAL_SECONDS
+  #   value: "1800"
+  # How many group calls of one agent run go to the model at the same time (1 to 8, default 1 = one
+  # after another). The report is the same; the run is faster on a model that allows parallel calls.
+  # - name: FACTORY_PARALLEL_CALLS
+  #   value: "4"
+  # On by default (set 0 to turn off): an assessment item with no source to read (a test with no result,
+  # a document nobody supplied) is answered "question" in plain words without a model call.
+  # - name: FACTORY_SKIP_UNSOURCED
+  #   value: "0"
+  # On by default (today's loop). Set 0: in loop mode an item the model answered "question" with no
+  # verifier reason is not asked again (the prompt would be the same). Saves model calls.
+  # - name: FACTORY_REASK_OPEN
+  #   value: "0"
   # Phase 12C WP-G4: the smart guardian (a proposed guardian set, thresholds and autonomy limits per
   # AI system from the assessment; a person accepts). Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS.
   # Off by default (docs/smart-guardian.md).
@@ -235,6 +272,31 @@ env:
   # (docs/factory.md "Starter agents").
   # - name: FACTORY_SEED_STARTERS
   #   value: "1"
+  # W4: run one risk assessment agent over the whole AI inventory with the gateway model and show a
+  # dashboard (docs/factory.md "Inventory run"). A simulation: it never changes an assessment.
+  # Needs AGENT_FACTORY, GOVERNANCE_ENABLED and LLM_BASE_URL. Off by default.
+  # FACTORY_INVENTORY_PARALLEL = systems at a time (1..16, default 4). FACTORY_INVENTORY_MAX = at
+  # most this many systems per run (0 = all, default).
+  # - name: FACTORY_INVENTORY_RUN
+  #   value: "1"
+  # - name: FACTORY_INVENTORY_PARALLEL
+  #   value: "4"
+  # - name: FACTORY_INVENTORY_MAX
+  #   value: "0"
+  # v0.11.2: registration step 7 and the Guardians tab show "Connect your app to Guardian": a
+  # how-to, one stdlib file guardian_client.py to copy, and a Guardian-ready check of the newest
+  # source (table guardian_ready_check). Needs ONBOARD_INTAKE. Off by default.
+  # - name: GUARDIAN_KIT
+  #   value: "1"
+  # v0.11.2: multi-turn red team of one AI system before go-live (step 7 and the Red team tab;
+  # table redteam_usecase_run). The sandbox agent is simulated, the gate and rules are real.
+  # Optional AI attacker uses the gateway model. Off by default (docs/redteam-multiturn.md 12).
+  # - name: REDTEAM_TAB
+  #   value: "1"
+  # v0.11.2: Stability tab after go-live: moving metrics with the normal range (drift monitor),
+  # verdict Stable / Watch / Unstable. Read only. Off by default.
+  # - name: STABILITY_TAB
+  #   value: "1"
   # Phase 8 WP-L4: live evidence per control for the duties of a system, auto-close of a full
   # coverage duty whose controls all work, signed regulator pack (JSON and HTML) per system.
   # Needs GOVERNANCE_ENABLED and RISK_DUTIES. Off by default (docs/regulator-pack.md).
@@ -258,6 +320,12 @@ env:
   # Phase 9 WP-O2: facts card (what we know about this agent) built from a stored intake attempt;
   # needs ONBOARD_INTAKE. Off by default (docs/onboard.md "Facts card").
   # - name: ONBOARD_FACTS
+  #   value: "1"
+  # Source analysis agent: a bounded, read-only tool loop over the stored intake tree that adds
+  # evidence-checked findings (egress, approval points, guardrails, logging, per-tool effects) next
+  # to the fixed rules; needs ONBOARD_INTAKE and a model (LLM_BASE_URL). Off by default
+  # (docs/onboarding/code-agent.md).
+  # - name: CODE_AGENT_ENABLED
   #   value: "1"
   # Phase 12 WP-C1: classification tree (not a system, prohibited, high, medium, low) with a second
   # person to approve; needs GOVERNANCE_ENABLED. Off by default (docs/classification.md).
@@ -349,6 +417,11 @@ env:
   # DATA_DIR/regkb/overrides), and the governance event regkb_changed re-opens duties and moves
   # systems to re-evaluation. Needs LAWAGENT_ENABLED and GOVERNANCE_ENABLED. Off by default.
   # - name: REGKB_CHANGE_LOOP
+  #   value: "1"
+  # Regulation graph: tab "Regulation graph" (Risks & controls) and GET /v1/regkb/graph. Instrument ->
+  # obligation -> AI system, links from obligation_status coloured like the tick strip. Read only,
+  # two store reads per page. Needs GOVERNANCE_ENABLED. Off by default (docs/regulations.md).
+  # - name: KBGRAPH_ENABLED
   #   value: "1"
   # Showcase (v0.10.0, demo workspaces only; docs/showcase/DEPLOY_SHOWCASE.md). Seeds synthetic rows
   # tagged demo:showcase. Never in a production App. POLICY_DIR adds the showcase policy of the three

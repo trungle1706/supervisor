@@ -19,6 +19,7 @@ from typing import Any
 from supervisor.controls.model import actor_ref
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
+from supervisor.core.csvsafe import write_csv
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, NotFoundError
 from supervisor.tasks.model import (
     CLASSES,
@@ -1055,19 +1056,10 @@ class TaskService:
         self, agent_id: str | None = None, limit: int = MAX_EXPORT_ROWS
     ) -> tuple[str, bool]:
         """(tasks.csv text, truncated). Formula-safe cells; at most ``MAX_EXPORT_ROWS`` rows."""
-        import csv
-        import io
-
-        from supervisor.controls.service import csv_cell
-
         rows = self.list_tasks({"agent": agent_id} if agent_id else None)
         cap = max(1, min(int(limit), MAX_EXPORT_ROWS))
-        buf = io.StringIO()
-        w = csv.writer(buf, lineterminator="\n")
-        w.writerow(TASK_CSV)
-        for r in rows[:cap]:
-            w.writerow([csv_cell(r.get(k)) for k in TASK_CSV])
-        return buf.getvalue(), len(rows) > cap
+        text = write_csv(TASK_CSV, ([r.get(k) for k in TASK_CSV] for r in rows[:cap]))
+        return text, len(rows) > cap
 
     def export_json(self, agent_id: str | None = None) -> dict[str, Any]:
         rows = self.list_tasks({"agent": agent_id} if agent_id else None)
@@ -1075,6 +1067,19 @@ class TaskService:
 
 
 # ---------------------------------------------------------------------- helpers
+
+
+def overdue_required(
+    rows: Iterable[Mapping[str, Any]], owners: Iterable[str]
+) -> list[Mapping[str, Any]]:
+    """The one definition of "tasks overdue" on every page and in ``GET /v1/kpis``: required
+    tasks (view rows of ``list_tasks``) that are past their due date and still open, owned by
+    one of ``owners`` (system ids and agent ids; compared case-insensitively). It does not
+    depend on CONTROLS_ENABLED: the task rows are in the store either way."""
+    wanted = {str(o).lower() for o in owners}
+    return [
+        r for r in rows if str(r["agent_id"]).lower() in wanted and r["overdue"] and r["required"]
+    ]
 
 
 def _name(actor: Any) -> str:

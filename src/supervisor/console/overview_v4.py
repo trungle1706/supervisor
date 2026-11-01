@@ -17,7 +17,12 @@ import datetime as dt
 from typing import Any
 
 from supervisor.console import overview_v3, portfolio, readmodels, systems_overview
-from supervisor.console.listing import paginate, parse_int, parse_sort, query_string, sort_rows
+from supervisor.console.listing import (
+    paginate_query,
+    parse_sort,
+    query_string,
+    sort_rows,
+)
 from supervisor.console.overview_v3 import SCOPES
 from supervisor.core.errors import SupervisorError
 from supervisor.governance import duties_gap, triage
@@ -31,6 +36,7 @@ from supervisor.governance.next_action import (
     shadow_days,
 )
 from supervisor.inventory.service import InventoryService
+from supervisor.tasks.service import overdue_required
 
 CONFIRM_TASK = "SYS-INTAKE-CONFIRM"
 CHECKS_TASK = "SYS-INTAKE-CHECKS"
@@ -48,10 +54,6 @@ OPEN_TASK = ("open", "in_progress")
 
 class CandidateError(SupervisorError):
     """Bad filter or page of the candidate list (HTTP 400)."""
-
-
-def _on(value: Any) -> bool:
-    return str(value).strip().lower() in ("1", "true")
 
 
 # ------------------------------------------------------------------------- candidates
@@ -96,7 +98,7 @@ def candidates_view(
         "name": lambda r: r["name"].lower(),
     }
     items = sort_rows(items, col, direction, keys)
-    pg = paginate(items, parse_int(query.get("page"), "page", 1), size)
+    pg = paginate_query(items, query, size)
     filters = {"kind": kind, "signal": signal, "band": band}
     return {
         "cand_page": pg,
@@ -201,6 +203,8 @@ def _banner(
             "state": "attention",
             "why": "ov4_why_overdue_high",
             "arg": str(high_overdue[0]["title"]),
+            # UI-005: the title is translated by the template code (label_text('task', ...))
+            "arg_task": str(high_overdue[0].get("template_id") or ""),
         }
     if crit:
         return {"state": "attention", "why": "ov4_why_critical", "arg": str(len(crit))}
@@ -220,18 +224,30 @@ def _banner(
 
 
 def _banner_target(
-    why: str, overdue: list[dict[str, Any]], items: list[dict[str, Any]], systems_page: bool
+    why: str,
+    overdue: list[dict[str, Any]],
+    items: list[dict[str, Any]],
+    systems_page: bool,
+    tasks_page: bool = True,
+    system_ids: set[str] | None = None,
 ) -> tuple[str, str]:
-    """(href, cta) of the attention block (UX5): the page where the banner reason is handled."""
-    if why == "ov4_why_overdue_high":
-        high = [t for t in overdue if t.get("level") in ("high", "critical")]
-        if high and systems_page:
-            return f"/console/systems/{high[0]['agent_id']}?tab=tasks", "task"
-        return "/console/tasks", "task"
+    """(href, cta) of the attention block (UX5): the page where the banner reason is handled.
+    UI-001: the Tasks page may be off (CONSOLE_CONTROLS_ENABLED); the live equivalent is the
+    Tasks tab of the system, or the Systems list."""
+    if why in ("ov4_why_overdue_high", "ov4_why_overdue"):
+        pool = (
+            [t for t in overdue if t.get("level") in ("high", "critical")]
+            if why == "ov4_why_overdue_high"
+            else overdue
+        )
+        owner = str(pool[0]["agent_id"]) if pool else ""
+        if owner and systems_page and (system_ids is None or owner in system_ids):
+            return f"/console/systems/{owner}?tab=tasks", "task"
+        if tasks_page:
+            return "/console/tasks", "task"
+        return ("/console/systems", "task") if systems_page else ("/console/cases", "cases")
     if why == "ov4_why_candidate":
         return "/console/candidates", "candidates"
-    if why == "ov4_why_overdue":
-        return "/console/tasks", "task"
     if why == "ov4_why_actions" and items:
         return str(items[0]["href"]), "item"
     return "/console/cases", "cases"
@@ -265,18 +281,13 @@ def my_overview(
     by_lower = {c["agent_id"].lower(): c["agent_id"] for c in cards}
     by_cards = {c["agent_id"]: c for c in cards}
     agents_of = systems_overview.agent_ids_of(comps, scoped, by_lower)
-    linked = {a for ag in agents_of.values() for a in ag if a in by_cards}
-    loose = [
-        c
-        for c in overview_v3.in_scope(cards, me, scope)
-        if c["agent_id"] not in {a for ag in agents_of.values() for a in ag}
-    ]
-    agent_ids = sorted(linked | {c["agent_id"] for c in loose})
+    ids, agent_ids, loose = systems_overview.task_owner_ids(
+        ctx, me, scope, scoped, agents_of, cards
+    )
     agent_cards = [by_cards[a] for a in agent_ids]
     cov = overview_v3.cover_for(ctx, agent_cards)
     health = systems_overview.health_rows(ctx, scoped, by_cards, agents_of, cov)
     tasks = _tasks(ctx)
-    ids = {r["system_id"] for r in scoped} | set(agent_ids)
     by_task: dict[str, dict[str, dict[str, Any]]] = {}
     for t in tasks:
         by_task.setdefault(str(t["agent_id"]), {})[str(t["template_id"])] = t
@@ -457,7 +468,7 @@ def my_overview(
     for c in agent_cards:
         states[c["state"]] = states.get(c["state"], 0) + 1
     open_cases = [c for c in readmodels.open_cases(ctx) if c["agent_id"] in set(agent_ids)]
-    overdue = [t for t in tasks if t["overdue"] and t["required"] and t["agent_id"] in ids]
+    overdue = list(overdue_required(tasks, ids))  # one definition of "tasks overdue"
     models = overview_v3._asset_count(ctx, "models")  # noqa: SLF001
     with_agents = [h for h in health if h["guard"] is not None]
     totals = {
@@ -477,8 +488,22 @@ def my_overview(
     top = cand[0] if cand else None
     banner = _banner(actions_n=acts["n"], overdue=overdue, cases=open_cases, top=top)
     banner["open_items"] = acts["n"] + len(open_cases)
+    # UI-002: "N more" counts the other open items (actions + cases). The head of the banner is
+    # one of them only when its reason is a case or an action; an overdue task or a candidate is
+    # not in that count, so nothing is taken off.
+    head_counted = banner["why"] in (
+        "ov4_why_critical",
+        "ov4_why_high_case",
+        "ov4_why_actions",
+    )
+    banner["more"] = max(banner["open_items"] - (1 if head_counted else 0), 0)
     banner["href"], banner["cta"] = _banner_target(
-        banner["why"], overdue, acts["items"], bool(ctx.settings.console_systems_enabled)
+        banner["why"],
+        overdue,
+        acts["items"],
+        bool(ctx.settings.console_systems_enabled),
+        bool(readmodels.ux3_pages(ctx.settings).get("tasks")),
+        {str(r["system_id"]) for r in scoped},
     )
     return {
         "unit": "systems",

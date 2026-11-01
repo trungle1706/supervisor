@@ -1,5 +1,5 @@
 # ruff: noqa: E501, S311
-"""WP-F5: generate the golden sets of the six starter agents (dev tool, no model, deterministic).
+"""WP-F5: generate the golden sets of the eight starter agents (dev tool, no model, deterministic).
 
 Run:  python -m tools.factory_golden_gen            # write config/factory_agents/golden/<agent>/
       python -m tools.factory_golden_gen --check    # fail when the committed files differ
@@ -14,8 +14,8 @@ For every starter agent in ``config/factory_agents/<agent>.yaml`` it writes
                         them differ from the expected verdict, like a careful human would.
 
 The scenarios are in ``tools/factory_golden_specs.py``. All text is synthetic Vietnamese: no real
-person, bank, account or document. Same seed, same bytes. The two templates (supply chain,
-reputation) get an empty golden set.
+person, bank, account or document. Same seed, same bytes. The supply chain and the reputation
+agent have a golden set too (version 0.2); an agent with few items gets more cases per item.
 
 An evidence ref of a case always points at a source of that case's own inputs. Refs carry the case
 token so that two cases never share a ref.
@@ -49,8 +49,9 @@ SHORT = {
     "legal-compliance-assessor": "lc",
     "third-party-assessor": "tp",
     "ethics-assessor": "et",
+    "supply-chain-assessor": "sc",
+    "reputation-assessor": "rp",
 }
-TEMPLATES = ("supply-chain-assessor", "reputation-assessor")
 MIN_CASES = 60
 MIN_PER_ITEM = 5
 LABELS = 24
@@ -271,9 +272,11 @@ class Builder:
 
 
 def plan_for(n_per: int, has_na: bool) -> list[str]:
+    """The verdict kind of each case of an item. The plan repeats when an item needs more cases
+    than the plan is long (an agent with few items, such as reputation)."""
     plan = list(PLAN)
     plan[3] = "n" if has_na else "f"
-    return plan[:n_per]
+    return [plan[i % len(plan)] for i in range(n_per)]
 
 
 def make_cases(defn: dict[str, Any]) -> list[dict[str, Any]]:
@@ -396,8 +399,6 @@ def build() -> dict[Path, str]:
         base = AGENT_DIR / "golden" / agent_id
         out[base / "cases.json"] = dump(cases)
         out[base / "calibration.json"] = dump(labels)
-    for agent_id in TEMPLATES:
-        out[AGENT_DIR / "golden" / agent_id / "cases.json"] = "[]\n"
     return out
 
 

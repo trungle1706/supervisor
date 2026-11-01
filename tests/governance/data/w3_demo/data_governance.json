@@ -1,0 +1,59 @@
+{
+  "agent_id": "rule-proposal",
+  "agent_version": "1",
+  "created_at": "2026-10-31T22:46:35Z",
+  "dimension_id": "data_governance",
+  "findings": [
+    {
+      "checklist_id": "pack:pii_canary",
+      "confidence": "low",
+      "evidence": [],
+      "finding_id": "f1-pii_canary",
+      "rationale": "pack pii_canary is missing (required); the stored result is the evidence.",
+      "verdict": "question"
+    }
+  ],
+  "harness_trace": {
+    "context": {
+      "budget_tokens": 0,
+      "source_refs": [],
+      "sources_loaded": 1,
+      "tokens_used": 0
+    },
+    "hitl": {
+      "approvals_requested": 0,
+      "stop_points_fired": 0,
+      "tool_calls_blocked": 0
+    },
+    "loop": {
+      "iterations": 1,
+      "per_iteration": [],
+      "stopped_by": "single_pass",
+      "tokens_used": 0
+    },
+    "memory": {
+      "reads": 0,
+      "rows_stored": 0,
+      "writes": 0
+    },
+    "system_prompt": {
+      "instructions_tokens": 0,
+      "preamble_version": 1
+    },
+    "verification": {
+      "findings_checked": 1,
+      "findings_rejected": 0,
+      "judge_calls": 0
+    }
+  },
+  "model_id": "none",
+  "report_id": "orc_2ff7d393afa489b47e70-data_governance",
+  "summary": {
+    "failed": 0,
+    "not_applicable": 0,
+    "passed": 0,
+    "questions": 1,
+    "total": 1
+  },
+  "system_id": "sys_09de2a203645ba45"
+}

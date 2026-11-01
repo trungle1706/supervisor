@@ -239,10 +239,6 @@ def _hex(*parts: Any) -> str:
     return hashlib.sha256("|".join(str(p) for p in parts).encode("utf-8")).hexdigest()
 
 
-def _bool_text(value: Any) -> bool:
-    return str(value).strip().lower() in ("1", "true")
-
-
 # ----------------------------------------------------------------------------------- plan
 
 

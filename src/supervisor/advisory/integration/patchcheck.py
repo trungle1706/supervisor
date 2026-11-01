@@ -71,10 +71,17 @@ def _clean_path(raw: str) -> str:
 
 def _safe_rel(root: Path, rel: str) -> Path:
     p = PurePosixPath(rel)
-    if not rel or p.is_absolute() or ".." in p.parts or "\\" in rel or ":" in rel.split("/")[0]:
+    if (
+        not rel
+        or "\x00" in rel
+        or p.is_absolute()
+        or ".." in p.parts
+        or "\\" in rel
+        or ":" in rel.split("/")[0]
+    ):
         raise PatchError(f"path escapes the root: {rel!r}")
-    full = (root / rel).resolve()
     try:
+        full = (root / rel).resolve()
         full.relative_to(root.resolve())
     except ValueError as exc:
         raise PatchError(f"path escapes the root: {rel!r}") from exc

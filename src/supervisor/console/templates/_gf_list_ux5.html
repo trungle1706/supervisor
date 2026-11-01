@@ -6,6 +6,11 @@
 {% set f = gl.filters %}
 {% set qs = '?lang=' ~ lang ~ '&owner_group=' ~ (f.owner_group|urlencode) ~ '&stage=' ~ (f.stage|urlencode) ~ '&type=' ~ (f.type|urlencode) %}
 <section id="gf-list" data-section="guardian-factory">
+  {# UI-170: nothing exists and nothing is filtered: one empty state with the one button, no chips, filters or headers #}
+  {% set nothing = not gl.rows and not (f.state or f.owner_group or f.stage or f.type) %}
+  {% if nothing %}
+  {{ ui.empty(t('gf_none'), '', gl.base ~ '/new?lang=' ~ lang, t('gf_new')) }}
+  {% else %}
   <div class="g5-chips" role="group" aria-label="{{ t('gf_state') }}">
     {% set total = namespace(n=0) %}{% for s in gl.states %}{% set total.n = total.n + gl.counts[s] %}{% endfor %}
     <a class="{{ 'on' if not f.state else '' }}" href="{{ gl.base }}{{ qs }}&amp;state=" hx-get="{{ gl.base }}{{ qs }}&amp;state=" hx-target="#gf-list" hx-swap="outerHTML" hx-push-url="false">{{ t('cat_all') }} {{ total.n }}</a>
@@ -39,4 +44,5 @@
   </table>
   </div>
   {% if gl.pages > 1 %}{{ u5.pager(gl.page, gl.pages, gl.base ~ qs ~ '&state=' ~ f.state) }}{% endif %}
+  {% endif %}
 </section>

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import zipfile
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -226,6 +228,29 @@ def test_dep_packs_skip_paths() -> None:
 # --------------------------------------------------------------------------- sbom
 
 
+def _validate_sbom(doc: Mapping[str, Any]) -> list[str]:
+    """Structural check of the keys CycloneDX 1.5 requires; returns problems."""
+    bad: list[str] = []
+    if doc.get("bomFormat") != "CycloneDX":
+        bad.append("bomFormat")
+    if doc.get("specVersion") != "1.5":
+        bad.append("specVersion")
+    if not re.fullmatch(
+        r"urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        str(doc.get("serialNumber", "")),
+    ):
+        bad.append("serialNumber")
+    if not isinstance(doc.get("version"), int) or doc["version"] < 1:
+        bad.append("version")
+    for i, c in enumerate(doc.get("components", [])):
+        if c.get("type") not in {"library", "application", "framework"} or not c.get("name"):
+            bad.append(f"components[{i}]")
+        for h in c.get("hashes", []):
+            if h.get("alg") != "SHA-256" or not re.fullmatch(r"[0-9a-f]{64}", h.get("content", "")):
+                bad.append(f"components[{i}].hashes")
+    return bad
+
+
 def test_sbom_structure_and_determinism(tmp_path: Path) -> None:
     out = run("sbom_cyclonedx", FakeAgent(target_id="agent:demo"), extras={"out_dir": tmp_path})
     assert out.status == "ok"
@@ -236,7 +261,7 @@ def test_sbom_structure_and_determinism(tmp_path: Path) -> None:
     f = tmp_path / "sbom-agent_demo.cdx.json"
     assert out.details["sbom_file"] == f.name
     doc = json.loads(f.read_text(encoding="utf-8"))
-    assert R.validate_sbom(doc) == []
+    assert _validate_sbom(doc) == []
     assert {"bomFormat", "specVersion", "serialNumber", "version", "metadata", "components"} <= set(
         doc
     )
@@ -250,11 +275,11 @@ def test_sbom_structure_and_determinism(tmp_path: Path) -> None:
 
 
 def test_sbom_validator_catches_problems() -> None:
-    assert "bomFormat" in R.validate_sbom({})
+    assert "bomFormat" in _validate_sbom({})
     doc = R.build_sbom(depfiles.parse_requirements("a==1 --hash=sha256:" + "a" * 64), "t", NOW)
-    assert R.validate_sbom(doc) == []
+    assert _validate_sbom(doc) == []
     doc["components"][0]["hashes"][0]["content"] = "zz"
-    assert "components[0].hashes" in R.validate_sbom(doc)
+    assert "components[0].hashes" in _validate_sbom(doc)
 
 
 def test_sbom_unpinned_lowers_purl_metric() -> None:

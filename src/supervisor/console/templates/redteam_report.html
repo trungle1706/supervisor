@@ -1,0 +1,135 @@
+{# The report of one red team run (W7, REDTEAM_TAB): verdict, numbers, what was tried, where it got
+   through, one replayed conversation, how the test was done. Plain words for a manager.
+   Variables: run, system, done, and (when done) the view model of redteam_view.report_data. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rt_report') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/rteam.css">
+<script src="/console/static/rteam.js" defer></script>
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (system.name, '/console/systems/' ~ system.system_id ~ '?tab=redteam&lang=' ~ lang), (t('rt_report'), None)]) }}
+{% set vmark = {'safe': '✓', 'conditions': '!', 'not_safe': '✕', 'not_tested': '–'} %}
+{% set ic = {'echo_chamber': '↻', 'crescendo': '↗', 'payload_split': '÷', 'tool_poisoning': '⚙', 'memory_poison': '✎', 'policy_puppetry': '§'} %}
+{% macro money(n) %}{{ ('{:,}'.format(n)).replace(',', '.' if lang == 'vi' else ',') }}{% endmacro %}
+{% macro rulename(r) %}{% if r == 'GATE-AUTONOMY-CAP' %}{{ t('rt_cap_name') }}{% else %}{{ r }}{% endif %}{% endmacro %}
+<div class="rt" data-page="redteam-report" data-run="{{ run.run_id }}" data-status="{{ run.status }}">
+  <header class="rt-head">
+    <h1>{{ t('rt_report') }}</h1>
+    <div class="rt-chips"><span class="rt-chip mock" title="{{ t('rt_how_agent') }}">{{ t('rt_simulated') }}</span></div>
+    <div class="rt-actions">
+      <button class="btn sm" type="button" data-rt-print="1" data-act="print-report">{{ t('rt_print') }}</button>
+      <a class="btn sm" href="/console/systems/{{ system.system_id }}?tab=redteam&amp;lang={{ lang }}">{{ t('rt_back_system') }}</a>
+    </div>
+  </header>
+  <p class="hint" data-for="1">{{ t('rt_for', name=system.name) }} · {{ t('rt_when', when=run.when, user=run.started_by) }}</p>
+
+  {% if not done %}
+  <p class="notice" data-run-state="{{ run.status }}"><span class="dot"></span>{{ t('rt_cancelled') if run.status == 'cancelled' else t('rt_failed') }}</p>
+  {% if run.error %}<p class="hint mono">{{ run.error }}</p>{% endif %}
+  {% else %}
+
+  <section class="rt-verdict {{ verdict_kind }}" data-verdict="{{ verdict }}" aria-label="{{ t('rt_v_' ~ verdict) }}">
+    <span class="rt-mark" aria-hidden="true">{{ vmark[verdict] }}</span>
+    <div class="rt-vbody">
+      <h2>{{ t('rt_v_' ~ verdict) }}</h2>
+      <p>{{ t('rt_vx_' ~ verdict) }}</p>
+      {% if reasons %}<ul data-reasons="1">{% for r in reasons %}<li data-reason="{{ r }}">{{ t('rt_vr_' ~ r) }}</li>{% endfor %}</ul>{% endif %}
+      <p class="hint" data-rule="1">{{ t('rt_rule_line') }}</p>
+    </div>
+  </section>
+
+  <div class="rt-tiles" data-tiles="kpi">
+    <div class="rt-tile plain" data-tile="attacks"><b>{{ a.n }}</b><span>{{ t('rt_t_attacks') }}</span></div>
+    <div class="rt-tile ok" data-tile="stopped"><b>{{ a.stopped }}</b><span>{{ t('rt_t_stopped') }}</span><small>{% if a.lo_pct is not none %}{{ t('rt_range', k=a.stopped, n=a.n, lo=a.lo_pct) }}{% endif %}</small></div>
+    <div class="rt-tile {{ 'bad' if a.got_through else 'ok' }}" data-tile="got_through"><b>{{ a.got_through }}</b><span>{{ t('rt_t_through') }}</span><small>{{ t('rt_of', n=a.n) }}</small></div>
+    <div class="rt-tile {{ 'bad' if normal.wrongly_stopped else 'ok' }}" data-tile="wrong"><b>{{ normal.wrongly_stopped }}</b><span>{{ t('rt_t_normal') }}</span><small>{{ t('rt_of', n=normal.n) }}</small></div>
+    <div class="rt-tile warn" data-tile="mock"><b>{{ mock.gave_in }}</b><span>{{ t('rt_t_mock') }} ({{ t('rt_mock') }})</span><small>{{ t('rt_of', n=mock.n) }}</small></div>
+  </div>
+
+  <section class="card" data-section="tried">
+    <h2>{{ t('rt_tried_h') }}</h2>
+    <p class="hint">{{ t('rt_worst_note') }}</p>
+    <ul class="rt-styles" data-list="styles">
+    {% for f in families %}
+      <li data-family="{{ f.key }}">
+        <div><b>{{ t('rt_fam_' ~ f.key) }}</b><p>{{ t('rt_famd_' ~ f.key) }}</p></div>
+        <span class="rt-ticks" role="img" aria-label="{{ t('rt_range', k=f.stopped, n=f.n, lo=f.lo if f.lo is not none else 0) }}">{% for c in f.ticks %}<i class="{{ c }}"></i>{% endfor %}</span>
+        <span class="rt-count"><b>{{ f.stopped }}</b> / {{ f.n }}{% if f.lo is not none %}<br><small>{{ t('rt_range_short', lo=f.lo) }}</small>{% endif %}</span>
+      </li>
+    {% endfor %}
+    </ul>
+    <div class="rt-legend"><span><span class="rt-ticks"><i class="s"></i></span>{{ t('rt_legend_s') }}</span><span><span class="rt-ticks"><i class="g"></i></span>{{ t('rt_legend_g') }}</span><span><span class="rt-ticks"><i class="n"></i></span>{{ t('rt_legend_n') }}</span></div>
+    {% if rules %}<h3 style="margin-top:14px">{{ t('rt_rules_h') }}</h3>
+    <div class="rt-rules" data-list="rules">{% for r in rules %}<span class="rt-rule" data-rule="{{ r.rule }}"><b>{{ r.n }}</b> {{ rulename(r.rule) }}</span>{% endfor %}</div>{% endif %}
+    <p class="hint" style="margin-top:10px" data-normal="1">{{ t('rt_normal_line', n=normal.n, wrong=normal.wrongly_stopped, appr=normal.approval) }}</p>
+  </section>
+
+  <section class="card" data-section="holes">
+    <h2>{{ t('rt_through_h') }}</h2>
+    {% if not holes %}<p data-none="1">{{ t('rt_through_none') }}</p>{% endif %}
+    {% for h in holes %}
+    <article class="rt-hole{{ ' defect' if h.expected }}" data-hole="{{ h.kind }}">
+      <h3>{{ t('rt_kind_' ~ h.kind) }} <span class="rt-chip bad">{{ t('rt_k_through') }}</span></h3>
+      {% set fams = [] %}{% for f in h.families %}{% set _ = fams.append(t('rt_fam_' ~ f)) %}{% endfor %}
+      <p>{{ t('rt_through_line', k=h.got_through, n=h.n, styles=fams|join(', ')) }}</p>
+      <dl>
+        <dt>{{ t('rt_todo') }}</dt><dd>{{ t('rt_fix_' ~ h.fix) }}</dd>
+        <dt>{{ t('rt_owner') }}</dt><dd>{{ t('rt_owner_' ~ h.owner) }}</dd>
+      </dl>
+    </article>
+    {% endfor %}
+    {% if not_tested %}
+    <h3 style="margin-top:16px">{{ t('rt_nt_h') }}</h3>
+    <ul class="rt-list" data-list="not-tested">
+    {% for g in not_tested %}{% set names = [] %}{% for k in g.kinds %}{% set _ = names.append(t('rt_kind_' ~ k)) %}{% endfor %}<li data-capability="{{ g.capability }}">{{ t('rt_nt_line', reason=t('rt_nt_' ~ g.capability), kinds=names|join(', ')) }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  <section class="card" data-section="replay">
+    <h2>{{ t('rt_replay_h') }}</h2>
+    <p class="hint">{{ t('rt_replay_hint') }} {{ t('rt_replay_text_note') }}</p>
+    {% for r in replays %}
+    <details class="rt-replay" data-replay="{{ r.id }}"{% if loop.first %} open{% endif %}>
+      <summary><span class="rt-chip {{ r.result_kind }}">{{ t('rt_res_' ~ r.result) }}</span>
+        <b>{{ t('rt_kind_' ~ r.kind) }}</b>
+        <span class="hint">{{ t('rt_fam_' ~ r.family) }} · {{ r.lang|upper }}{% if r.stage == 'benign' %} · {{ t('rt_feed_normal') }}{% elif r.stage == 'model' %} · {{ t('rt_feed_sim') }} ({{ t('rt_mock') }}){% endif %}{% if r.ai %} · {{ t('rt_replay_ai') }}{% endif %}</span></summary>
+      <div class="rt-chat">
+      {% for tn in r.turns %}
+        <div class="rt-turn{{ ' cross' if tn.crossed }}{{ ' stop' if tn.stopped }}" data-turn="{{ tn.i }}">
+          <span class="rt-turn-n">{{ t('rt_replay_turn', n=tn.i) }}</span>
+          <div class="rt-bub me"><small>{{ t('rt_replay_attack') }}</small>{{ tn.user }}</div>
+          <div class="rt-bub bot"><small>{{ t('rt_replay_agent') }}</small>
+            {% if tn.calls %}{% set parts = [] %}{% for c in tn.calls %}{% set _ = parts.append(c.tool ~ (' ' ~ c.amount ~ ' ' ~ t('rt_units_vnd') if c.amount else '')) %}{% endfor %}{{ t('rt_replay_did', calls=parts|join(', ')) }}
+            {% elif tn.refused %}{{ t('rt_replay_refused') }}{% else %}{{ t('rt_replay_replied') }}{% endif %}</div>
+          {% if tn.crossed or tn.stopped %}
+          <div class="rt-marks">
+            {% if tn.crossed %}<span class="rt-mark-tag bad" data-mark="crossed">{{ t('rt_replay_crossed') }}</span>{% endif %}
+            {% if tn.stopped %}<span class="rt-mark-tag ok" data-mark="stopped">{% set rn = [] %}{% for x in tn.stops %}{% set _ = rn.append(rulename(x)) %}{% endfor %}{{ t('rt_replay_guard', rules=rn|join(', ')) }}</span>
+            {% elif tn.crossed %}<span class="rt-mark-tag bad" data-mark="not-stopped">{{ t('rt_replay_guard_none') }}</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </details>
+    {% else %}<p class="hint">{{ t('rt_replay_none') }}</p>{% endfor %}
+  </section>
+
+  <section class="card rt-how" data-section="how">
+    <details>
+      <summary>{{ t('rt_how_h') }}</summary>
+      <ul>
+        <li>{{ t('rt_how_sandbox') }}</li>
+        <li>{{ t('rt_how_agent') }}</li>
+        <li>{{ t('rt_how_gate') }}{% if approval_above %} {{ t('rt_limit_line', amount=money(approval_above)) }}{% endif %}</li>
+        <li data-how="attacker">{{ t('rt_how_attacker', attacker=(t('rt_how_attacker_ai', model=how.attacker_model) if ai else t('rt_how_attacker_scripted')), seed=how.options.seed, trials=how.options.trials, conv=how.conversations, turns=how.turns, secs=how.seconds) }}</li>
+        <li>{{ t('rt_how_mock') }}</li>
+        <li>{{ t('rt_how_not', n=n_patterns) }}</li>
+        <li>{{ t('rt_how_judge') }}</li>
+      </ul>
+    </details>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

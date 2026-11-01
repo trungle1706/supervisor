@@ -20,13 +20,11 @@ from typing import Any
 from supervisor.console import overview_v3, readmodels, systems_tabs
 from supervisor.console.overview_v3 import SCOPES, ScopeError, tile
 from supervisor.core import rbac
+from supervisor.core.flags import truthy
 from supervisor.governance import model as gm
+from supervisor.tasks.service import overdue_required
 
 log = logging.getLogger("supervisor.console")
-
-
-def _on(value: Any) -> bool:
-    return str(value).strip().lower() in ("1", "true")
 
 
 # ------------------------------------------------------------------------------ data
@@ -35,7 +33,7 @@ def _on(value: Any) -> bool:
 def components_by_system(ctx: Any) -> dict[str, list[dict[str, Any]]]:
     out: dict[str, list[dict[str, Any]]] = {}
     for c in ctx.state.query("system_component"):
-        if _on(c["active"]):
+        if truthy(c["active"]):
             out.setdefault(str(c["system_id"]), []).append(dict(c))
     return out
 
@@ -44,7 +42,7 @@ def memberships(ctx: Any, user_id: str) -> set[str]:
     return {
         str(m["system_id"])
         for m in ctx.state.query("system_team", {"user_id": user_id})
-        if _on(m["active"])
+        if truthy(m["active"])
     }
 
 
@@ -185,7 +183,12 @@ def next_action(
     ]
     if open_:
         first = sorted(open_, key=lambda t: (str(t.get("due_at") or "9"), t["task_id"]))[0]
-        return {"kind": "task", "text": str(first["title"]), "overdue": bool(first.get("overdue"))}
+        return {
+            "kind": "task",
+            "text": str(first["title"]),
+            "code": str(first.get("template_id") or ""),
+            "overdue": bool(first.get("overdue")),
+        }
     ap = waiting.get(sid)
     if ap:
         return {
@@ -327,7 +330,7 @@ def governance_overview(
     by_lower = {c["agent_id"].lower(): c["agent_id"] for c in cards}
     agents_of = agent_ids_of(comps, scoped, by_lower)
     ids = {a for ag in agents_of.values() for a in ag}
-    task_ids = ids | {r["system_id"] for r in scoped}
+    task_ids, _, _ = task_owner_ids(ctx, me, scope, scoped, agents_of, cards)
     s = ctx.settings
     classified = sum(1 for r in scoped if r.get("decision33_class") not in (None, "unclassified"))
     class_tile = (
@@ -369,19 +372,18 @@ def governance_overview(
         # a pending request is counted on the stage the system is in now (it waits to leave it)
         for a in pending_of(ctx, r["system_id"]):
             pending_by_stage[a["from_stage"]] = pending_by_stage.get(a["from_stage"], 0) + 1
-    if not s.controls_enabled:
-        overdue = tile("overdue", None, "", "nv3_na_controls_off", oldest=None)
-    else:
-        tasks = ctx.tasks.list_tasks()
-        late = [t for t in tasks if t["agent_id"] in task_ids and t["overdue"] and t["required"]]
+    # UI-040: the task rows are read whether or not CONTROLS_ENABLED is on, as My overview does.
+    try:
+        late = list(overdue_required(ctx.tasks.list_tasks(), task_ids))
         overdue = tile("overdue", len(late), "", "", oldest=overdue_days(late, now))
+    except Exception:  # noqa: BLE001 - a figure that cannot be read says so, the page stays up
+        overdue = tile("overdue", None, "", "nv3_na_tasks_unreadable", oldest=None)
     by_stage: dict[str, dict[str, int]] = {}
     for r in scoped:
         row = by_stage.setdefault(r["lifecycle_stage"], {"systems": 0, "open": 0})
         row["systems"] += 1
-        if s.controls_enabled:
-            for aid in {r["system_id"], *agents_of.get(r["system_id"], [])}:
-                row["open"] += open_required_n(ctx, aid)
+        for aid in {r["system_id"], *agents_of.get(r["system_id"], [])}:
+            row["open"] += open_required_n(ctx, aid)
     stage_rows = [
         {"stage": st, **by_stage[st], "pending": pending_by_stage.get(st, 0)}
         for st in gm.LIFECYCLE_STAGES
@@ -400,7 +402,8 @@ def governance_overview(
             overdue,
         ],
         "stages": stage_rows,
-        "open_na": not s.controls_enabled,
+        "open_na": False,  # UI-040: the task rows are read with or without CONTROLS_ENABLED
+        "controls_on": bool(s.controls_enabled),  # UI-041: the readiness block needs it
         "ready_rows": ready_rows,
         "risks": overview_v3._risk_posture(  # noqa: SLF001
             ctx, {a.lower() for a in ids}, "systems"
@@ -424,6 +427,25 @@ def _kpi_block(ctx: Any, me: Any, now: dt.datetime) -> dict[str, Any]:
     except Exception:  # noqa: BLE001 - the overview is a page, not a report
         log.exception("governance overview: the KPIs could not be computed")
         return {"kpis": kpis.empty("error")}
+
+
+def task_owner_ids(
+    ctx: Any,
+    me: Any,
+    scope: str,
+    scoped: list[dict[str, Any]],
+    agents_of: dict[str, list[str]],
+    cards: list[dict[str, Any]],
+) -> tuple[set[str], list[str], list[dict[str, Any]]]:
+    """UI-040/UI-350: the owners of the tasks that My overview and Governance overview count, from
+    one definition: the systems in scope, their agents that the person may see, and the agents in
+    scope that no system holds. Returns (owner ids, agent ids, the agent cards no system holds)."""
+    by_cards = {c["agent_id"]: c for c in cards}
+    held = {a for ag in agents_of.values() for a in ag}
+    linked = {a for a in held if a in by_cards}
+    loose = [c for c in overview_v3.in_scope(cards, me, scope) if c["agent_id"] not in held]
+    agent_ids = sorted(linked | {c["agent_id"] for c in loose})
+    return {r["system_id"] for r in scoped} | set(agent_ids), agent_ids, loose
 
 
 def overdue_days(rows: list[dict[str, Any]], now: dt.datetime) -> int | None:

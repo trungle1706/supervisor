@@ -84,9 +84,23 @@
   "labelled_at": "2026-10-20T08:00:00Z"
  },
  {
+  "case_id": "et-et-13-01",
+  "finding_id": "f-ET-13",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
+  "case_id": "et-et-14-01",
+  "finding_id": "f-ET-14",
+  "human_verdict": "pass",
+  "label_by": "synthetic.labeller",
+  "labelled_at": "2026-10-20T08:00:00Z"
+ },
+ {
   "case_id": "et-et-01-02",
   "finding_id": "f-ET-01",
-  "human_verdict": "fail",
+  "human_verdict": "question",
   "label_by": "synthetic.labeller",
   "labelled_at": "2026-10-20T08:00:00Z"
  },
@@ -100,7 +114,7 @@
  {
   "case_id": "et-et-03-02",
   "finding_id": "f-ET-03",
-  "human_verdict": "question",
+  "human_verdict": "fail",
   "label_by": "synthetic.labeller",
   "labelled_at": "2026-10-20T08:00:00Z"
  },
@@ -149,20 +163,6 @@
  {
   "case_id": "et-et-10-02",
   "finding_id": "f-ET-10",
-  "human_verdict": "fail",
-  "label_by": "synthetic.labeller",
-  "labelled_at": "2026-10-20T08:00:00Z"
- },
- {
-  "case_id": "et-et-11-02",
-  "finding_id": "f-ET-11",
-  "human_verdict": "fail",
-  "label_by": "synthetic.labeller",
-  "labelled_at": "2026-10-20T08:00:00Z"
- },
- {
-  "case_id": "et-et-12-02",
-  "finding_id": "f-ET-12",
   "human_verdict": "fail",
   "label_by": "synthetic.labeller",
   "labelled_at": "2026-10-20T08:00:00Z"

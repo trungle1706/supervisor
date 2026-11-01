@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Console labels in English and Vietnamese (``?lang=vi|en``; default from settings).
 
 Synthetic UI text only. Regulator wording in Vietnamese needs legal review before use.
@@ -23,12 +24,12 @@ _T: dict[str, tuple[str, str]] = {
     "signed_in_as": ("Signed in as", "Đăng nhập với"),
     "roles": ("Roles", "Vai trò"),
     "dev_banner": (
-        "Dev identity (users file, X-Dev-User): not a real identity. Laptop demo only.",
-        "Danh tính dev (tệp người dùng, X-Dev-User): không phải danh tính thật. Chỉ dùng demo.",
+        "Test sign-in (X-Dev-User). Not a real identity. For laptop demos only.",
+        "Đăng nhập thử nghiệm (X-Dev-User). Không phải danh tính thật. Chỉ dùng cho demo trên máy tính xách tay.",
     ),
     "sp_banner": (
-        "No SSO user header: acting as the app service principal (read-only).",
-        "Không có tiêu đề SSO: đang dùng service principal của ứng dụng (chỉ đọc).",
+        "You are not signed in through SSO. The console runs as the app account and is view only.",
+        "Bạn chưa đăng nhập qua SSO. Console đang chạy bằng tài khoản dịch vụ của ứng dụng và chỉ cho xem.",
     ),
     "switch_user": ("Switch user", "Đổi người dùng"),
     "severity": ("Severity", "Mức độ"),
@@ -38,10 +39,6 @@ _T: dict[str, tuple[str, str]] = {
     "summary": ("Summary", "Tóm tắt"),
     "opened": ("Opened", "Mở lúc"),
     "assignee": ("Assignee", "Người xử lý"),
-    "sbv_clock": (
-        "SBV 24 h report (deprecated: not in Circular 53)",
-        "Báo cáo NHNN 24 giờ (không còn dùng: không có trong Thông tư 53)",
-    ),
     "report_due_col": ("Report due", "Hạn báo cáo"),
     "incident_urgency": ("Incident urgency", "Mức khẩn cấp sự cố"),
     "urgency_urgent": ("urgent (72 h)", "khẩn cấp (72 giờ)"),
@@ -60,7 +57,6 @@ _T: dict[str, tuple[str, str]] = {
         "{who} ghi nhận đã gửi báo cáo chính thức sự cố.",
     ),
     "sbv_remediation": ("SBV 5-day remediation", "Khắc phục NHNN 5 ngày"),
-    "left": ("left", "còn lại"),
     "overdue": ("overdue", "quá hạn"),
     "all": ("All", "Tất cả"),
     "open_cases": ("Open", "Đang mở"),
@@ -69,13 +65,12 @@ _T: dict[str, tuple[str, str]] = {
     "no_cases": ("No cases.", "Không có vụ việc."),
     "what_happened": ("What happened", "Chuyện gì đã xảy ra"),
     "why_matters": ("Why it matters", "Vì sao quan trọng"),
-    "what_next": ("What you can do", "Bạn có thể làm gì"),
     "timeline": ("Timeline", "Dòng thời gian"),
     "transcript": ("Masked transcript excerpt", "Trích đoạn hội thoại (đã che)"),
     "verdicts": ("Verdicts", "Kết luận kiểm tra"),
     "rules_broken": ("Rules broken", "Quy tắc bị vi phạm"),
     "judge_findings": ("Judge findings (advisory)", "Nhận định của giám khảo AI (tham khảo)"),
-    "rationale": ("Rationale", "Lý do"),
+    "rationale": ("Reason", "Lý do"),
     "chain": ("Evidence chain", "Chuỗi bằng chứng"),
     "verify_now": ("Verify now", "Kiểm tra ngay"),
     "verify_ok": ("verified", "đã kiểm tra"),
@@ -94,7 +89,7 @@ _T: dict[str, tuple[str, str]] = {
     "confirmed": ("Confirmed incident", "Sự cố đã xác nhận"),
     "false_alarm": ("False alarm", "Báo động nhầm"),
     "signoffs": ("Sign-offs", "Phê duyệt"),
-    "approve": ("Approve", "Đồng ý"),
+    "approve": ("Approve", "Phê duyệt"),
     "reject": ("Reject", "Từ chối"),
     "statement": ("Statement (stored verbatim)", "Lời xác nhận (lưu nguyên văn)"),
     "signoff_text": (
@@ -102,48 +97,36 @@ _T: dict[str, tuple[str, str]] = {
         "Tôi đã xem xét vụ việc này, bằng chứng và biện pháp ngăn chặn. Tôi đồng ý đóng vụ việc.",
     ),
     "signoff_rule": (
-        "High and critical cases need two sign-offs by two different people, "
-        "at least one an approver.",
-        "Vụ việc mức cao và nghiêm trọng cần hai phê duyệt của hai người khác nhau, "
-        "ít nhất một người là người phê duyệt.",
+        "High and critical cases need sign-off from two different people. At least one must be an approver.",
+        "Vụ việc mức cao và nghiêm trọng cần hai người khác nhau phê duyệt. Ít nhất một người phải là người phê duyệt.",
     ),
     "affirm": ("I sign this statement as myself", "Tôi tự ký lời xác nhận này"),
     "state": ("Gate state", "Trạng thái cổng"),
     "coverage": ("Coverage", "Độ bao phủ"),
     "kept_args": ("Arguments passed unmasked", "Tham số được chuyển không che"),
     "kept_args_hint": (
-        "The policy keeps these arguments as sent (a lookup key). Records, chain and findings "
-        "still hold them masked.",
-        "Chính sách giữ nguyên các tham số này (khóa tra cứu). "
-        "Bản ghi, chuỗi và phát hiện vẫn che chúng.",
+        "The policy passes these arguments on as sent (they are lookup keys). The audit trail and findings still store them masked.",
+        "Chính sách chuyển các tham số này đi nguyên bản (đây là khóa tra cứu). Nhật ký kiểm toán và phát hiện vẫn lưu chúng ở dạng đã che.",
     ),
     "owner": ("Owner", "Chủ sở hữu"),
-    "pending_resume": ("Pending resume", "Chờ mở lại"),
+    "pending_resume": ("Waiting to restart", "Chờ chạy lại"),
     "pause": ("Pause", "Tạm dừng"),
     "resume": ("Resume", "Mở lại"),
     "quarantine": ("Quarantine", "Cách ly"),
     "release": ("Release", "Gỡ cách ly"),
     "reason": ("Reason", "Lý do"),
-    "resume_rule": (
-        "Pause: one click. Resume: the agent owner and a reviewer, two different people "
-        "(ADR D04). Quarantine release: admin only.",
-        "Tạm dừng: một lần bấm. Mở lại: chủ sở hữu tác tử và một người duyệt, hai người "
-        "khác nhau (ADR D04). Gỡ cách ly: chỉ quản trị viên.",
-    ),
     "oversight": ("Oversight metrics", "Chỉ số giám sát"),
     "no_metrics": (
-        "No oversight metrics yet (the daily metrics job fills this table).",
-        "Chưa có chỉ số giám sát (tác vụ chỉ số hằng ngày sẽ điền bảng này).",
+        "No oversight metrics yet. They fill in after the daily metrics job runs.",
+        "Chưa có chỉ số giám sát. Chỉ số sẽ hiện sau khi tác vụ chỉ số hằng ngày chạy.",
     ),
     "gate_latency": ("Gateway latency", "Độ trễ cổng"),
     "chain_status": ("Chain status", "Trạng thái chuỗi"),
     "lanes": ("Lanes", "Làn"),
     "entries": ("Entries", "Mục"),
     "export_help": (
-        "Builds a zip: chain export + offline verify report + case files (JSON, HTML) "
-        "+ judge eval report. Written under the data directory; download it below.",
-        "Tạo tệp zip: bản xuất chuỗi + báo cáo kiểm tra ngoại tuyến + hồ sơ vụ việc "
-        "(JSON, HTML) + báo cáo đánh giá giám khảo. Lưu trong thư mục dữ liệu; tải bên dưới.",
+        "Creates a zip with the evidence chain, verification report, case files and judge report. Download it below.",
+        "Tạo tệp zip gồm chuỗi bằng chứng, báo cáo kiểm tra, hồ sơ vụ việc và báo cáo giám khảo. Tải về bên dưới.",
     ),
     "build_pack": ("Build audit pack", "Tạo gói kiểm toán"),
     "download": ("Download", "Tải về"),
@@ -152,7 +135,7 @@ _T: dict[str, tuple[str, str]] = {
     "subject": ("Subject", "Tiêu đề"),
     "channel": ("Channel", "Kênh"),
     "time": ("Time", "Thời gian"),
-    "refresh_cases": ("Refresh cases", "Làm mới hồ sơ"),
+    "refresh_cases": ("Refresh cases", "Làm mới vụ việc"),
     "saved": ("Saved.", "Đã lưu."),
     "mock": ("MOCK", "GIẢ LẬP"),
     "low": ("low", "thấp"),
@@ -164,15 +147,15 @@ _T: dict[str, tuple[str, str]] = {
     "contained": ("contained", "đã ngăn chặn"),
     "language": ("Tiếng Việt", "English"),
     # ---- WP12 shell
-    "tagline": ("Onboard · Watch · Prove", "Tiếp nhận · Giám sát · Chứng minh"),
+    "tagline": ("AI\u00a0management · AI\u00a0guardian", "Quản lý AI · Giám sát AI"),
     "nav_label": ("Main sections", "Các mục chính"),
     "nav_overview": ("Overview", "Tổng quan"),
     "nav_evidence": ("Evidence", "Bằng chứng"),
     "nav_onboard": ("Onboard", "Tiếp nhận"),
     "nav_health": ("Health", "Sức khỏe"),
     "env_title": (
-        "Where Supervisor runs, and whether this is a demo store",
-        "Nơi Supervisor đang chạy, và đây có phải kho dữ liệu demo không",
+        "Where Supervisor runs, and whether it holds demo data",
+        "Nơi Supervisor đang chạy, và có đang dùng dữ liệu demo không",
     ),
     "demo_data": ("demo data", "demo"),
     "theme_toggle": ("Switch light / dark", "Đổi giao diện sáng / tối"),
@@ -212,10 +195,8 @@ _T: dict[str, tuple[str, str]] = {
         "Supervisor giám sát các tác tử AI mà ngân hàng đang vận hành.",
     ),
     "what_is_rest": (
-        "It records every action, stops the dangerous ones before they execute, and keeps "
-        "evidence that a regulator can check.",
-        "Hệ thống ghi lại mọi thao tác, chặn thao tác nguy hiểm trước khi thực thi, và lưu "
-        "bằng chứng mà cơ quan quản lý có thể kiểm tra.",
+        "It records every action, blocks risky ones before they run, and keeps evidence a regulator can check.",
+        "Hệ thống ghi lại mọi thao tác, chặn thao tác rủi ro trước khi chạy, và lưu bằng chứng để cơ quan quản lý kiểm tra.",
     ),
     "what_is_why": (
         "Think of a pit boss on a casino floor. The dealers are your agents. The pit boss "
@@ -227,45 +208,39 @@ _T: dict[str, tuple[str, str]] = {
     ),
     "pillar_onboard": ("Onboard", "Tiếp nhận"),
     "pillar_onboard_text": (
-        "Read an agent's code and traces. Write its risk profile, its rules and a pull "
-        "request. Nothing is merged without a person.",
-        "Đọc mã nguồn và vết hoạt động của tác tử. Viết hồ sơ rủi ro, quy tắc và một pull "
-        "request. Không gì được hợp nhất nếu không có người duyệt.",
+        "Reads an agent's code and activity. Drafts its risk profile, rules and a change request. Nothing is accepted without a person's review.",
+        "Đọc mã nguồn và hoạt động của tác tử. Soạn hồ sơ rủi ro, quy tắc và đề xuất thay đổi. Không có gì được chấp nhận nếu chưa có người duyệt.",
     ),
     "pillar_watch": ("Watch", "Giám sát"),
     "pillar_watch_text": (
-        "Every tool call passes a gate. Hard rules block or pause in milliseconds. AI "
-        "judges read the rest and only advise.",
-        "Mọi lệnh gọi công cụ đi qua cổng kiểm soát. Quy tắc cứng chặn hoặc tạm dừng trong "
-        "vài mili giây. Giám khảo AI đọc phần còn lại và chỉ đưa ý kiến.",
+        "Every tool call passes the gate. Hard rules block or pause a call within milliseconds. AI judges review the rest and only advise.",
+        "Mọi lệnh gọi công cụ đều đi qua cổng kiểm soát. Quy tắc cứng chặn hoặc tạm dừng trong vài mili giây. Giám khảo AI xem xét phần còn lại và chỉ đưa ý kiến.",
     ),
     "pillar_prove": ("Prove", "Chứng minh"),
     "pillar_prove_text": (
-        "Decisions go into a signed hash chain. A case file answers the SBV clock. Anyone "
-        "can verify the chain offline.",
-        "Mọi quyết định được ghi vào chuỗi băm có chữ ký. Hồ sơ vụ việc đáp ứng hạn của "
-        "NHNN. Ai cũng có thể kiểm tra chuỗi khi không có mạng.",
+        "Every decision goes into a signed log that shows any tampering. A case file meets the SBV deadline. Anyone can check the log offline.",
+        "Mọi quyết định được ghi vào nhật ký có chữ ký, mọi chỉnh sửa đều bị phát hiện. Hồ sơ vụ việc đáp ứng hạn của NHNN. Ai cũng có thể kiểm tra nhật ký khi không có mạng.",
     ),
     "num_checked": ("Actions checked today", "Thao tác đã kiểm tra hôm nay"),
     "num_checked_sub": (
-        "across {n} agent(s) · every call passed the gate",
+        "across {n} agent(s) · every call went through the gate",
         "trên {n} tác tử · mọi lệnh gọi đều qua cổng",
     ),
     "median_ms": ("median {ms} ms", "trung vị {ms} ms"),
     "num_stopped": ("Stopped by a rule", "Bị quy tắc chặn"),
     "blocked_paused": ("{b} blocked · {p} paused", "{b} bị chặn · {p} tạm dừng"),
-    "num_stopped_sub": ("before execution", "trước khi thực thi"),
+    "num_stopped_sub": ("before they ran", "trước khi thực hiện"),
     "num_cases": ("Open cases", "Vụ việc đang mở"),
     "n_critical": ("{n} critical", "{n} nghiêm trọng"),
     "num_cases_sub": (
-        "SBV 24 h report clock running on {n}",
+        "SBV 24-hour reporting clock running on {n}",
         "Đồng hồ báo cáo NHNN 24 giờ đang chạy cho {n} vụ",
     ),
     "n_entries": ("{n} entries", "{n} mục"),
     "signed_root": ("signed root", "gốc đã ký"),
-    "no_signed_root": ("no signed root yet", "chưa có gốc đã ký"),
+    "no_signed_root": ("not signed yet", "chưa ký"),
     "anchored": ("anchored", "đã neo"),
-    "not_anchored": ("not anchored yet", "chưa neo"),
+    "not_anchored": ("not sealed yet", "chưa niêm phong"),
     "verified_at": ("verified {time}", "đã kiểm tra {time}"),
     "not_verified_short": ("not verified yet", "chưa kiểm tra"),
     "latest_decisions": ("Latest gate decisions", "Quyết định mới nhất của cổng"),
@@ -277,7 +252,7 @@ _T: dict[str, tuple[str, str]] = {
     "case_arrow": ("case", "vụ việc"),
     "no_decisions": (
         "No gate decision yet. Decisions appear here when an agent calls a tool.",
-        "Chưa có quyết định nào. Quyết định xuất hiện khi tác tử gọi công cụ.",
+        "Chưa có quyết định nào của cổng. Quyết định sẽ hiện ở đây khi tác tử gọi công cụ.",
     ),
     "risk_read_only": ("read-only", "chỉ đọc"),
     "risk_money": ("moves money", "di chuyển tiền"),
@@ -291,14 +266,12 @@ _T: dict[str, tuple[str, str]] = {
     ),
     # ---- WP12 agents
     "agents_purpose": (
-        "Every agent the bank runs, where it is in its life, and whether Supervisor can stop it.",
-        "Mọi tác tử ngân hàng đang chạy, đang ở giai đoạn nào, và Supervisor có thể dừng nó không.",
+        "All agents the bank runs and their current state.",
+        "Mọi tác tử ngân hàng đang vận hành và trạng thái hiện tại.",
     ),
     "agents_why": (
-        "Pause is one click by any reviewer. Resume needs two people: the agent's owner and a "
-        "reviewer. Quarantine is for admins.",
-        "Tạm dừng: một người duyệt bấm một lần. Mở lại cần hai người: chủ sở hữu tác tử và một "
-        "người duyệt. Cách ly dành cho quản trị viên.",
+        "Any reviewer can pause an agent. To resume it, the agent owner and a reviewer both approve. Only admins can quarantine.",
+        "Người rà soát nào cũng có thể tạm dừng tác tử. Để cho chạy lại, cần cả chủ sở hữu tác tử và một người rà soát phê duyệt. Chỉ quản trị viên được cách ly.",
     ),
     "by_rule": ("by rule {rule}", "do quy tắc {rule}"),
     "by_person": ("by {who}", "bởi {who}"),
@@ -309,37 +282,40 @@ _T: dict[str, tuple[str, str]] = {
     "d33_not_high": ("not high-risk under Decision 33", "không thuộc rủi ro cao theo QĐ 33"),
     "d33_label": ("Decision 33", "Quyết định 33"),
     "d33_none": ("Decision 33 not classified yet", "chưa phân loại theo Quyết định 33"),
-    "proposal": ("proposal", "đề xuất"),
+    "proposal": ("suggested", "gợi ý"),
     "model_family": ("model family", "họ mô hình"),
     "judge_family": ("judge family", "họ giám khảo"),
     "lifecycle": ("Lifecycle", "Vòng đời"),
     "stage_discover": ("Discover", "Khám phá"),
     "stage_understand": ("Understand", "Hiểu"),
     "stage_plan": ("Plan", "Lập kế hoạch"),
-    "stage_instrument": ("Instrument", "Gắn giám sát"),
+    "stage_instrument": ("Add monitoring", "Gắn giám sát"),
     "stage_launch": ("Launch", "Ra mắt"),
     "stage_operate": ("Operate", "Vận hành"),
     "stage_note_shadow": ("shadow mode", "chế độ bóng"),
     "stage_note_enforced": ("enforced", "đang thực thi"),
     "cov_src_capabilities": (
-        "{detail} monitoring capabilities on (Onboard plan)",
-        "{detail} năng lực giám sát đang bật (kế hoạch tiếp nhận)",
+        "{detail} monitoring functions switched on",
+        "{detail} chức năng giám sát đang bật",
     ),
     "cov_src_metric": (
-        "share of tool calls that passed the gate (daily metric {detail})",
-        "tỷ lệ lệnh gọi công cụ đi qua cổng (chỉ số ngày {detail})",
+        "share of tool calls that went through the gate (daily figure {detail})",
+        "tỷ lệ lệnh gọi công cụ đi qua cổng (số liệu ngày {detail})",
     ),
     "cov_src_events": (
         "{detail} recent tool calls passed the gate",
         "{detail} lệnh gọi công cụ gần đây đã đi qua cổng",
     ),
-    "cov_src_none": ("no traffic yet: coverage not measured", "chưa có lưu lượng: chưa đo"),
-    "cov_planned": (
-        "{p} of {n} monitoring capabilities planned by Onboard (not merged yet)",
-        "{p}/{n} năng lực giám sát đã lên kế hoạch (chưa hợp nhất)",
+    "cov_src_none": (
+        "No activity yet, so coverage is not measured",
+        "Chưa có hoạt động nên chưa đo độ bao phủ",
     ),
-    "cov_missing": ("trace path cannot see: {items}", "đường vết không thấy: {items}"),
-    "tools_summary": ("{n} tools · {m} money-moving", "{n} công cụ · {m} di chuyển tiền"),
+    "cov_planned": (
+        "{p} of {n} monitoring functions planned, not yet active",
+        "{p}/{n} chức năng giám sát đã lên kế hoạch, chưa hoạt động",
+    ),
+    "cov_missing": ("Not visible to monitoring: {items}", "Giám sát chưa thấy: {items}"),
+    "tools_summary": ("{n} tools, {m} can move money", "{n} công cụ, {m} có thể chuyển tiền"),
     "fail_mode_is": ("fail mode {mode}", "khi lỗi: {mode}"),
     "fail_closed": ("closed", "đóng (chặn)"),
     "fail_open": ("open", "mở (cho qua)"),
@@ -348,12 +324,12 @@ _T: dict[str, tuple[str, str]] = {
     "open_cases_n": ("{n} open case(s)", "{n} vụ việc đang mở"),
     "pause_now": ("Pause now", "Tạm dừng ngay"),
     "pause_rule": (
-        "One click by any reviewer. Takes effect at the agent's next tool call.",
-        "Một người duyệt bấm một lần. Có hiệu lực ở lệnh gọi công cụ tiếp theo.",
+        "Any reviewer can pause with one click. It takes effect at the agent's next tool call.",
+        "Người rà soát nào cũng có thể tạm dừng chỉ bằng một cú nhấp. Có hiệu lực ở lệnh gọi công cụ tiếp theo của tác tử.",
     ),
-    "approve_resume": ("Approve resume", "Đồng ý mở lại"),
+    "approve_resume": ("Approve resuming", "Phê duyệt cho chạy lại"),
     "second_approval": ("Give the second approval", "Phê duyệt lần hai"),
-    "approved_by": ("Approved by {who} ({role}).", "{who} ({role}) đã đồng ý."),
+    "approved_by": ("Approved by {who} ({role}).", "{who} ({role}) đã phê duyệt."),
     "waiting_for": ("Waiting for the {role}.", "Đang chờ {role}."),
     "resume_rule_short": (
         "Needs the agent owner and a reviewer, two different people.",
@@ -361,16 +337,16 @@ _T: dict[str, tuple[str, str]] = {
     ),
     "you_are_role": ("You are the {role}.", "Bạn là {role}."),
     "you_approved": (
-        "You approved; the other person must approve.",
-        "Bạn đã đồng ý; cần người còn lại.",
+        "You approved. The second approver must approve too.",
+        "Bạn đã phê duyệt. Cần người phê duyệt thứ hai phê duyệt nữa.",
     ),
     "you_cannot_resume": (
-        "You are not the owner or a policy reviewer, so you cannot approve.",
-        "Bạn không phải chủ sở hữu hay người duyệt trong chính sách, nên không thể đồng ý.",
+        "Only the owner or a policy reviewer can approve. You are neither.",
+        "Chỉ chủ sở hữu hoặc người duyệt chính sách mới được phê duyệt. Bạn không thuộc hai nhóm này.",
     ),
     "release_rule": (
-        "Only an admin listed in the policy can release a quarantine. A reason is required.",
-        "Chỉ quản trị viên trong chính sách được gỡ cách ly. Bắt buộc ghi lý do.",
+        "Only an admin named in the policy can release a quarantine. Give a reason.",
+        "Chỉ quản trị viên được nêu trong chính sách mới gỡ được cách ly. Cần ghi lý do.",
     ),
     "quarantine_rule": (
         "Admin only. Stops every call until an admin releases it.",
@@ -379,21 +355,17 @@ _T: dict[str, tuple[str, str]] = {
     "reason_required": ("Reason (required)", "Lý do (bắt buộc)"),
     "no_agents": (
         "No agent is registered yet. Use Onboard to bring the first agent under supervision.",
-        "Chưa có tác tử nào. Dùng Tiếp nhận để đưa tác tử đầu tiên vào giám sát.",
+        "Chưa có tác tử nào được đăng ký. Dùng Tiếp nhận để đưa tác tử đầu tiên vào giám sát.",
     ),
     # ---- WP12 cases
     "archive": ("Archive", "Lưu trữ"),
     "cases_purpose": (
-        "Each case is one thing that needs a human decision. Rules, judges and monitors open "
-        "cases. People triage, contain and close them.",
-        "Mỗi vụ việc là một việc cần con người quyết định. Quy tắc, giám khảo AI và bộ giám "
-        "sát mở vụ việc. Con người phân loại, ngăn chặn và đóng vụ việc.",
+        "A case needs a decision from you. Rules, AI judges and monitors open cases. Your team reviews and closes them.",
+        "Vụ việc cần bạn quyết định. Quy tắc, giám khảo AI và bộ giám sát sẽ mở vụ việc. Đội của bạn xem xét và đóng.",
     ),
     "cases_why": (
-        "The clocks come from the draft SBV circular: report within 24 hours, remediate within "
-        "5 days.",
-        "Các mốc thời gian theo dự thảo thông tư NHNN: báo cáo trong 24 giờ, khắc phục trong "
-        "5 ngày.",
+        "Deadlines follow the draft SBV circular: report within 24 hours, fix within 5 days.",
+        "Thời hạn theo dự thảo thông tư NHNN: báo cáo trong 24 giờ, khắc phục trong 5 ngày.",
     ),
     "cases_note": (
         "Closed cases move to the archive with their case file. The list refreshes every 30 s.",
@@ -403,7 +375,7 @@ _T: dict[str, tuple[str, str]] = {
     "src_gate": ("gate", "cổng"),
     "src_judge": ("judge", "giám khảo"),
     "src_monitor": ("monitor", "giám sát"),
-    "src_manual": ("person", "con người"),
+    "src_manual": ("person", "người"),
     "joined_n": ("+{n} more stop(s) joined", "+{n} lần chặn khác gộp vào"),
     "hl_pause": (
         "{agent} paused: {what} was stopped before it ran",
@@ -413,7 +385,7 @@ _T: dict[str, tuple[str, str]] = {
         "{agent}: {what} was blocked before it ran",
         "{agent}: {what} đã bị chặn trước khi chạy",
     ),
-    "what_money": ("a money-moving call ({tool})", "một thao tác di chuyển tiền ({tool})"),
+    "what_money": ("a money transfer ({tool})", "một lệnh chuyển tiền ({tool})"),
     "what_credit": ("a credit decision ({tool})", "một quyết định tín dụng ({tool})"),
     "what_pii": ("a personal-data export ({tool})", "một lần xuất dữ liệu cá nhân ({tool})"),
     "what_read": ("a read ({tool})", "một lần đọc dữ liệu ({tool})"),
@@ -424,9 +396,9 @@ _T: dict[str, tuple[str, str]] = {
     "resolved": ("resolved", "đã giải quyết"),
     # ---- WP12 case page
     "opened_by_gate": ("opened by the gate", "mở bởi cổng"),
-    "opened_by_judge": ("opened by a judge", "mở bởi giám khảo AI"),
+    "opened_by_judge": ("opened by an AI judge", "mở bởi bộ đánh giá AI"),
     "opened_by_monitor": ("opened by a monitor", "mở bởi bộ giám sát"),
-    "opened_by_manual": ("opened by a person", "mở bởi con người"),
+    "opened_by_manual": ("opened by a person", "mở bởi người dùng"),
     "case_line_pause": (
         "Rule {rule} ({desc}) paused the agent before the call reached the bank system.",
         "Quy tắc {rule} ({desc}) đã tạm dừng tác tử trước khi lệnh gọi tới hệ thống ngân hàng.",
@@ -436,7 +408,10 @@ _T: dict[str, tuple[str, str]] = {
         "Quy tắc {rule} ({desc}) đã chặn lệnh gọi trước khi tới hệ thống ngân hàng.",
     ),
     "case_line_amount": ("Amount: {amount} {cur}.", "Số tiền: {amount} {cur}."),
-    "case_line_latency": ("Detect-to-stop {ms} ms.", "Phát hiện đến chặn: {ms} ms."),
+    "case_line_latency": (
+        "Time from detection to block: {ms} ms.",
+        "Từ phát hiện đến chặn: {ms} ms.",
+    ),
     "d33_pending": (
         "Decision 33 classification pending (bank counsel)",
         "Phân loại theo Quyết định 33 đang chờ (pháp chế ngân hàng)",
@@ -447,15 +422,14 @@ _T: dict[str, tuple[str, str]] = {
     "tab_transcript": ("Transcript", "Hội thoại"),
     "tab_evidence": ("Evidence", "Bằng chứng"),
     "tab_casefile": ("Case file", "Hồ sơ vụ việc"),
-    "chain_lane": ("Chain lane", "Làn chuỗi"),
+    "chain_lane": ("Chain", "Chuỗi"),
     "head": ("head", "đầu chuỗi"),
     "verify_again": ("Verify again", "Kiểm tra lại"),
     "casefile_btn": ("Case file", "Hồ sơ vụ việc"),
     "your_decision": ("Your decision", "Quyết định của bạn"),
     "need_two": (
-        "To close a {sev} case, two different people must sign off, and one must be an approver.",
-        "Để đóng vụ việc mức {sev}, cần hai người khác nhau phê duyệt, trong đó một người là "
-        "người phê duyệt.",
+        "Closing a {sev} case needs sign-off from 2 different people, one of them an approver.",
+        "Đóng vụ việc mức {sev} cần 2 người khác nhau phê duyệt, trong đó có một người phê duyệt.",
     ),
     "signoffs_n": ("{n}/2 sign-offs so far.", "Đã có {n}/2 phê duyệt."),
     "you_are_a": ("You are a {role}.", "Bạn là {role}."),
@@ -468,27 +442,27 @@ _T: dict[str, tuple[str, str]] = {
     "assigned_to_you": ("Assigned to you.", "Đã giao cho bạn."),
     "mark_triaged": ("Mark triaged · add note", "Đánh dấu đã phân loại · ghi chú"),
     "triage_note_ph": ("What you checked", "Bạn đã kiểm tra gì"),
-    "contain_btn": ("Contain · keep agent paused", "Ngăn chặn · giữ tác tử tạm dừng"),
-    "contain_btn_running": ("Contain · record what was done", "Ngăn chặn · ghi lại đã làm gì"),
+    "contain_btn": ("Contain and keep agent paused", "Ngăn chặn và giữ tác tử tạm dừng"),
+    "contain_btn_running": ("Contain and record action taken", "Ngăn chặn và ghi lại việc đã làm"),
     "contain_note": (
-        "What was done to contain it (required)",
-        "Đã làm gì để ngăn chặn (bắt buộc)",
+        "What you did to contain it (required)",
+        "Bạn đã làm gì để ngăn chặn (bắt buộc)",
     ),
     "agent_now": ("Agent {agent} is {state} now.", "Tác tử {agent} hiện đang {state}."),
-    "pause_on_agents": ("Pause it on Agents →", "Tạm dừng ở trang Tác tử →"),
+    "pause_on_agents": ("Pause it on the Agents page →", "Tạm dừng ở trang Tác tử →"),
     "close_needs_two": ("Close (needs 2 sign-offs)", "Đóng (cần 2 phê duyệt)"),
-    "close_why_open": ("Triage the case first.", "Cần phân loại vụ việc trước."),
+    "close_why_open": ("Review the case first.", "Hãy xem xét vụ việc trước."),
     "close_why_two": (
-        "{n} of 2 sign-offs so far. Two different people, one an approver.",
-        "Đã có {n}/2 phê duyệt. Hai người khác nhau, một người là người phê duyệt.",
+        "{n} of 2 sign-offs so far. You need two different people, one of them an approver.",
+        "Đã có {n}/2 phê duyệt. Cần hai người khác nhau, trong đó có một người phê duyệt.",
     ),
     "close_why_role": (
         "Only a reviewer or an admin can close a case.",
         "Chỉ người duyệt hoặc quản trị viên được đóng vụ việc.",
     ),
     "close_from_triaged": (
-        "Before containment, only a false alarm can be closed.",
-        "Trước khi ngăn chặn, chỉ báo động nhầm mới được đóng.",
+        "Until the issue is contained, only a false alarm can be closed.",
+        "Khi sự cố chưa được ngăn chặn, chỉ báo động nhầm mới được đóng.",
     ),
     "add_comment": ("Add a comment", "Thêm bình luận"),
     "comment_masked": (
@@ -501,8 +475,8 @@ _T: dict[str, tuple[str, str]] = {
     ),
     "itsm_ticket": ("ITSM ticket", "Phiếu ITSM"),
     "itsm_hint": (
-        "Link a ticket to keep the bank ITSM in step with this case.",
-        "Liên kết phiếu để đồng bộ ITSM của ngân hàng với vụ việc này.",
+        "Link an ITSM ticket so the bank's ITSM matches this case.",
+        "Liên kết phiếu ITSM để ITSM của ngân hàng khớp với vụ việc này.",
     ),
     "st_planned": ("Agent asked to run {tool}.", "Tác tử yêu cầu chạy {tool}."),
     "st_amount": ("Amount {amount} {cur}.", "Số tiền {amount} {cur}."),
@@ -512,37 +486,40 @@ _T: dict[str, tuple[str, str]] = {
         "Tác tử gọi {tool} (cổng cho phép).",
     ),
     "st_rule_pause": (
-        "Rule {rule} matched: {desc}. Action: pause. The call did not run.",
-        "Quy tắc {rule} khớp: {desc}. Hành động: tạm dừng. Lệnh gọi không được chạy.",
+        "Rule {rule} matched: {desc}. The call was paused and did not run.",
+        "Quy tắc {rule} khớp: {desc}. Lệnh gọi đã bị tạm dừng và không được chạy.",
     ),
     "st_rule_block": (
-        "Rule {rule} matched: {desc}. Action: block. The call did not run.",
-        "Quy tắc {rule} khớp: {desc}. Hành động: chặn. Lệnh gọi không được chạy.",
+        "Rule {rule} matched: {desc}. The call was blocked and did not run.",
+        "Quy tắc {rule} khớp: {desc}. Lệnh gọi đã bị chặn và không được chạy.",
     ),
-    "st_latency": ("Detect-to-stop {ms} ms.", "Phát hiện đến chặn {ms} ms."),
+    "st_latency": ("Stopped {ms} ms after detection.", "Chặn sau {ms} ms kể từ khi phát hiện."),
     "st_t0b": (
-        "Tier 0b screen: {why} → alert (advisory).",
-        "Sàng lọc 0b: {why} → cảnh báo (tham khảo).",
+        "Possible prompt injection found: {why} (advice only).",
+        "Phát hiện dấu hiệu tiêm lệnh: {why} (chỉ tư vấn).",
     ),
     "st_judge": (
-        "Tier {tier} judge: {label} → {action} (advisory).",
-        "Giám khảo cấp {tier}: {label} → {action} (tham khảo).",
+        "Tier {tier} judge: {label}, {action} (advice only).",
+        "Giám khảo cấp {tier}: {label}, {action} (chỉ tư vấn).",
     ),
     "ev_open": (
-        "Case opened by {who}. Reviewers notified in the inbox.",
-        "{who} mở vụ việc. Người duyệt được báo trong hộp thư.",
+        "{who} opened the case. Reviewers were notified in the inbox.",
+        "{who} mở vụ việc. Người duyệt đã được báo trong hộp thư.",
     ),
     "ev_assign": ("{who} assigned the case.", "{who} đã giao vụ việc."),
     "ev_triage": ("{who} marked the case triaged.", "{who} đánh dấu vụ việc đã phân loại."),
     "ev_contain": ("{who} recorded the containment.", "{who} ghi nhận biện pháp ngăn chặn."),
     "ev_comment": ("{who} commented.", "{who} đã bình luận."),
     "ev_itsm": ("{who} linked an ITSM ticket.", "{who} liên kết phiếu ITSM."),
-    "ev_join": ("Another stop joined this case.", "Một lần chặn khác được gộp vào vụ việc."),
+    "ev_join": (
+        "Another blocked call was added to this case.",
+        "Một lệnh gọi bị chặn khác được thêm vào vụ việc.",
+    ),
     "ev_raise": ("{who} raised the severity.", "{who} nâng mức độ nghiêm trọng."),
     "ev_close": ("{who} closed the case ({detail}).", "{who} đóng vụ việc ({detail})."),
     "ev_other": ("{who}: {action}", "{who}: {action}"),
     "st_signoff": ("{who} signed off: {decision}.", "{who} phê duyệt: {decision}."),
-    "st_waiting": ("Waiting for a person: {next}.", "Đang chờ con người: {next}."),
+    "st_waiting": ("Needs a decision: {next}.", "Cần quyết định: {next}."),
     "rules_and_judges": ("Rules and judges", "Quy tắc và giám khảo"),
     "details": ("Details", "Chi tiết"),
     "verdict": ("Verdict", "Kết luận"),
@@ -555,10 +532,13 @@ _T: dict[str, tuple[str, str]] = {
         "Advisory only. Judges never block.",
         "Chỉ tham khảo. Giám khảo không bao giờ chặn.",
     ),
-    "no_verdicts": ("No rule or judge verdict linked yet.", "Chưa có kết luận nào được liên kết."),
+    "no_verdicts": (
+        "No result from a rule or AI judge yet.",
+        "Chưa có kết quả từ quy tắc hoặc bộ đánh giá AI.",
+    ),
     "rules_tab_why": (
-        "Only deterministic rules block or pause. AI judges read the rest and only advise.",
-        "Chỉ quy tắc cố định mới chặn hoặc tạm dừng. Giám khảo AI đọc phần còn lại và chỉ tư vấn.",
+        "Only fixed rules can block or pause an action. AI judges give advice only.",
+        "Chỉ quy tắc cố định mới chặn hoặc tạm dừng hành động. Giám khảo AI chỉ đưa ra tư vấn.",
     ),
     "verdict_details": ("Every check on this case", "Mọi lần kiểm tra của vụ việc"),
     "checker": ("Checker", "Bộ kiểm tra"),
@@ -566,14 +546,12 @@ _T: dict[str, tuple[str, str]] = {
     "score_bp": ("Score (0-10000)", "Điểm (0-10000)"),
     "more_lines": ("{n} more lines in the Transcript tab", "còn {n} dòng ở thẻ Hội thoại"),
     "no_transcript": (
-        "No agent events are recorded for this case's trace.",
-        "Không có sự kiện nào của tác tử cho vết của vụ việc này.",
+        "No agent events were recorded for this case.",
+        "Chưa ghi nhận sự kiện nào của tác tử cho vụ việc này.",
     ),
     "masking_note": (
-        "Personal data is masked at capture. Raw text never enters the chain or reaches the "
-        "judges.",
-        "Dữ liệu cá nhân được che ngay khi ghi nhận. Văn bản gốc không bao giờ vào chuỗi hay "
-        "tới giám khảo.",
+        "Personal data is masked when captured. Raw text never enters the evidence chain or reaches the judges.",
+        "Dữ liệu cá nhân được che ngay khi ghi nhận. Văn bản gốc không bao giờ vào chuỗi bằng chứng hay tới giám khảo.",
     ),
     "mask_version": ("mask version", "phiên bản che"),
     "event": ("Event", "Sự kiện"),
@@ -587,7 +565,7 @@ _T: dict[str, tuple[str, str]] = {
     "seq_range": ("Sequence", "Số thứ tự"),
     "last_signed_root": ("Last signed root", "Gốc ký gần nhất"),
     "key": ("key", "khóa"),
-    "key_dev": ("dev key", "khóa dev"),
+    "key_dev": ("test key", "khóa thử nghiệm"),
     "key_managed": ("managed key", "khóa được quản lý"),
     "last_anchor": ("Last anchor", "Lần neo gần nhất"),
     "links": ("Sources", "Nguồn"),
@@ -601,44 +579,39 @@ _T: dict[str, tuple[str, str]] = {
     "open_casefile_html": ("Open case file (HTML)", "Mở hồ sơ (HTML)"),
     "download_json": ("Download JSON", "Tải JSON"),
     "casefile_hint": (
-        "A view only. The audit pack writes the files and records their hashes on the chain.",
-        "Chỉ để xem. Gói kiểm toán ghi tệp và lưu mã băm của chúng lên chuỗi.",
+        "View only. The audit pack creates the files and records their hashes in the evidence chain.",
+        "Chỉ để xem. Gói kiểm toán tạo các tệp và ghi mã băm của chúng vào chuỗi bằng chứng.",
     ),
     "signoff_purpose": (
-        "Sign the statement as yourself. It is stored word for word and recorded on the chain.",
-        "Ký lời xác nhận với tư cách của chính bạn. Lời xác nhận được lưu nguyên văn và ghi "
-        "lên chuỗi.",
+        "Sign the statement in your own name. It is saved exactly as written and recorded in the audit trail.",
+        "Ký xác nhận bằng tên của chính bạn. Nội dung được lưu nguyên văn và ghi vào nhật ký kiểm toán.",
     ),
-    "no_signoffs": ("No sign-off yet.", "Chưa có phê duyệt."),
+    "no_signoffs": ("No approval yet.", "Chưa có phê duyệt."),
     "go_close": ("Go to the case to close it", "Về vụ việc để đóng"),
     "signoff_recorded": ("Sign-off recorded.", "Đã ghi nhận phê duyệt."),
     # ---- WP12 evidence
     "ev_purpose_lead": (
-        "Every decision Supervisor makes, and every action a person takes, is written to a "
-        "hash chain.",
-        "Mọi quyết định của Supervisor và mọi thao tác của con người đều được ghi vào chuỗi băm.",
+        "Every decision and every action by a person is recorded in a tamper-evident chain. The verifier detects any change.",
+        "Mọi quyết định và thao tác của con người đều được ghi vào chuỗi chống sửa đổi. Công cụ kiểm tra phát hiện mọi thay đổi.",
     ),
     "ev_purpose_rest": (
-        "Edit one byte anywhere and the verifier says where.",
-        "Sửa một byte ở bất kỳ đâu, công cụ kiểm tra sẽ chỉ ra vị trí.",
+        "Change a single character and the verifier shows where.",
+        "Chỉ cần đổi một ký tự, công cụ kiểm tra sẽ chỉ ra vị trí.",
     ),
     "ev_why": (
-        "Lane heads are committed by a signed root and anchored to write-once storage. You can "
-        "verify an export on a laptop with no network.",
-        "Đầu các làn được chốt bằng một gốc có chữ ký và neo vào kho chỉ-ghi-một-lần. Có thể "
-        "kiểm tra bản xuất trên máy tính không có mạng.",
+        "The chain is sealed with a signed root and stored where it cannot be altered. You can check an export offline on a laptop.",
+        "Chuỗi được niêm phong bằng một gốc có chữ ký và lưu ở nơi không thể sửa. Bạn có thể kiểm tra bản xuất ngoại tuyến trên máy tính xách tay.",
     ),
     "lanes_sub": ("{n} agent lane(s) + 1 root lane", "{n} làn tác tử + 1 làn gốc"),
     "anchor_target_worm": ("write-once folder", "thư mục chỉ-ghi-một-lần"),
     "anchor_target_uc": ("UC Volume", "UC Volume"),
     "not_anchored_why": (
-        "No anchor yet. The anchor job writes one "
-        "(scheduler, or python -m supervisor.jobs.anchor).",
-        "Chưa có lần neo. Tác vụ neo sẽ ghi (bộ lập lịch, hoặc python -m supervisor.jobs.anchor).",
+        "The evidence has not been secured yet. The anchor job does this (scheduled, or run python -m supervisor.jobs.anchor).",
+        "Bằng chứng chưa được xác nhận. Tác vụ neo sẽ thực hiện (theo lịch, hoặc chạy python -m supervisor.jobs.anchor).",
     ),
     "signed_n": ("{n} signed", "{n} đã ký"),
-    "ok_word": ("ok", "ổn"),
-    "no_chain": ("The chain is empty.", "Chuỗi đang trống."),
+    "ok_word": ("OK", "ổn"),
+    "no_chain": ("No evidence has been recorded yet.", "Chưa có bằng chứng nào được ghi."),
     "lg_decision": ("gate decision / event", "quyết định cổng / sự kiện"),
     "lg_case": ("case opened", "mở vụ việc"),
     "lg_state": ("pause / resume", "tạm dừng / mở lại"),
@@ -649,11 +622,11 @@ _T: dict[str, tuple[str, str]] = {
         "and the number of earlier ones.",
         "Mỗi ô là một mục, mới nhất ở bên phải; mỗi làn hiện {cap} mục cuối và số mục trước đó.",
     ),
-    "export_chain": ("Export chain", "Xuất chuỗi"),
+    "export_chain": ("Export evidence chain", "Xuất chuỗi bằng chứng"),
     "working": ("working…", "đang xử lý…"),
     "chain_exported": ("Chain exported", "Đã xuất chuỗi"),
-    "pack_built": ("Audit pack built ({n} case files)", "Đã tạo gói kiểm toán ({n} hồ sơ)"),
-    "offline_verify": ("offline verify", "kiểm tra ngoại tuyến"),
+    "pack_built": ("Audit pack ready ({n} case files)", "Đã tạo gói kiểm toán ({n} hồ sơ)"),
+    "offline_verify": ("offline check", "kiểm tra ngoại tuyến"),
     "how_offline": ("How to verify offline", "Cách kiểm tra ngoại tuyến"),
     "how_offline_intro": (
         "On any Windows laptop with Python 3.11 and the Supervisor release unpacked in "
@@ -669,42 +642,40 @@ _T: dict[str, tuple[str, str]] = {
     ),
     "kind_audit": ("audit pack", "gói kiểm toán"),
     "kind_chain": ("chain export", "bản xuất chuỗi"),
-    "no_packs": ("Nothing exported yet.", "Chưa xuất gì."),
+    "no_packs": ("Nothing exported yet.", "Chưa có bản xuất nào."),
     # ---- WP12 onboard
     "onboard_title": ("Onboard an agent", "Tiếp nhận một tác tử"),
     "ob_purpose_lead": (
-        "Bring a new or existing agent under supervision in six steps.",
-        "Đưa một tác tử mới hoặc đang chạy vào giám sát qua sáu bước.",
+        "Bring an agent under supervision in 6 steps. A person approves every step.",
+        "Đưa một tác tử vào giám sát qua 6 bước. Mỗi bước đều do con người duyệt.",
     ),
     "ob_purpose_rest": (
-        "Supervisor reads the code and traces, proposes rules, and opens a pull request. "
-        "People approve every step.",
-        "Supervisor đọc mã nguồn và vết hoạt động, đề xuất quy tắc và mở pull request. Con "
-        "người duyệt từng bước.",
+        "Supervisor reads the agent's code and activity, suggests rules and opens a pull request. People approve every step.",
+        "Supervisor đọc mã nguồn và hoạt động của tác tử, đề xuất quy tắc và mở pull request. Con người duyệt từng bước.",
     ),
     "ob_why": (
-        "Nothing is merged automatically. The onboarding agent itself runs under Watch.",
-        "Không có gì được hợp nhất tự động. Bản thân tác tử tiếp nhận cũng chạy dưới giám sát.",
+        "Nothing is merged automatically. The onboarding agent is itself watched by the AI guardian.",
+        "Không có gì được hợp nhất tự động. Bản thân tác tử tiếp nhận cũng chịu giám sát của bộ bảo vệ AI.",
     ),
     "ws_discover": (
-        "Find the repo, prompts, tools, tables, traces.",
-        "Tìm repo, prompt, công cụ, bảng dữ liệu, vết hoạt động.",
+        "Find the code, prompts, tools, data tables and activity logs.",
+        "Tìm mã nguồn, prompt, công cụ, bảng dữ liệu và nhật ký hoạt động.",
     ),
     "ws_understand": (
-        "Risk profile with file:line evidence. Decision 33 class.",
-        "Hồ sơ rủi ro có bằng chứng tệp:dòng. Phân loại QĐ 33.",
+        "Risk profile with evidence from the code (file and line). Decision 33 class.",
+        "Hồ sơ rủi ro có bằng chứng từ mã nguồn (tệp và dòng). Phân loại theo Quyết định 33.",
     ),
     "ws_plan": (
-        "Pick checks from the catalogue. Thresholds. Cost.",
-        "Chọn kiểm tra từ danh mục. Ngưỡng. Chi phí.",
+        "Choose checks from the catalogue. Set thresholds. Estimate cost.",
+        "Chọn kiểm tra từ danh mục. Đặt ngưỡng. Ước tính chi phí.",
     ),
     "ws_instrument": (
-        "Rules YAML, tracing hook, dashboard → pull request.",
-        "YAML quy tắc, móc ghi vết, bảng theo dõi → pull request.",
+        "Add the rules, activity logging and dashboard, then open a pull request.",
+        "Thêm quy tắc, ghi nhật ký hoạt động và bảng theo dõi, rồi mở pull request.",
     ),
     "ws_launch": (
-        "Red-team pack in a sandbox. Baseline. Go / no-go.",
-        "Bộ tấn công thử trong sandbox. Mốc chuẩn. Quyết định đi / dừng.",
+        "Attack tests in a safe test area. Set the baseline. Decide go or no-go.",
+        "Chạy bộ tấn công thử trong môi trường thử nghiệm. Đặt mốc chuẩn. Quyết định đi hay dừng.",
     ),
     "ws_operate": ("Hand over to Watch.", "Bàn giao cho Giám sát."),
     "start": ("Start", "Bắt đầu"),
@@ -712,44 +683,40 @@ _T: dict[str, tuple[str, str]] = {
         "Agent folder (inside a git repo; relative to the Supervisor folder)",
         "Thư mục tác tử (trong repo git; tính từ thư mục Supervisor)",
     ),
-    "discover_btn": ("Discover", "Khám phá"),
+    "discover_btn": ("Start scan", "Bắt đầu quét"),
     "start_hint": (
-        "Read-only access. Secrets are scrubbed before any model reads the code. About a "
-        "minute for a small repo. Without a reachable model the run uses the mock (labelled).",
-        "Chỉ đọc. Bí mật được xóa trước khi mô hình đọc mã. Khoảng một phút với repo nhỏ. "
-        "Khi không có mô hình, lần chạy dùng bản giả lập (có nhãn).",
+        "View only. Passwords and keys are removed before the AI reads the code.",
+        "Chỉ xem. Mật khẩu và khóa được xóa trước khi AI đọc mã nguồn.",
     ),
     "onboard_off": (
-        "Starting a run from the console is off by default (CONSOLE_ONBOARD_ENABLED=1 turns it "
-        "on). From the command line:",
-        "Chạy từ bảng điều khiển đang tắt theo mặc định (CONSOLE_ONBOARD_ENABLED=1 để bật). "
-        "Từ dòng lệnh:",
+        "Starting onboarding from this page is not turned on.",
+        "Chưa bật việc chạy tiếp nhận từ trang này.",
     ),
     "ob_running": ("running: {agent}", "đang chạy: {agent}"),
-    "ob_done": ("finished: {agent}", "đã xong: {agent}"),
-    "ob_failed": ("failed: {agent}", "thất bại: {agent}"),
+    "ob_done": ("done: {agent}", "đã xong: {agent}"),
+    "ob_failed": ("failed: {agent}", "không thành công: {agent}"),
     "ob_started": ("started by {who} at {time}", "{who} bắt đầu lúc {time}"),
     "last_run": ("Last run · {agent}", "Lần chạy gần nhất · {agent}"),
     "ob_profile": ("Profile", "Hồ sơ"),
     "ob_plan": ("Plan", "Kế hoạch"),
-    "ob_launch": ("Launch report", "Báo cáo ra mắt"),
+    "ob_launch": ("Launch report", "Báo cáo triển khai"),
     "high_risk": ("high-risk", "rủi ro cao"),
     "not_high_risk": ("not high-risk", "không rủi ro cao"),
     "human_gate": ("Human approval step in code", "Bước con người duyệt trong mã"),
     "yes": ("yes", "có"),
     "no": ("no", "không"),
-    "proposed_risk": ("Proposed risk tier", "Mức rủi ro đề xuất"),
+    "proposed_risk": ("Suggested risk level", "Mức rủi ro gợi ý"),
     "no_human_gate_hint": (
-        "A pause is not pre-execution approval. The agent needs its own approval step.",
-        "Tạm dừng không thay cho phê duyệt trước khi thực thi. Tác tử cần bước duyệt riêng.",
+        "Pausing an agent is not the same as approving its actions first. The agent needs its own approval step.",
+        "Tạm dừng tác tử không thay cho việc phê duyệt hành động trước khi thực hiện. Tác tử cần có bước phê duyệt riêng.",
     ),
     "caps_selected": ("{on} of {n} capabilities on", "{on}/{n} năng lực được bật"),
     "rules_proposed": (
-        "{n} rules proposed, {s} block or pause (need two approvers)",
-        "{n} quy tắc đề xuất, {s} chặn hoặc tạm dừng (cần hai người duyệt)",
+        "{n} rules suggested. {s} can block or pause and need two approvers.",
+        "Đề xuất {n} quy tắc. {s} quy tắc có thể chặn hoặc tạm dừng và cần hai người phê duyệt.",
     ),
     "judges_planned": ("Judges", "Giám khảo"),
-    "caught_n": ("{c} / {e} red-team cases caught", "bắt được {c} / {e} tình huống tấn công"),
+    "caught_n": ("{c} of {e} red-team attacks caught", "bắt được {c}/{e} đợt tấn công thử"),
     "false_alarms": (
         "false alarms {p}% ({f} of {b} benign)",
         "báo động nhầm {p}% ({f} trên {b} tình huống lành)",
@@ -759,12 +726,9 @@ _T: dict[str, tuple[str, str]] = {
         "profile written with the mock model; rules and red-team results are real",
         "hồ sơ viết bằng mô hình giả lập; quy tắc và kết quả tấn công thử là thật",
     ),
-    "not_yet": ("Not written yet.", "Chưa có."),
-    "artefacts": ("Artefacts", "Tệp kết quả"),
-    "no_runs": (
-        "No onboarding run yet. Start one above, or run python -m supervisor.onboard.",
-        "Chưa có lần tiếp nhận nào. Bắt đầu ở trên, hoặc chạy python -m supervisor.onboard.",
-    ),
+    "not_yet": ("Not available yet.", "Chưa có."),
+    "artefacts": ("Output files", "Tệp kết quả"),
+    "no_runs": ("No onboarding yet.", "Chưa có lần tiếp nhận nào."),
     # ---- WP12 health
     "health_lead": ("Is Supervisor itself healthy?", "Bản thân Supervisor có ổn không?"),
     "health_rest": (
@@ -789,8 +753,8 @@ _T: dict[str, tuple[str, str]] = {
         "Không phải danh tính thật. Databricks App dùng SSO của workspace.",
     ),
     "h_identity_sso": (
-        "People sign in with the workspace SSO; every action records the auth method.",
-        "Người dùng đăng nhập bằng SSO của workspace; mọi thao tác ghi lại cách đăng nhập.",
+        "People sign in with workspace SSO. Each action records how they signed in.",
+        "Người dùng đăng nhập bằng SSO của workspace. Mỗi thao tác ghi lại cách đăng nhập.",
     ),
     "h_judge": ("Judge model", "Mô hình giám khảo"),
     "h_judge_mock": (
@@ -801,14 +765,14 @@ _T: dict[str, tuple[str, str]] = {
     ),
     "h_key": ("Signing key", "Khóa ký"),
     "h_key_dev": (
-        "Dev key on this machine. Bank key custody decision pending (HSM / KMS).",
-        "Khóa dev trên máy này. Đang chờ quyết định lưu giữ khóa của ngân hàng (HSM / KMS).",
+        "Test key on this machine. The bank has not yet decided where to keep its key (HSM / KMS).",
+        "Khóa thử nghiệm trên máy này. Ngân hàng chưa quyết định nơi lưu giữ khóa (HSM / KMS).",
     ),
     "h_key_managed": ("Key managed by the bank.", "Khóa do ngân hàng quản lý."),
     "h_anchor": ("Anchor target", "Nơi neo"),
     "h_no_anchor": (
-        "No anchor written yet (the anchor job runs on the scheduler).",
-        "Chưa có lần neo (tác vụ neo chạy theo bộ lập lịch).",
+        "No anchor yet. The scheduler creates it.",
+        "Chưa có lần neo. Bộ lập lịch sẽ tạo.",
     ),
     "h_databricks": ("Databricks", "Databricks"),
     "h_databricks_in_use": (
@@ -816,15 +780,12 @@ _T: dict[str, tuple[str, str]] = {
         "Kiểm tra workspace trực tiếp tạo bảng thử: chạy python -m supervisor.preflight.",
     ),
     "h_databricks_off": (
-        "Not configured on this machine (no OAuth profile, SQLite store).",
-        "Chưa cấu hình trên máy này (không có hồ sơ OAuth, dùng SQLite).",
+        "Not connected on this machine (no OAuth profile; local SQLite storage).",
+        "Chưa kết nối trên máy này (không có hồ sơ OAuth; dùng lưu trữ SQLite cục bộ).",
     ),
     "h_onboard": ("Onboard from the console", "Tiếp nhận từ bảng điều khiển"),
-    "h_onboard_detail": (
-        "CONSOLE_ONBOARD_ENABLED turns the Start form on (off by default).",
-        "CONSOLE_ONBOARD_ENABLED bật biểu mẫu Bắt đầu (mặc định tắt).",
-    ),
-    "preflight_checks": ("Preflight checks", "Kiểm tra preflight"),
+    "h_onboard_detail": ("Form to start onboarding.", "Biểu mẫu để bắt đầu tiếp nhận."),
+    "preflight_checks": ("Readiness checks", "Kiểm tra mức sẵn sàng"),
     "n_failed": ("{n} failed", "{n} lỗi"),
     "all_pass": ("no failure", "không có lỗi"),
     "health_note": (
@@ -834,10 +795,8 @@ _T: dict[str, tuple[str, str]] = {
         "python -m supervisor.cli preflight.",
     ),
     "health_note_dbx": (
-        "The Databricks checks (sign-in, warehouse, schema, serving endpoint, Volume) run only "
-        "from the command line because they write probes.",
-        "Các kiểm tra Databricks (đăng nhập, warehouse, schema, endpoint, Volume) chỉ chạy từ "
-        "dòng lệnh vì chúng ghi dữ liệu thử.",
+        "Databricks checks (sign-in, warehouse, schema, serving endpoint, Volume) run only from the command line, because they write test data.",
+        "Các kiểm tra Databricks (đăng nhập, warehouse, schema, endpoint, Volume) chỉ chạy từ dòng lệnh vì chúng ghi dữ liệu thử.",
     ),
     # ---- WP12 inbox, metrics
     "inbox_purpose": (
@@ -848,23 +807,11 @@ _T: dict[str, tuple[str, str]] = {
         "The bank's ITSM and pager get the same notices when those links are switched on.",
         "ITSM và hệ thống nhắn tin của ngân hàng nhận cùng thông báo khi bật kết nối.",
     ),
-    "metrics_purpose": (
-        "Daily oversight numbers per agent: coverage, time to detect, time to a human, judge "
-        "quality.",
-        "Số liệu giám sát hằng ngày theo tác tử: độ bao phủ, thời gian phát hiện, thời gian "
-        "tới con người, chất lượng giám khảo.",
-    ),
-    "metrics_why": (
-        "These are the numbers a risk committee asks for. Definitions: docs/metrics.md.",
-        "Đây là số liệu hội đồng rủi ro cần. Định nghĩa: docs/metrics.md.",
-    ),
     # ---- WP1b-B monitor status on the Metrics page
     "monitor_status": ("Monitor status", "Trạng thái bộ giám sát"),
     "monitor_status_purpose": (
-        "Each monitor says what it did for each agent. 'not applicable' names the missing "
-        "binding; 'no data' means the binding exists but nothing was computed yet.",
-        "Mỗi bộ giám sát cho biết nó đã làm gì với từng tác tử. 'không áp dụng' nêu cấu hình "
-        "còn thiếu; 'chưa có dữ liệu' nghĩa là đã cấu hình nhưng chưa tính được gì.",
+        "What each monitor did for each agent. 'not applicable' names the missing setup. 'no data' means setup is done but nothing has been measured yet.",
+        "Mỗi bộ giám sát đã làm gì với từng tác tử. 'không áp dụng' nêu phần thiết lập còn thiếu. 'chưa có dữ liệu' nghĩa là đã thiết lập nhưng chưa đo được gì.",
     ),
     "no_monitor_status": (
         "No monitor has reported yet.",
@@ -876,28 +823,26 @@ _T: dict[str, tuple[str, str]] = {
     # ---- WP21 alerts panel on the Metrics page
     "alerts": ("Alerts", "Cảnh báo"),
     "alerts_purpose": (
-        "Alerts raised by the rules in config/alerts.yaml. An operator acknowledges an alert; "
-        "the action is audited.",
-        "Cảnh báo do các quy tắc trong config/alerts.yaml tạo ra. Người vận hành xác nhận cảnh "
-        "báo; hành động được ghi nhật ký.",
+        "Alerts come from rules. Acknowledge an alert to confirm you have seen it. Your action is logged.",
+        "Cảnh báo do quy tắc tạo ra. Hãy xác nhận để cho biết bạn đã xem. Thao tác của bạn được ghi lại.",
     ),
     "alerts_open": ("open", "đang mở"),
     "alerts_ack": ("acknowledged", "đã xác nhận"),
     "alert_ack_btn": ("Acknowledge", "Xác nhận"),
     "alert_rule": ("Rule", "Quy tắc"),
-    "alert_window": ("Window", "Cửa sổ"),
+    "alert_window": ("Time window", "Khoảng thời gian"),
     "alert_repeats": ("Repeats", "Lặp lại"),
-    "alert_chain": ("Chain", "Chuỗi"),
+    "alert_chain": ("Evidence record", "Bản ghi bằng chứng"),
     "no_alerts": ("No alerts.", "Không có cảnh báo."),
     "day": ("Day", "Ngày"),
-    "all_rows": ("All rows ({n})", "Tất cả các dòng ({n})"),
+    "all_rows": ("All items ({n})", "Tất cả mục ({n})"),
     "flow_open": ("open", "mở"),
     "flow_triaged": ("triaged", "đã phân loại"),
     "flow_contained": ("contained", "đã ngăn chặn"),
     "flow_closed": ("closed", "đã đóng"),
-    "next_triaged": ("triage", "phân loại"),
-    "next_contained": ("contain", "ngăn chặn"),
-    "next_closed": ("sign-off and close", "phê duyệt và đóng"),
+    "next_triaged": ("assess and prioritise", "đánh giá và xếp ưu tiên"),
+    "next_contained": ("contain the issue", "ngăn chặn sự cố"),
+    "next_closed": ("approve and close", "phê duyệt và đóng"),
     "itsm_ph": ("e.g. INC0012345", "ví dụ INC0012345"),
     "demo_note": (
         "Demo data: the agents' replies are scripted and the customers are synthetic. The "
@@ -913,10 +858,8 @@ _T: dict[str, tuple[str, str]] = {
         "Xem nghĩa vụ pháp lý nào áp dụng cho từng tác tử và biện pháp nào của Supervisor đáp ứng.",
     ),
     "cp_why": (
-        "Every status names a control and a product fact. A fact we do not know becomes a "
-        "question, never a guess.",
-        "Mỗi trạng thái nêu rõ biện pháp kiểm soát và dữ kiện sản phẩm. Dữ kiện chưa biết "
-        "trở thành câu hỏi, không bao giờ là phỏng đoán.",
+        "Each status names the control and the fact behind it. If a fact is unknown, we ask a question. We never guess.",
+        "Mỗi trạng thái nêu rõ biện pháp kiểm soát và dữ kiện làm căn cứ. Nếu chưa biết dữ kiện, hệ thống đặt câu hỏi, không phỏng đoán.",
     ),
     "cp_advisory": ("Advisory only", "Chỉ mang tính tham khảo"),
     "cp_disclaimer": (
@@ -924,18 +867,16 @@ _T: dict[str, tuple[str, str]] = {
         "Không phải tư vấn pháp lý. Cần pháp chế ngân hàng xác nhận.",
     ),
     "cp_off": (
-        "The Compliance tab is off by default. Set CONSOLE_COMPLIANCE_ENABLED=1 and restart "
-        "the console to turn it on. From the command line:",
-        "Thẻ Tuân thủ đang tắt theo mặc định. Đặt CONSOLE_COMPLIANCE_ENABLED=1 rồi khởi động "
-        "lại bảng điều khiển để bật. Từ dòng lệnh:",
+        "The Compliance tab is switched off. To turn it on, set CONSOLE_COMPLIANCE_ENABLED=1 and restart the console. Or use the command line:",
+        "Thẻ Tuân thủ đang tắt. Để bật, đặt CONSOLE_COMPLIANCE_ENABLED=1 rồi khởi động lại bảng điều khiển. Hoặc dùng dòng lệnh:",
     ),
     "cp_no_agents": ("No compliance matrix yet.", "Chưa có ma trận tuân thủ nào."),
     "cp_source_demo": ("demo agent", "tác tử demo"),
-    "cp_source_onboard": ("onboarded product", "sản phẩm đã tiếp nhận"),
-    "cp_applies_yes": ("Apply", "Áp dụng"),
+    "cp_source_onboard": ("registered", "đã đăng ký"),
+    "cp_applies_yes": ("Applicable", "Áp dụng"),
     "cp_needs_answer": ("Need an answer", "Cần trả lời"),
     "cp_questions": ("Open questions", "Câu hỏi còn mở"),
-    "cp_threshold_gaps": ("Threshold gaps", "Hạn mức vượt trần"),
+    "cp_threshold_gaps": ("Limits over the legal cap", "Hạn mức vượt trần luật định"),
     "cp_d33": ("Decision 33 (suggestion)", "Quyết định 33 (gợi ý)"),
     "cp_open": ("Open matrix", "Mở ma trận"),
     "cp_back": ("All agents", "Tất cả tác tử"),
@@ -943,49 +884,42 @@ _T: dict[str, tuple[str, str]] = {
         "Rows that apply ({n}), by status",
         "Dòng áp dụng ({n}), theo trạng thái",
     ),
-    "cp_rows_no": ("{k} more rows do not apply", "{k} dòng khác không áp dụng"),
+    "cp_rows_no": ("{k} more duties do not apply", "{k} nghĩa vụ khác không áp dụng"),
     "cp_rows_split": (
-        "{yes} apply + {na} need an answer = {n} rows in the table below",
-        "{yes} áp dụng + {na} cần trả lời = {n} dòng trong bảng bên dưới",
+        "{yes} apply and {na} need an answer: {n} duties in the table below",
+        "{yes} áp dụng và {na} cần trả lời: {n} nghĩa vụ trong bảng bên dưới",
     ),
     "cp_filters": ("Filters", "Bộ lọc"),
-    "cp_instrument": ("Instrument", "Văn bản"),
-    "cp_duty": ("Duty", "Nhiệm vụ"),
+    "cp_instrument": ("Legal document", "Văn bản pháp lý"),
+    "cp_duty": ("Duty", "Nghĩa vụ"),
     "cp_applies": ("Applies", "Áp dụng"),
     "cp_any": ("any", "tất cả"),
     "cp_apply_filter": ("Apply filter", "Lọc"),
     "cp_showing": ("Showing {n} of {m} rows", "Hiển thị {n} trên {m} dòng"),
     "cp_col_obligation": ("Obligation", "Nghĩa vụ"),
     "cp_col_article": ("Article", "Điều"),
-    "cp_col_summary": ("Summary", "Tóm tắt"),
     "cp_col_reason": ("Reason", "Lý do"),
     "cp_thresholds": ("Threshold findings", "Kết quả kiểm tra hạn mức"),
     "cp_col_limit": ("Limit (VND)", "Hạn mức (VND)"),
     "cp_col_cap": ("Cap (VND)", "Trần (VND)"),
-    "cp_col_verdict": ("Verdict", "Kết luận"),
+    "cp_col_verdict": ("Result", "Kết quả"),
     "cp_none": ("none", "không có"),
     "cp_questions_list": ("Open questions", "Câu hỏi còn mở"),
-    "cp_decides": ("decides {n} obligation(s)", "quyết định {n} nghĩa vụ"),
-    "cp_d33_lines": ("Decision 33 reasoning", "Lập luận theo Quyết định 33"),
+    "cp_decides": ("{n} duties wait on this answer", "{n} nghĩa vụ đang chờ câu trả lời này"),
     "cp_ob_title": ("Obligation", "Nghĩa vụ"),
     "cp_text_vi": ("Text (Vietnamese)", "Nội dung (tiếng Việt)"),
     "cp_summary_en": ("Summary (English)", "Tóm tắt (tiếng Anh)"),
     "cp_no_text_vi": (
-        "No Vietnamese text in RegKB for this obligation.",
-        "RegKB chưa có nội dung tiếng Việt cho nghĩa vụ này.",
+        "No Vietnamese text for this duty yet.",
+        "Chưa có văn bản tiếng Việt cho nghĩa vụ này.",
     ),
-    "cp_instrument_line": ("Instrument", "Văn bản"),
+    "cp_instrument_line": ("Legal document", "Văn bản pháp lý"),
     "cp_sources": ("Sources", "Nguồn"),
     "cp_controls": ("Controls that cover it", "Biện pháp kiểm soát"),
-    "cp_coverage": ("coverage", "mức độ"),
+    "cp_coverage": ("coverage", "độ bao phủ"),
     "cp_this_product": ("This product", "Sản phẩm này"),
     "cp_status_reason": ("Why this status", "Vì sao có trạng thái này"),
     "cp_evidence_needed": ("Evidence needed", "Bằng chứng cần có"),
-    "cp_mock_hidden": (
-        "A narrative, if the file holds one, is not shown here.",
-        "Phần diễn giải (nếu có trong tệp) không hiển thị ở đây.",
-    ),
-    "cp_file_links": ("Files of this run", "Tệp của lần chạy này"),
     # ---- WP15 integration advice
     "nav_integration": (
         "Integration",
@@ -996,8 +930,8 @@ _T: dict[str, tuple[str, str]] = {
         "Tư vấn tích hợp",
     ),
     "int_purpose_lead": (
-        "What it takes to bring an agent under Watch.",
-        "Điều cần để đưa tác tử vào giám sát.",
+        "Readiness reports for agents you plan to put under Watch.",
+        "Báo cáo mức sẵn sàng của các tác tử dự kiến đưa vào giám sát.",
     ),
     "int_purpose_rest": (
         "Each report lists what the advisor found in the code, what Supervisor needs, "
@@ -1132,21 +1066,7 @@ _T: dict[str, tuple[str, str]] = {
         "Diễn giải",
     ),
     # ---- WP22 tools (analytics and least privilege)
-    "nav_tools": ("Tools", "Công cụ"),
-    "tl_purpose": (
-        "Gate decisions per agent and tool: calls, outcomes, latency, and which allowed tools "
-        "were never used. Review each allowed tool against its use or a documented exception.",
-        "Quyết định của cổng theo tác tử và công cụ: số lần gọi, kết quả, độ trễ, và công cụ "
-        "được phép nhưng chưa từng dùng. Mỗi công cụ được phép cần có lý do sử dụng hoặc ngoại "
-        "lệ được ghi nhận.",
-    ),
-    "tl_why": (
-        "Least privilege (NIST SP 800-53 AC-6). The suggestion is a diff for a person to review. "
-        "Nothing is applied from this screen.",
-        "Đặc quyền tối thiểu (NIST SP 800-53 AC-6). Đề xuất chỉ là bản diff để người xem xét. "
-        "Không có gì được áp dụng từ màn hình này.",
-    ),
-    "tl_window": ("Window", "Khoảng thời gian"),
+    "tl_window": ("Period", "Khoảng thời gian"),
     "tl_tool": ("Tool", "Công cụ"),
     "tl_risk": ("Risk", "Rủi ro"),
     "tl_status": ("Status", "Trạng thái"),
@@ -1155,9 +1075,9 @@ _T: dict[str, tuple[str, str]] = {
     "tl_block": ("Block", "Chặn"),
     "tl_pause": ("Pause", "Tạm dừng"),
     "tl_err": ("Err", "Lỗi"),
-    "tl_p50": ("p50 us", "p50 us"),
-    "tl_p95": ("p95 us (worst day)", "p95 us (ngày tệ nhất)"),
-    "tl_users": ("Users/day max", "Người dùng/ngày tối đa"),
+    "tl_p50": ("Typical time (µs)", "Thời gian điển hình (µs)"),
+    "tl_p95": ("Slow calls, p95 (µs, worst day)", "Lệnh gọi chậm, p95 (µs, ngày tệ nhất)"),
+    "tl_users": ("Peak users per day", "Số người dùng tối đa mỗi ngày"),
     "tl_last": ("Last seen", "Lần cuối"),
     "tl_declared_from": ("declared from", "khai báo từ"),
     "tl_st_used": ("used", "đã dùng"),
@@ -1167,29 +1087,26 @@ _T: dict[str, tuple[str, str]] = {
     "tl_conf_ok": ("data ok", "dữ liệu đủ"),
     "tl_conf_low": ("low history", "ít dữ liệu"),
     "tl_conf_no_data": ("no data", "chưa có dữ liệu"),
-    "tl_suggest": ("Least-privilege suggestion", "Đề xuất đặc quyền tối thiểu"),
-    "tl_remove": ("Remove (unused, risky first)", "Gỡ bỏ (chưa dùng, rủi ro trước)"),
-    "tl_none": ("No unused tool in this window.", "Không có công cụ chưa dùng trong khoảng này."),
+    "tl_suggest": ("Suggested minimum access", "Đề xuất quyền truy cập tối thiểu"),
+    "tl_remove": (
+        "Remove (unused tools, riskiest first)",
+        "Gỡ bỏ (công cụ chưa dùng, rủi ro nhất trước)",
+    ),
+    "tl_none": ("No unused tools in this period.", "Không có công cụ chưa dùng trong kỳ này."),
     "tl_undeclared": ("Called but not declared", "Đã gọi nhưng chưa khai báo"),
     "tl_warning": ("Warning", "Cảnh báo"),
     "tl_not_applied": (
-        "Suggestion only. Nothing was changed. Apply it through the policy change path "
-        "(docs/tool-analytics.md).",
-        "Chỉ là đề xuất. Chưa có gì bị thay đổi. Áp dụng qua quy trình thay đổi chính sách "
-        "(docs/tool-analytics.md).",
+        "Suggestion only. Nothing has changed. To apply it, follow the policy change process (docs/tool-analytics.md).",
+        "Chỉ là đề xuất, chưa có gì thay đổi. Để áp dụng, làm theo quy trình thay đổi chính sách (docs/tool-analytics.md).",
     ),
-    "tl_download": ("Download diff", "Tải bản diff"),
+    "tl_download": ("Download changes", "Tải bản thay đổi"),
     "tl_download_owner": (
-        "Only the agent owner can download the diff.",
-        "Chỉ chủ sở hữu tác tử được tải bản diff.",
+        "Only the agent owner can download the changes.",
+        "Chỉ chủ sở hữu tác tử mới được tải bản thay đổi.",
     ),
     "tl_unknown_agent": (
-        "This agent has no record in the policy yet, so there is no list of declared tools to "
-        "compare with. It is listed here once its policy entry exists (add it to the policy "
-        "folder, or run the onboarding agent).",
-        "Tác nhân này chưa có trong chính sách nên chưa có danh sách công cụ khai báo để so "
-        "sánh. Tác nhân sẽ hiện ở đây khi có mục chính sách (thêm vào thư mục chính sách hoặc "
-        "chạy tác nhân onboarding).",
+        "This agent is not in the policy yet, so there are no tools to compare. Add it to the policy or start onboarding.",
+        "Tác tử này chưa có trong chính sách nên chưa có công cụ để so sánh. Hãy thêm vào chính sách hoặc bắt đầu đưa vào vận hành.",
     ),
     "tl_nodata": (
         "No usage data yet. Run:",
@@ -1198,19 +1115,15 @@ _T: dict[str, tuple[str, str]] = {
     # ---- WP24 inventory
     "nav_inventory": ("Inventory", "Kiểm kê"),
     "inv_purpose": (
-        "What each agent runs on: model endpoints, tools, MCP servers, datasets and hosting, "
-        "each with its evidence. Risk passes up from tools and endpoints to the agent.",
-        "Mỗi tác tử chạy trên gì: điểm cuối mô hình, công cụ, máy chủ MCP, dữ liệu và nơi "
-        "lưu trữ, kèm bằng chứng. Mức rủi ro đi lên từ công cụ và điểm cuối tới tác tử.",
+        "What each agent runs on: models, tools, MCP servers, datasets and hosting, with evidence. Risk passes up from tools and models to the agent.",
+        "Mỗi tác tử chạy trên gì: mô hình, công cụ, máy chủ MCP, dữ liệu và nơi lưu trữ, kèm bằng chứng. Mức rủi ro đi lên từ công cụ và mô hình tới tác tử.",
     ),
     "inv_why": (
-        "Unmanaged items run in the workspace but no Supervisor manifest covers them (shadow "
-        "AI). Each opens one low-severity case. Decision 33 class is set by people only.",
-        "Mục chưa quản lý chạy trong workspace nhưng chưa có bản kê khai Supervisor (AI ngầm). "
-        "Mỗi mục mở một hồ sơ mức thấp. Phân loại Quyết định 33 chỉ do con người đặt.",
+        "Unmanaged items run in the workspace but are not registered with Supervisor (shadow AI). Each opens one low-severity case. Only people set the Decision 33 classification.",
+        "Mục chưa quản lý chạy trong workspace nhưng chưa đăng ký với Supervisor (AI ngầm). Mỗi mục mở một vụ việc mức thấp. Chỉ con người mới đặt phân loại theo Quyết định 33.",
     ),
     "inv_agent": ("Agent", "Tác tử"),
-    "inv_tree": ("Subgraph (indented tree)", "Đồ thị con (cây thụt lề)"),
+    "inv_tree": ("Dependencies (tree view)", "Thành phần phụ thuộc (dạng cây)"),
     "inv_nodes": ("Nodes", "Nút"),
     "inv_kind": ("Kind", "Loại"),
     "inv_name": ("Name", "Tên"),
@@ -1238,19 +1151,15 @@ _T: dict[str, tuple[str, str]] = {
         "bảo mật và độ bền, chạy trên tác tử, dấu vết và giám khảo AI.",
     ),
     "as_why": (
-        "Thresholds are illustrative until the bank sets its own. A skipped pack is never a pass.",
-        "Ngưỡng chỉ mang tính minh họa cho đến khi ngân hàng đặt ngưỡng riêng. Gói bị bỏ qua "
-        "không bao giờ được tính là đạt.",
+        "Thresholds are examples until the bank sets its own. A skipped test never counts as a pass.",
+        "Ngưỡng chỉ là ví dụ cho đến khi ngân hàng đặt ngưỡng riêng. Kiểm thử bị bỏ qua không bao giờ được tính là đạt.",
     ),
     "as_run": ("Run", "Lần chạy"),
     "as_target": ("Target", "Đối tượng"),
     "as_counts": ("Results", "Kết quả"),
     "as_kind": ("Label", "Nhãn"),
     "as_selector": ("selector", "bộ chọn"),
-    "as_no_runs": (
-        "No assurance run yet. Run:",
-        "Chưa có lần chạy nào. Hãy chạy:",
-    ),
+    "as_no_runs": ("No tests run yet.", "Chưa chạy kiểm thử nào."),
     "as_all_runs": ("All runs", "Tất cả lần chạy"),
     "as_mock_note": (
         "MOCK: at least one result comes from a mock model or target. The numbers prove the "
@@ -1258,18 +1167,18 @@ _T: dict[str, tuple[str, str]] = {
         "MÔ PHỎNG: ít nhất một kết quả đến từ mô hình hoặc đối tượng giả lập. Số liệu chỉ "
         "chứng minh bộ kiểm thử, không phải mô hình thật.",
     ),
-    "as_pack": ("Pack", "Gói"),
-    "as_dimension": ("Dimension", "Khía cạnh"),
-    "as_metrics": ("Metrics vs thresholds", "Chỉ số so với ngưỡng"),
+    "as_pack": ("Test set", "Bộ kiểm thử"),
+    "as_dimension": ("Test area", "Lĩnh vực kiểm thử"),
+    "as_metrics": ("Results against thresholds", "Kết quả so với ngưỡng"),
     "as_data": ("Data", "Dữ liệu"),
     "as_reasons": ("Reasons", "Lý do"),
     "as_gate": ("launch gate", "cổng ra mắt"),
-    "as_judge_gate": ("judge gate", "cổng giám khảo"),
-    "as_no_chain": ("not on chain", "chưa ghi chuỗi"),
+    "as_judge_gate": ("AI judge check", "kiểm tra bằng giám khảo AI"),
+    "as_no_chain": ("not in the evidence chain", "chưa ghi vào chuỗi bằng chứng"),
     "as_no_results": ("No results in this run.", "Lần chạy này chưa có kết quả."),
     "as_illustrative": (
-        "Thresholds are illustrative defaults until the bank sets its own.",
-        "Ngưỡng là giá trị minh họa cho đến khi ngân hàng đặt ngưỡng riêng.",
+        "Thresholds are examples until the bank sets its own.",
+        "Ngưỡng chỉ là ví dụ cho đến khi ngân hàng đặt ngưỡng riêng.",
     ),
     # --- WP-UX1: shell, sidebar, list and drawer components
     "nav_g_watch": ("Watch", "Giám sát"),
@@ -1300,10 +1209,10 @@ _T: dict[str, tuple[str, str]] = {
     "apply": ("Apply", "Áp dụng"),
     "reset": ("Reset", "Đặt lại"),
     "tabs_label": ("Sections", "Các mục"),
-    "pager_label": ("Pages", "Phân trang"),
+    "pager_label": ("Pages", "Chuyển trang"),
     "pager_showing": ("Showing {a}-{b} of {n}", "Hiển thị {a}-{b} trên {n}"),
     "pager_prev": ("Previous", "Trước"),
-    "pager_next": ("Next", "Sau"),
+    "pager_next": ("Next", "Tiếp"),
     "pager_page": ("page {p} of {n}", "trang {p} trên {n}"),
     "drawer_prev": ("Previous row", "Dòng trước"),
     "drawer_next": ("Next row", "Dòng sau"),
@@ -1316,19 +1225,21 @@ _T: dict[str, tuple[str, str]] = {
     "state_SHADOW": ("Shadow", "Chế độ bóng"),
     "state_PAUSED": ("Paused", "Tạm dừng"),
     "state_QUARANTINED": ("Quarantined", "Cách ly"),
-    "agent_controls": ("Lifecycle and controls", "Vòng đời và điều khiển"),
     "agent_controls_hint": (
-        "Pause, resume and quarantine are on the agent page: open a row, then the agent page.",
-        "Tạm dừng, tiếp tục và cách ly nằm ở trang tác tử: mở một dòng, rồi mở trang tác tử.",
+        "To pause, resume or quarantine an agent, open its agent page.",
+        "Để tạm dừng, cho chạy lại hoặc cách ly tác tử, hãy mở trang của tác tử đó.",
     ),
     "no_agents_filtered": (
         "No agent matches these filters.",
         "Không có tác tử nào khớp bộ lọc này.",
     ),
-    "no_rules": ("No rule in scope", "Không có quy tắc áp dụng"),
+    "no_rules": (
+        "No rules apply to this agent yet.",
+        "Chưa có quy tắc nào áp dụng cho tác tử này.",
+    ),
     "no_rules_line": (
-        "No deployed rule names this agent.",
-        "Chưa có quy tắc nào được triển khai cho tác tử này.",
+        "No rule in force names this agent.",
+        "Chưa có quy tắc nào đang áp dụng cho tác tử này.",
     ),
     "no_cases_agent": (
         "This agent has no open case.",
@@ -1343,42 +1254,38 @@ _T: dict[str, tuple[str, str]] = {
     "act_alert": ("alert", "cảnh báo"),
     "act_block": ("block", "chặn"),
     "act_pause": ("pause", "tạm dừng"),
-    "soon_pill": ("Coming in WP-UX3", "Sắp có ở WP-UX3"),
-    "soon_line": ("This page is coming in WP-UX3.", "Trang này sẽ có ở WP-UX3."),
+    "soon_pill": ("Coming soon", "Sắp có"),
+    "soon_line": ("This page is coming soon.", "Trang này sắp ra mắt."),
     "soon_why": (
-        "The menu entry is here so the structure is final. No data is lost; it is recorded.",
-        "Mục menu đã có để cấu trúc được chốt. Không mất dữ liệu: dữ liệu đã được ghi sẵn.",
+        "The menu item is here already. Nothing is lost: your data is still being recorded.",
+        "Mục menu đã có sẵn. Không mất dữ liệu: dữ liệu vẫn được ghi lại.",
     ),
     "see_all": ("See all", "Xem tất cả"),
     "span_tree": ("Span tree", "Cây span"),
-    "span_unparented": ("Spans without a parent", "Span không có span cha"),
-    "span_cut": ("loop cut", "đã cắt vòng lặp"),
-    "span_capped": ("Showing the first {n} spans only.", "Chỉ hiển thị {n} span đầu tiên."),
-    "span_none": ("No span in this trace", "Dấu vết này không có span"),
     "no_decisions_line": (
-        "Decisions appear here when an agent calls the gate.",
-        "Quyết định sẽ hiện ở đây khi tác tử gọi cổng.",
+        "Decisions appear here when an agent calls a tool.",
+        "Quyết định sẽ hiện ở đây khi tác tử gọi công cụ.",
     ),
     # --- WP-UX3: new pages
     "nav_playground": ("Playground", "Chạy thử"),
     "rule_col": ("Rule", "Quy tắc"),
-    "actor": ("Actor", "Người thực hiện"),
-    "actor_kind": ("Actor kind", "Loại người thực hiện"),
+    "actor": ("Done by", "Người thực hiện"),
+    "actor_kind": ("Type of user", "Loại người dùng"),
     "agent_scope": ("Agent scope", "Phạm vi tác tử"),
     "amount_vnd": ("Amount (VND)", "Số tiền (VND)"),
     "approvals": ("Approvals", "Phê duyệt"),
-    "arg_keys": ("Argument keys", "Khóa đối số"),
-    "args_hash": ("Arguments hash", "Băm đối số"),
-    "args_masked": ("Arguments (masked)", "Đối số (đã che)"),
+    "arg_keys": ("Input fields", "Trường đầu vào"),
+    "args_hash": ("Input hash", "Mã băm đầu vào"),
+    "args_masked": ("Inputs (data hidden)", "Đầu vào (đã che dữ liệu)"),
     "result_masked": ("Result (masked)", "Kết quả (đã che)"),
-    "advisory": ("advisory", "chỉ tư vấn"),
+    "advisory": ("advice only", "chỉ tư vấn"),
     "caller_agent": ("Caller agent", "Tác tử gọi"),
-    "capture_level": ("Capture level", "Mức ghi nhận"),
-    "chain_seq": ("Chain seq", "Số thứ tự chuỗi"),
+    "capture_level": ("Logging level", "Mức ghi nhận"),
+    "chain_seq": ("Chain number", "Số thứ tự trong chuỗi"),
     "description": ("Description", "Mô tả"),
     "effective_from": ("Effective from", "Hiệu lực từ"),
-    "entry_hash": ("Entry hash", "Băm mục"),
-    "payload_hash": ("Payload hash", "Băm nội dung"),
+    "entry_hash": ("Entry hash", "Mã băm của mục"),
+    "payload_hash": ("Content hash", "Mã băm nội dung"),
     "git_sha": ("Git commit", "Mã commit Git"),
     "latency": ("Latency", "Độ trễ"),
     "latency_us": ("Latency (us)", "Độ trễ (us)"),
@@ -1392,12 +1299,12 @@ _T: dict[str, tuple[str, str]] = {
     "risk_class": ("Risk class", "Nhóm rủi ro"),
     "role": ("Role", "Vai trò"),
     "scan_capped": (
-        "Only the newest 20,000 records were read; older ones are not counted.",
-        "Chỉ đọc 20.000 bản ghi mới nhất; bản ghi cũ hơn không được tính.",
+        "Only the newest 20,000 entries are counted. Older ones are left out.",
+        "Chỉ tính 20.000 mục mới nhất. Các mục cũ hơn không được tính.",
     ),
     "span_id": ("Span id", "Mã span"),
     "target": ("Target", "Đối tượng"),
-    "this_row": ("this row", "dòng này"),
+    "this_row": ("this decision", "quyết định này"),
     "time_range": ("Time range", "Khoảng thời gian"),
     "range_1h": ("Last hour", "1 giờ qua"),
     "range_24h": ("Last 24 hours", "24 giờ qua"),
@@ -1412,8 +1319,8 @@ _T: dict[str, tuple[str, str]] = {
     "dtab_evidence": ("Evidence", "Bằng chứng"),
     "dtab_versions": ("Versions", "Phiên bản"),
     "open_trace": ("Open trace", "Mở dấu vết"),
-    "outcome_attempted": ("attempted", "đã thử"),
-    "outcome_ok": ("ok", "thành công"),
+    "outcome_attempted": ("tried", "đã thử"),
+    "outcome_ok": ("succeeded", "thành công"),
     "outcome_denied": ("denied", "bị từ chối"),
     "outcome_error": ("error", "lỗi"),
     "decisions_purpose": (
@@ -1421,24 +1328,22 @@ _T: dict[str, tuple[str, str]] = {
         "Mọi quyết định cho phép, chặn, tạm dừng và cảnh báo của cổng, mới nhất trước.",
     ),
     "decisions_why": (
-        "Open a row to see the rule hits, the evidence position and the case it opened. "
-        "Arguments are never shown, only a keyed hash.",
-        "Mở một dòng để xem quy tắc đã khớp, vị trí bằng chứng và vụ việc đã mở. Đối số "
-        "không bao giờ hiển thị, chỉ có mã băm có khóa.",
+        "Open a decision to see the rules that matched, the evidence and the case it opened. Call details are never shown, only a protected code.",
+        "Mở một quyết định để xem quy tắc đã khớp, bằng chứng và vụ việc đã mở. Chi tiết lệnh gọi không bao giờ hiển thị, chỉ có mã bảo vệ.",
     ),
     "no_rule_hits": ("No rule matched", "Không có quy tắc nào khớp"),
     "no_rule_hits_line": (
-        "The call matched no rule, so it was allowed by default.",
-        "Lệnh gọi không khớp quy tắc nào nên được cho phép mặc định.",
+        "No rule applied to this call, so it was allowed by default.",
+        "Không quy tắc nào áp dụng cho lệnh gọi này nên được cho phép mặc định.",
     ),
-    "no_chain_entry": ("No evidence entry found", "Không tìm thấy mục bằng chứng"),
+    "no_chain_entry": ("No evidence found", "Không tìm thấy bằng chứng"),
     "no_chain_entry_line": (
-        "The decision is not in the chain yet, or the evidence sink was a buffer.",
-        "Quyết định chưa có trong chuỗi, hoặc nơi ghi bằng chứng chỉ là bộ đệm.",
+        "This decision has no evidence entry yet, or evidence is not being saved permanently.",
+        "Quyết định này chưa có bằng chứng được ghi, hoặc bằng chứng chưa được lưu lâu dài.",
     ),
     "traces_purpose": (
-        "One row per trace: the agent, when it started, how many spans and what the checks said.",
-        "Mỗi dòng là một dấu vết: tác tử, thời điểm bắt đầu, số span và kết luận của các kiểm tra.",
+        "One row per trace: the agent, when it started, how many steps and what the checks said.",
+        "Mỗi dòng là một dấu vết: tác tử, thời điểm bắt đầu, số bước và kết luận của các kiểm tra.",
     ),
     "traces_why": (
         "Open a trace to walk its span tree. Only masked text is shown, and the capture "
@@ -1456,78 +1361,79 @@ _T: dict[str, tuple[str, str]] = {
     "trace_paused": ("paused", "tạm dừng"),
     "traces_no_match": ("No trace matches", "Không có dấu vết nào khớp"),
     "traces_no_match_line": (
-        "Change the filters, or wait for agent events.",
-        "Đổi bộ lọc, hoặc chờ sự kiện của tác tử.",
+        "Change the filters or wait for new agent activity.",
+        "Đổi bộ lọc hoặc chờ hoạt động mới của tác tử.",
     ),
     "trace_title": ("Trace", "Dấu vết"),
     "copy_id": ("Copy id", "Sao chép mã"),
     "n_spans": ("{n} spans", "{n} span"),
     "span_detail": ("Selected span", "Span đã chọn"),
     "tree_legend": (
-        "P pause, B block, A alert, J judge verdict (advisory).",
-        "P tạm dừng, B chặn, A cảnh báo, J kết luận của giám khảo (chỉ tư vấn).",
+        "P = pause, B = block, A = alert, J = AI judge verdict (advice only).",
+        "P tạm dừng, B chặn, A cảnh báo, J kết luận của bộ đánh giá AI (chỉ tham khảo).",
     ),
     "trace_capped": (
-        "Large trace: some spans are not drawn (+{n} more).",
-        "Dấu vết lớn: một số span không được vẽ (+{n} nữa).",
+        "Large trace: some steps are not shown (+{n} more).",
+        "Dấu vết lớn: một số bước không được hiển thị (+{n} nữa).",
     ),
     "plus_more": ("+{n} more spans", "+{n} span nữa"),
     "event_word": ("Event", "Sự kiện"),
-    "parent_span": ("Parent span", "Span cha"),
+    "parent_span": ("Parent step", "Bước cha"),
     "digest_only": (
-        "Digest level: this event stores no text, only hashes and numbers.",
-        "Mức digest: sự kiện này không lưu văn bản, chỉ có mã băm và số.",
+        "No text is kept for this step. Only codes and numbers.",
+        "Bước này không lưu văn bản, chỉ có mã và số.",
     ),
     "no_verdicts_span": (
-        "No verdict is attached to this span.",
-        "Span này không có kết luận đính kèm.",
+        "No result is linked to this step.",
+        "Chưa có kết quả nào gắn với bước này.",
     ),
     "src_tier0": ("Gate rule", "Quy tắc cổng"),
     "src_tier0b": ("Tier 0b finding", "Phát hiện Tier 0b"),
-    "no_span": ("No span selected", "Chưa chọn span"),
-    "no_span_line": ("Pick a span in the tree.", "Chọn một span trong cây."),
-    "dry_run_pill": ("dry run, nothing recorded", "chạy thử, không ghi nhận"),
+    "no_span": ("No step selected", "Chưa chọn bước nào"),
+    "no_span_line": ("Pick a step in the tree.", "Chọn một bước trong cây."),
+    "dry_run_pill": ("test run, nothing saved", "chạy thử, không lưu"),
     "playground_purpose": (
         "Ask the gate what it would decide for a call, without making the call.",
         "Hỏi cổng xem sẽ quyết định thế nào cho một lệnh gọi, mà không thực hiện lệnh gọi.",
     ),
     "playground_why": (
-        "Nothing is written: no verdict, no evidence, no agent state change, no metric. "
-        "Rules that count calls over time are not evaluated.",
-        "Không ghi gì: không kết luận, không bằng chứng, không đổi trạng thái tác tử, "
-        "không số liệu. Quy tắc đếm lệnh gọi theo thời gian không được đánh giá.",
+        "Nothing is saved: no verdict, evidence, agent change or metric. Rules that count calls over time are not applied.",
+        "Không lưu gì: không kết luận, bằng chứng, thay đổi tác tử hay số liệu. Quy tắc đếm lệnh gọi theo thời gian không được áp dụng.",
     ),
-    "pg_inputs": ("Call to check", "Lệnh gọi cần kiểm tra"),
+    "pg_inputs": ("Call to test", "Lệnh gọi cần thử"),
     "pg_args": ("Arguments (JSON object)", "Đối số (đối tượng JSON)"),
     "pg_context": ("Context (JSON object)", "Ngữ cảnh (đối tượng JSON)"),
     "pg_note": (
-        "Use synthetic data. The arguments are not stored; the audit log keeps only a keyed hash.",
-        "Dùng dữ liệu giả lập. Đối số không được lưu; nhật ký kiểm toán chỉ giữ mã băm có khóa.",
+        "Use made-up data. Arguments are not saved. The audit log keeps only a keyed hash.",
+        "Hãy dùng dữ liệu giả lập. Đối số không được lưu. Nhật ký kiểm toán chỉ giữ mã băm có khóa.",
     ),
-    "pg_check": ("Check (dry run)", "Kiểm tra (chạy thử)"),
+    "pg_check": ("Test the call (dry run)", "Thử lệnh gọi (chạy thử)"),
     "pg_result": ("Result", "Kết quả"),
     "pg_empty": ("No result yet", "Chưa có kết quả"),
-    "pg_empty_line": ("Fill the form and press Check.", "Điền biểu mẫu và nhấn Kiểm tra."),
-    "pg_error": ("The check failed", "Kiểm tra không thành công"),
+    "pg_empty_line": (
+        "Fill in the form and press Test the call.",
+        "Điền biểu mẫu và nhấn Thử lệnh gọi.",
+    ),
+    "pg_error": ("The test failed", "Thử không thành công"),
     "pg_would_pause": ("would pause the agent", "sẽ tạm dừng tác tử"),
-    "pg_allow": ("Call allowed", "Lệnh gọi được phép"),
+    "pg_allow": ("Call allowed", "Cho phép lệnh gọi"),
     "pg_state_unchanged": (
-        "The agent state was not changed. This answer is not in the evidence chain.",
-        "Trạng thái tác tử không bị đổi. Câu trả lời này không có trong chuỗi bằng chứng.",
+        "The agent was not changed. This result is not saved in the evidence.",
+        "Tác tử không bị thay đổi. Kết quả này không được lưu vào bằng chứng.",
     ),
-    "pg_rule_hits": ("Rule hits", "Quy tắc đã khớp"),
+    "pg_rule_hits": ("Rules that applied", "Quy tắc đã áp dụng"),
     "pg_not_evaluated": (
-        "Not evaluated in a dry run (they count calls over time)",
-        "Không đánh giá khi chạy thử (các quy tắc đếm lệnh gọi theo thời gian)",
+        "Not tested in a dry run (these rules count calls over time)",
+        "Không thử được khi chạy thử (các quy tắc này đếm lệnh gọi theo thời gian)",
     ),
-    "pg_transformed": ("Transformed arguments", "Đối số sau khi biến đổi"),
+    "pg_transformed": ("Arguments after changes", "Đối số sau khi thay đổi"),
     "pg_preview_line": (
-        "Masked preview of the arguments: what the evidence would hold ({n} value(s) changed).",
-        "Xem trước đối số đã che: nội dung bằng chứng sẽ lưu ({n} giá trị đã đổi).",
+        "Masked preview of the arguments, as saved in the evidence ({n} value(s) changed).",
+        "Xem trước đối số đã che, như được lưu trong bằng chứng ({n} giá trị đã đổi).",
     ),
     "pg_no_masker": (
-        "No masker is configured, so no argument text is shown.",
-        "Chưa cấu hình bộ che, nên không hiển thị văn bản đối số.",
+        "Masking is not set up, so no argument text is shown.",
+        "Chưa thiết lập che dữ liệu nên không hiển thị nội dung đối số.",
     ),
     "rule_error": ("rule error", "lỗi quy tắc"),
     "policies_purpose": (
@@ -1549,42 +1455,39 @@ _T: dict[str, tuple[str, str]] = {
     "policy_retired": ("retired", "đã ngừng"),
     "rules_n": ("Rules", "Số quy tắc"),
     "search_rules": ("Search rules", "Tìm quy tắc"),
-    "no_policy": ("No policy deployed", "Chưa triển khai chính sách"),
+    "no_policy": ("No policy in force", "Chưa áp dụng chính sách"),
     "no_policy_line": (
-        "Deploy a policy file to the rule table.",
-        "Triển khai tệp chính sách vào bảng quy tắc.",
+        "Deploy a policy file to apply rules.",
+        "Triển khai tệp chính sách để áp dụng quy tắc.",
     ),
     "no_rules_filtered": ("No rule matches the filters.", "Không có quy tắc nào khớp bộ lọc."),
-    "catalogue_caps": ("Catalogue capabilities", "Năng lực trong danh mục"),
+    "catalogue_caps": ("Guardians that apply", "Bộ bảo vệ áp dụng"),
     "catalogue_none": (
-        "No gate-rule capability in the catalogue applies to this risk class.",
-        "Không có năng lực quy tắc cổng nào trong danh mục áp dụng cho nhóm rủi ro này.",
+        "No guardian in the catalog applies to this risk class.",
+        "Không có bộ bảo vệ nào trong danh mục áp dụng cho nhóm rủi ro này.",
     ),
     "credentials_purpose": (
-        "Which agents hold an ingress key, and which service principals may speak for "
-        "which agents.",
-        "Tác tử nào có khóa đầu vào, và service principal nào được nói thay cho tác tử nào.",
+        "See which agents have an access key and which service accounts may act for them.",
+        "Xem tác tử nào có khóa truy cập và tài khoản dịch vụ nào được hoạt động thay cho tác tử.",
     ),
     "credentials_why": (
-        "Metadata only. A secret value is never shown or stored here.",
-        "Chỉ có siêu dữ liệu. Giá trị bí mật không bao giờ hiển thị hay lưu ở đây.",
+        "Details only. Secret values are never shown or stored here.",
+        "Chỉ có thông tin mô tả. Giá trị bí mật không bao giờ hiển thị hay lưu ở đây.",
     ),
     "ingress_off": (
-        "INGRESS_AUTH_ENABLED is off: the gate accepts calls without an agent credential.",
-        "INGRESS_AUTH_ENABLED đang tắt: cổng nhận lệnh gọi không cần thông tin xác thực "
-        "của tác tử.",
+        "Agent authentication is off, so the gate accepts calls without a key.",
+        "Xác thực tác tử đang tắt nên cổng nhận lệnh gọi không cần khóa.",
     ),
     "cred_kind": ("Credential kind", "Loại thông tin xác thực"),
     "cred_store": ("Key store", "Nơi lưu khóa"),
     "cred_agents_nokey": ("Agents without an active key", "Tác tử chưa có khóa hiệu lực"),
     "cred_store_error": ("Cannot read", "Không đọc được"),
     "cred_keys": ("Agent keys", "Khóa của tác tử"),
-    "cred_identities": ("Identity map", "Bảng ánh xạ danh tính"),
+    "cred_identities": ("Identities allowed per agent", "Danh tính được phép theo tác tử"),
     "cred_rotate": ("Issue or rotate a key", "Cấp hoặc đổi khóa"),
     "cred_rotate_line": (
-        "Keys are issued and rotated on the command line, so a new secret never passes "
-        "through the browser.",
-        "Khóa được cấp và đổi bằng dòng lệnh, để bí mật mới không đi qua trình duyệt.",
+        "Issue or change keys on the command line. A new key never passes through the browser.",
+        "Cấp hoặc đổi khóa bằng dòng lệnh. Khóa mới không bao giờ đi qua trình duyệt.",
     ),
     "key_id": ("Key id", "Mã khóa"),
     "key_current": ("current", "hiện tại"),
@@ -1598,21 +1501,21 @@ _T: dict[str, tuple[str, str]] = {
         "Chưa theo dõi lần dùng cuối nên cột này để trống.",
     ),
     "not_registered": ("not registered", "chưa đăng ký"),
-    "no_keys": ("No key found", "Không có khóa"),
+    "no_keys": ("No key issued", "Chưa cấp khóa"),
     "no_keys_line": ("Issue a key with the command below.", "Cấp khóa bằng lệnh bên dưới."),
-    "principal": ("Principal", "Principal"),
-    "no_identities": ("No identity mapped", "Chưa ánh xạ danh tính"),
+    "principal": ("Service identity", "Danh tính dịch vụ"),
+    "no_identities": ("No identities set up.", "Chưa thiết lập danh tính nào."),
     "no_identities_line": (
-        "Add principals to the identities file.",
-        "Thêm principal vào tệp danh tính.",
+        "Add the identities to the identities file.",
+        "Thêm danh tính vào tệp danh tính.",
     ),
     "users_purpose": (
         "Who holds which role, and what each role may do.",
         "Ai giữ vai trò nào, và mỗi vai trò được làm gì.",
     ),
     "users_why": (
-        "Read-only. Roles change in the config file under Git.",
-        "Chỉ đọc. Vai trò đổi trong tệp cấu hình trên Git.",
+        "View only. To change a role, edit the config file in Git.",
+        "Chỉ xem. Muốn đổi vai trò, hãy sửa tệp cấu hình trong Git.",
     ),
     "users_source": ("Role source", "Nguồn vai trò"),
     "service_principal": ("App service principal", "Service principal của ứng dụng"),
@@ -1625,9 +1528,9 @@ _T: dict[str, tuple[str, str]] = {
     ),
     "holders": ("Holders", "Số người giữ"),
     "groups": ("Groups", "Nhóm"),
-    "no_users": ("No user configured", "Chưa cấu hình người dùng"),
+    "no_users": ("No users set up", "Chưa thiết lập người dùng"),
     "no_users_line": (
-        "Add users to the users file or to the role map.",
+        "Add users to the users file or the role map.",
         "Thêm người dùng vào tệp người dùng hoặc bảng vai trò.",
     ),
     "audit_purpose": (
@@ -1635,42 +1538,42 @@ _T: dict[str, tuple[str, str]] = {
         "Mọi thao tác trong bảng điều khiển: ai, làm gì, trên đối tượng nào, và kết quả.",
     ),
     "audit_why": (
-        "Read-only and append-only. Each action has an attempt row and an outcome row.",
-        "Chỉ đọc và chỉ thêm. Mỗi thao tác có một dòng thử và một dòng kết quả.",
+        "Read-only. Entries cannot be changed or deleted. Each action is logged when attempted and again with its result.",
+        "Chỉ để xem. Không thể sửa hay xóa mục nào. Mỗi thao tác được ghi khi bắt đầu và ghi lại kết quả.",
     ),
-    "before_hash": ("Hash before", "Băm trước"),
-    "after_hash": ("Hash after", "Băm sau"),
+    "before_hash": ("Hash before", "Mã băm trước"),
+    "after_hash": ("Hash after", "Mã băm sau"),
     "hash_changed": ("Target changed", "Đối tượng đã đổi"),
-    "same_request": ("Rows of the same request", "Các dòng cùng yêu cầu"),
+    "same_request": ("Other decisions in this request", "Các quyết định khác trong cùng yêu cầu"),
     "no_audit": ("No audit row matches", "Không có dòng kiểm toán nào khớp"),
     "no_audit_line": (
         "Change the filters, or take an action in the console.",
         "Đổi bộ lọc, hoặc thực hiện một thao tác trong bảng điều khiển.",
     ),
     "integrations_purpose": (
-        "Status of the outbound links: SIEM, webhook, pager, ITSM and SCIM.",
-        "Trạng thái các kết nối đi ra: SIEM, webhook, pager, ITSM và SCIM.",
+        "Status of connections to other systems: SIEM, webhook, pager, ITSM and SCIM.",
+        "Trạng thái các kết nối tới hệ thống khác: SIEM, webhook, pager, ITSM và SCIM.",
     ),
     "integrations_why": (
         "Read-only. Secrets and full URLs are never shown.",
         "Chỉ đọc. Bí mật và URL đầy đủ không bao giờ hiển thị.",
     ),
     "integrations_note": (
-        "Pager, ITSM and SCIM are stubs with in-memory fakes until the bank connects them.",
-        "Pager, ITSM và SCIM là bản mô phỏng trong bộ nhớ cho đến khi ngân hàng kết nối.",
+        "Pager, ITSM and SCIM show demo data until connected.",
+        "Pager, ITSM và SCIM hiển thị dữ liệu mẫu cho đến khi được kết nối.",
     ),
     "integration_word": ("Integration", "Tích hợp"),
     "configured": ("Configured", "Đã cấu hình"),
     "enabled": ("Enabled", "Đã bật"),
     "last_delivery": ("Last delivery", "Lần gửi cuối"),
-    "dead_letter": ("Dead letters", "Thư chết"),
-    "stub_fake": ("stub (fake)", "mô phỏng"),
+    "dead_letter": ("Undelivered", "Gửi không thành công"),
+    "stub_fake": ("simulated (test)", "mô phỏng (thử nghiệm)"),
     "integ_siem": ("SIEM sink", "Đích SIEM"),
     "integ_webhook": ("Webhook notifier", "Webhook thông báo"),
     "integ_pager": ("Pager", "Pager"),
     "integ_itsm": ("ITSM", "ITSM"),
     "integ_scim": ("SCIM", "SCIM"),
-    "integ_lanes": ("{n} lane cursor(s)", "{n} con trỏ làn"),
+    "integ_lanes": ("{n} lane(s) tracked", "{n} làn đang theo dõi"),
     "integ_queued": ("{n} queued", "{n} đang chờ"),
 }
 
@@ -1682,14 +1585,12 @@ _T.update(
         "atab_risks": ("Risks", "Rủi ro"),
         "dtab_links": ("Links", "Liên kết"),
         "rk_purpose": (
-            "The risk register: what can go wrong, how big it is, which controls hold it down.",
-            "Sổ đăng ký rủi ro: điều gì có thể sai, lớn đến đâu, kiểm soát nào giữ nó ở mức thấp.",
+            "Your risk register: what can go wrong, how serious it is, and which controls reduce it.",
+            "Sổ đăng ký rủi ro: điều gì có thể xảy ra, mức độ nghiêm trọng và kiểm soát nào giúp giảm rủi ro.",
         ),
         "rk_why": (
-            "A mitigated risk keeps its lower residual score only while its linked controls "
-            "show working evidence.",
-            "Rủi ro được giảm nhẹ chỉ giữ điểm dư thấp khi các kiểm soát liên kết còn bằng chứng "
-            "hoạt động.",
+            "A mitigated risk keeps its lower score only while its controls show evidence that they work.",
+            "Rủi ro được giảm thiểu chỉ giữ điểm thấp khi các kiểm soát liên kết còn bằng chứng hoạt động.",
         ),
         "rk_illustrative": (
             "Score bands are ILLUSTRATIVE (low up to {low}, medium up to {med}, high up to {high}) "
@@ -1713,30 +1614,29 @@ _T.update(
             "{n} rủi ro đang áp dụng đã quá hạn rà soát.",
         ),
         "rk_unproven_line": (
-            "{n} mitigated risk(s) have no working control evidence yet; "
-            "their residual score equals the inherent score.",
-            "{n} rủi ro giảm nhẹ chưa có bằng chứng kiểm soát hoạt động; điểm dư bằng điểm gốc.",
+            "{n} mitigated risk(s) have no proof that controls work. Their residual score stays at the inherent score.",
+            "{n} rủi ro giảm thiểu chưa có bằng chứng kiểm soát hoạt động. Điểm còn lại giữ bằng điểm tiềm ẩn.",
         ),
         "rk_cat_money_movement": ("Money movement", "Di chuyển tiền"),
         "rk_cat_credit_decision": ("Credit decision", "Quyết định tín dụng"),
         "rk_cat_pii": ("Personal data", "Dữ liệu cá nhân"),
-        "rk_cat_injection": ("Injection", "Tiêm lệnh"),
+        "rk_cat_injection": ("Prompt injection", "Tấn công tiêm lệnh (prompt injection)"),
         "rk_cat_model_behaviour": ("Model behaviour", "Hành vi mô hình"),
         "rk_cat_availability": ("Availability", "Tính sẵn sàng"),
         "rk_cat_third_party": ("Third party", "Bên thứ ba"),
-        "rk_cat_duties_gap": ("Open regulatory duties", "Nghĩa vụ pháp lý chưa đóng"),
-        "rk_st_draft": ("Draft", "Nháp"),
+        "rk_cat_duties_gap": ("Open regulatory duties", "Nghĩa vụ pháp lý chưa hoàn thành"),
+        "rk_st_draft": ("Draft", "Bản nháp"),
         "rk_st_active": ("Active", "Đang áp dụng"),
         "rk_st_retired": ("Retired", "Đã gỡ"),
         "rk_treat_avoid": ("Avoid", "Tránh"),
-        "rk_treat_mitigate": ("Mitigate", "Giảm nhẹ"),
+        "rk_treat_mitigate": ("Mitigate", "Giảm thiểu"),
         "rk_treat_accept": ("Accept", "Chấp nhận"),
         "rk_treat_transfer": ("Transfer", "Chuyển giao"),
         "rk_col_risk": ("Risk", "Rủi ro"),
         "rk_col_category": ("Category", "Nhóm"),
         "rk_col_agents": ("Applies to", "Áp dụng cho"),
-        "rk_col_inherent": ("Inherent", "Gốc"),
-        "rk_col_residual": ("Residual", "Dư"),
+        "rk_col_inherent": ("Inherent risk", "Rủi ro tiềm ẩn"),
+        "rk_col_residual": ("Residual risk", "Rủi ro còn lại"),
         "rk_col_evidence": ("Evidence", "Bằng chứng"),
         "rk_col_treatment": ("Treatment", "Xử lý"),
         "rk_col_review": ("Review", "Rà soát"),
@@ -1754,57 +1654,60 @@ _T.update(
         "rk_reason_controls_working": ("controls working", "kiểm soát hoạt động"),
         "rk_reason_control_failing": ("a control is failing", "có kiểm soát bị lỗi"),
         "rk_reason_no_working_control": (
-            "no control showed activity",
-            "chưa kiểm soát nào hoạt động",
+            "no control is proven to work",
+            "chưa có kiểm soát nào được chứng minh là hoạt động",
         ),
         "rk_reason_no_links": ("no control linked", "chưa liên kết kiểm soát"),
         "rk_reason_no_supervised_agent": ("no supervised agent", "chưa có tác tử được giám sát"),
-        "rk_reason_treatment_declared": ("residual as declared", "điểm dư như đã khai báo"),
+        "rk_reason_treatment_declared": (
+            "residual risk as declared",
+            "rủi ro còn lại như đã khai báo",
+        ),
         "rk_reason_stale_evidence": ("evidence is too old", "bằng chứng đã cũ"),
-        "rk_reason_no_evidence_yet": ("evidence job has not run", "chưa chạy công việc bằng chứng"),
+        "rk_reason_no_evidence_yet": ("evidence not collected yet", "chưa thu thập bằng chứng"),
         "rk_reason_changed_since_evidence": (
-            "risk or its controls changed since the last evidence pass",
-            "rủi ro hoặc kiểm soát đã đổi sau lần lấy bằng chứng gần nhất",
+            "risk or controls changed since the last evidence check",
+            "rủi ro hoặc kiểm soát đã thay đổi kể từ lần kiểm tra bằng chứng gần nhất",
         ),
         "rk_score_val": ("{s} ({l} x {i})", "{s} ({l} x {i})"),
         "rk_marginal": ("Marginal risk (AI)", "Rủi ro biên (AI)"),
         "rk_treatment_note": ("Treatment note", "Ghi chú xử lý"),
-        "rk_declared": ("Residual as declared", "Điểm dư đã khai báo"),
+        "rk_declared": ("Residual risk as declared", "Rủi ro còn lại theo khai báo"),
         "rk_applies_to": ("Applies to agents", "Áp dụng cho tác tử"),
-        "rk_anchor": ("Sits on", "Gắn với"),
-        "rk_lnk_matrix": ("Compliance matrix rows", "Dòng ma trận tuân thủ"),
+        "rk_anchor": ("Linked to", "Liên kết với"),
+        "rk_lnk_matrix": ("Compliance matrix items", "Mục trong ma trận tuân thủ"),
         "rk_lnk_rule": ("Gate rules", "Quy tắc cổng"),
-        "rk_lnk_pack": ("Assurance packs", "Gói đánh giá"),
-        "rk_lnk_monitor": ("Monitors", "Bộ giám sát"),
+        "rk_lnk_pack": ("Assurance checks", "Bộ kiểm tra bảo đảm"),
+        "rk_lnk_monitor": ("Monitoring checks", "Kiểm tra giám sát"),
         "rk_lnk_case": ("Cases", "Vụ việc"),
         "rk_no_links": ("No links", "Chưa có liên kết"),
-        "rk_trend": ("Residual score by window", "Điểm dư theo kỳ"),
+        "rk_trend": ("Residual risk score over time", "Điểm rủi ro còn lại theo thời gian"),
         "rk_window_end": ("Window end", "Cuối kỳ"),
-        "rk_rule_hits": ("Rule hits", "Lượt kích hoạt quy tắc"),
+        "rk_rule_hits": ("Rules triggered", "Quy tắc đã kích hoạt"),
         "rk_rules_missing": ("Rules missing", "Quy tắc không còn"),
-        "rk_pack_ok": ("Packs ok", "Gói đạt"),
-        "rk_pack_fail": ("Packs failed", "Gói lỗi"),
-        "rk_mon_ok": ("Monitors ok", "Bộ giám sát ổn"),
+        "rk_pack_ok": ("Assurance checks passing", "Kiểm tra bảo đảm đạt"),
+        "rk_pack_fail": ("Assurance checks failed", "Kiểm tra bảo đảm không đạt"),
+        "rk_mon_ok": ("Monitoring checks passing", "Kiểm tra giám sát đạt"),
         "rk_ctl_working": ("Working", "Hoạt động"),
         "rk_ctl_failing": ("Failing", "Lỗi"),
         "rk_ctl_idle": ("Idle", "Chưa hoạt động"),
         "rk_agents_n": ("Agents", "Tác tử"),
         "rk_agents_excl": ("Excluded", "Bị loại"),
         "rk_no_trend": (
-            "No evidence rows yet. python -m supervisor.jobs.risk_evidence writes them.",
-            "Chưa có dòng bằng chứng. python -m supervisor.jobs.risk_evidence sẽ tạo.",
+            "No evidence yet. Run python -m supervisor.jobs.risk_evidence to collect it.",
+            "Chưa có bằng chứng. Chạy python -m supervisor.jobs.risk_evidence để thu thập.",
         ),
         "rk_level": ("Register level", "Mức trong sổ rủi ro"),
         "rk_via": ("via", "qua"),
         "rk_own": ("own", "riêng"),
-        "rk_inherited": ("inherited", "thừa hưởng"),
+        "rk_inherited": ("inherited", "kế thừa"),
         "rk_tab_none": (
-            "No active risk reaches this agent.",
-            "Không có rủi ro đang áp dụng nào chạm tới tác tử này.",
+            "No active risk applies to this agent.",
+            "Không có rủi ro đang áp dụng nào liên quan đến tác tử này.",
         ),
         "rk_tab_off": (
-            "The risk register is off (RISK_REGISTER_ENABLED=1 turns it on).",
-            "Sổ rủi ro đang tắt (đặt RISK_REGISTER_ENABLED=1 để bật).",
+            "The risk register is turned off. An admin can turn it on with RISK_REGISTER_ENABLED=1.",
+            "Sổ rủi ro đang tắt. Quản trị viên có thể bật bằng RISK_REGISTER_ENABLED=1.",
         ),
         "rk_open_page": ("Open the Risks page", "Mở trang Rủi ro"),
     }
@@ -1818,25 +1721,25 @@ _T.update(
         "nav_tasks": ("Tasks", "Nhiệm vụ"),
         "atab_controls": ("Controls", "Kiểm soát"),
         "atab_tasks": ("Tasks", "Nhiệm vụ"),
-        "rk_lnk_control": ("Catalogue controls", "Kiểm soát trong danh mục"),
+        "rk_lnk_control": ("Controls", "Kiểm soát"),
         "ct_purpose": (
             "The control catalogue: what the bank and the product do, what each control covers, and whether it works.",  # noqa: E501
             "Danh mục kiểm soát: ngân hàng và sản phẩm làm gì, mỗi kiểm soát bao phủ gì, và nó có hoạt động không.",  # noqa: E501
         ),
         "ct_why": (
-            "One control covers many obligations and risks. It works only when runtime facts show it: a rule that fired, a real pack that passed, a monitor that is ok.",  # noqa: E501
-            "Một kiểm soát bao phủ nhiều nghĩa vụ và rủi ro. Nó chỉ hoạt động khi dữ liệu chạy thật cho thấy: quy tắc đã kích hoạt, gói thật đã đạt, bộ giám sát ổn.",  # noqa: E501
+            "One control can cover many duties and risks. It counts as working only when live results prove it: a rule that fired, an automated check that passed, or a monitor that is healthy.",
+            "Một kiểm soát có thể bao phủ nhiều nghĩa vụ và rủi ro. Nó chỉ được tính là hoạt động khi kết quả thực tế chứng minh: quy tắc đã kích hoạt, kiểm tra tự động đã đạt, hoặc bộ giám sát vẫn ổn.",
         ),
         "ct_edit_note": (
-            "Read only. Edit through /v1/controls or python -m supervisor.controls import.",
-            "Chỉ đọc. Sửa qua /v1/controls hoặc python -m supervisor.controls import.",
+            "Read only. To change controls, use /v1/controls or python -m supervisor.controls import.",
+            "Chỉ xem. Để sửa, dùng /v1/controls hoặc python -m supervisor.controls import.",
         ),
         "ct_tile_active": ("Active", "Đang áp dụng"),
         "ct_tile_product": ("By the product", "Do sản phẩm"),
         "ct_tile_bank": ("By the bank", "Do ngân hàng"),
         "ct_failing_line": (
-            "{n} active control(s) fail for at least one agent.",
-            "{n} kiểm soát đang áp dụng bị lỗi với ít nhất một tác tử.",
+            "{n} active controls are failing for at least one agent.",
+            "{n} kiểm soát đang áp dụng không hoạt động với ít nhất một tác tử.",
         ),
         "ct_uncovered_line": (
             "{n} active risk(s) have no control.",
@@ -1845,7 +1748,7 @@ _T.update(
         "ct_col_control": ("Control", "Kiểm soát"),
         "ct_col_type": ("Type", "Loại"),
         "ct_col_by": ("Implemented by", "Thực hiện bởi"),
-        "ct_col_covers": ("Obligations / risks", "Nghĩa vụ / rủi ro"),
+        "ct_col_covers": ("Duties / risks", "Nghĩa vụ / rủi ro"),
         "ct_col_sources": ("Evidence sources", "Nguồn bằng chứng"),
         "ct_col_status": ("Evidence", "Bằng chứng"),
         "ct_type_preventive": ("Preventive", "Phòng ngừa"),
@@ -1865,19 +1768,19 @@ _T.update(
         "ct_dtab_status": ("Status", "Trạng thái"),
         "ct_objective": ("Objective", "Mục tiêu"),
         "ct_agents": ("Agents", "Tác tử"),
-        "ct_map_matrix": ("Obligations (matrix rows)", "Nghĩa vụ (dòng ma trận)"),
+        "ct_map_matrix": ("Duties (compliance matrix)", "Nghĩa vụ (ma trận tuân thủ)"),
         "ct_map_risk": ("Risks", "Rủi ro"),
         "ct_map_rule": ("Gate rules", "Quy tắc cổng"),
-        "ct_map_pack": ("Assurance packs", "Gói đánh giá"),
-        "ct_map_monitor": ("Monitors", "Bộ giám sát"),
+        "ct_map_pack": ("Automated checks", "Kiểm tra tự động"),
+        "ct_map_monitor": ("Monitoring", "Giám sát"),
         "ct_map_detector": ("Detectors (reference)", "Bộ phát hiện (tham chiếu)"),
         "ct_map_document": ("Documents (reference)", "Tài liệu (tham chiếu)"),
         "ct_no_map": ("Nothing mapped", "Chưa ánh xạ gì"),
         "ct_status_by_agent": ("Status by agent", "Trạng thái theo tác tử"),
         "ct_refs": ("References", "Tham chiếu"),
         "ct_no_status": (
-            "No status yet. python -m supervisor.jobs.control_status writes it.",
-            "Chưa có trạng thái. python -m supervisor.jobs.control_status sẽ tạo.",
+            "No status yet. Run python -m supervisor.jobs.control_status to create it.",
+            "Chưa có trạng thái. Chạy python -m supervisor.jobs.control_status để tạo.",
         ),
         "ct_reason_sources_working": ("a source works", "có nguồn hoạt động"),
         "ct_reason_source_failing": ("a source fails", "có nguồn bị lỗi"),
@@ -1889,18 +1792,18 @@ _T.update(
         "ct_reason_no_sources": ("no evidence source", "chưa có nguồn bằng chứng"),
         "ct_reason_no_supervised_agent": ("agent is not supervised", "tác tử chưa được giám sát"),
         "ct_reason_not_evaluated": ("not evaluated yet", "chưa được đánh giá"),
-        "ct_reason_stale": ("too old", "đã cũ"),
+        "ct_reason_stale": ("evidence too old", "bằng chứng đã cũ"),
         "ct_reason_bank_owned": (
-            "bank process, not observed",
-            "quy trình của ngân hàng, không quan sát được",
+            "bank process, not monitored",
+            "quy trình của ngân hàng, không được giám sát",
         ),
         "ct_reason_changed_since_evidence": (
-            "changed since the evidence",
-            "đã đổi sau khi có bằng chứng",
+            "changed after the evidence was taken",
+            "đã đổi sau khi lấy bằng chứng",
         ),
         "ct_tab_off": (
-            "The control catalogue is off (CONTROLS_ENABLED=1 turns it on).",
-            "Danh mục kiểm soát đang tắt (đặt CONTROLS_ENABLED=1 để bật).",
+            "The control catalogue is switched off. Set CONTROLS_ENABLED=1 to turn it on.",
+            "Danh mục kiểm soát đang tắt. Đặt CONTROLS_ENABLED=1 để bật.",
         ),
         "ct_tab_none": (
             "No control is in scope for this agent.",
@@ -1908,23 +1811,23 @@ _T.update(
         ),
         "ct_compliance": ("Controls with working evidence", "Kiểm soát có bằng chứng hoạt động"),
         "ct_none_in_scope": (
-            "No control in scope: no figure.",
-            "Không có kiểm soát: chưa có số liệu.",
+            "No controls apply, so there is no figure.",
+            "Chưa có kiểm soát áp dụng nên chưa có số liệu.",
         ),
         "ct_in_scope": ("in scope", "áp dụng"),
         "ct_product_line": (
-            "Product controls: {n} in scope, {bp} bp working. Bank-owned controls in scope: {b} (they never show working).",  # noqa: E501
-            "Kiểm soát của sản phẩm: {n} áp dụng, {bp} bp hoạt động. Kiểm soát của ngân hàng: {b} (không bao giờ hiện là hoạt động).",  # noqa: E501
+            "Product controls: {n} apply, {bp} bp working. Bank-owned controls that apply: {b} (never shown as working).",
+            "Kiểm soát của sản phẩm: {n} áp dụng, {bp} bp hoạt động. Kiểm soát của ngân hàng: {b} (không bao giờ hiện là hoạt động).",
         ),
-        "ct_obligations": ("Obligations", "Nghĩa vụ"),
+        "ct_obligations": ("Duties", "Nghĩa vụ"),
         "ct_open_page": ("Open the Controls page", "Mở trang Kiểm soát"),
         "tk_purpose": (
-            "The task list: a right-sized set of tasks for each agent and lifecycle stage.",
-            "Danh sách nhiệm vụ: bộ nhiệm vụ vừa đủ cho mỗi tác tử và giai đoạn vòng đời.",
+            "Tasks for each AI system and lifecycle stage. Finish all required tasks before the system moves to the next stage.",
+            "Nhiệm vụ cho từng hệ thống AI và giai đoạn vòng đời. Phải hoàn tất nhiệm vụ bắt buộc trước khi hệ thống chuyển giai đoạn.",
         ),
         "tk_why": (
-            "The set depends on the Decision 33 class and the risk level. A required task of the current stage blocks the move to the next stage and the launch GO.",  # noqa: E501
-            "Bộ nhiệm vụ phụ thuộc phân loại Quyết định 33 và mức rủi ro. Nhiệm vụ bắt buộc của giai đoạn hiện tại chặn việc chuyển giai đoạn và GO khi ra mắt.",  # noqa: E501
+            "The task set depends on the Decision 33 class and the risk level. Finish all required tasks of the current stage before the next stage and the launch GO.",
+            "Bộ nhiệm vụ phụ thuộc phân loại Quyết định 33 và mức rủi ro. Phải hoàn tất nhiệm vụ bắt buộc của giai đoạn hiện tại trước khi chuyển giai đoạn và GO ra mắt.",
         ),
         "tk_illustrative": (
             "Task sets and thresholds are ILLUSTRATIVE until the bank sets them (config/tasks.yaml).",  # noqa: E501
@@ -1936,7 +1839,7 @@ _T.update(
         ),
         "tk_tile_open_required": ("Required, open", "Bắt buộc, chưa xong"),
         "tk_tile_overdue": ("Overdue", "Quá hạn"),
-        "tk_tile_waiver": ("Waiver waiting", "Chờ người thứ hai"),
+        "tk_tile_waiver": ("Waiver needs second approver", "Miễn trừ chờ người phê duyệt thứ hai"),
         "tk_col_task": ("Task", "Nhiệm vụ"),
         "tk_col_stage": ("Stage", "Giai đoạn"),
         "tk_col_required": ("Required", "Bắt buộc"),
@@ -1952,10 +1855,10 @@ _T.update(
         "tk_st_open": ("open", "chưa làm"),
         "tk_st_in_progress": ("in progress", "đang làm"),
         "tk_st_done": ("done", "xong"),
-        "tk_st_waived": ("waived", "miễn"),
+        "tk_st_waived": ("waived", "miễn trừ"),
         "tk_required": ("required", "bắt buộc"),
         "tk_optional": ("optional", "tùy chọn"),
-        "tk_waive_pending": ("waiver waiting", "chờ miễn"),
+        "tk_waive_pending": ("waiver pending", "chờ miễn trừ"),
         "tk_no_tasks": ("No tasks", "Chưa có nhiệm vụ"),
         "tk_no_match": ("No task matches the filters.", "Không có nhiệm vụ khớp bộ lọc."),
         "tk_no_tasks_line": (
@@ -1963,26 +1866,23 @@ _T.update(
             "python -m supervisor.tasks generate --agent <id> --user <name> tạo danh sách cho tác tử.",  # noqa: E501
         ),
         "tk_dtab_history": ("History", "Lịch sử"),
-        "tk_level": ("Sized for (level, class)", "Cỡ bộ nhiệm vụ (mức, phân loại)"),
+        "tk_level": ("Task set for (level, class)", "Bộ nhiệm vụ áp dụng cho (mức, phân loại)"),
         "tk_evidence": ("Evidence", "Bằng chứng"),
         "tk_done_by": ("Done by", "Hoàn thành bởi"),
-        "tk_waive_reason": ("Waiver reason", "Lý do miễn"),
-        "tk_waive_by": ("Waiver (asked, approved)", "Miễn (đề nghị, duyệt)"),
+        "tk_waive_reason": ("Waiver reason", "Lý do miễn trừ"),
+        "tk_waive_by": ("Waiver (asked by, approved by)", "Miễn trừ (người đề nghị, người duyệt)"),
         "tk_action": ("Action", "Hành động"),
         "tk_actor": ("Person", "Người"),
         "tk_no_history": ("No events.", "Chưa có sự kiện."),
         "tk_tab_off": (
-            "The task list is off (CONTROLS_ENABLED=1 turns it on).",
-            "Danh sách nhiệm vụ đang tắt (đặt CONTROLS_ENABLED=1 để bật).",
+            "The task list is turned off. An admin can turn it on with CONTROLS_ENABLED=1.",
+            "Danh sách nhiệm vụ đang tắt. Quản trị viên có thể bật bằng CONTROLS_ENABLED=1.",
         ),
-        "tk_tab_none": (
-            "No task list for this agent yet.",
-            "Tác tử này chưa có danh sách nhiệm vụ.",
-        ),
+        "tk_tab_none": ("No task list yet.", "Chưa có danh sách nhiệm vụ."),
         "tk_stage_now": ("Stage", "Giai đoạn"),
         "tk_sizing": (
-            "Sized for class {cls}, band {band} ({src}): level {level}.",
-            "Cỡ theo phân loại {cls}, mức {band} ({src}): cấp {level}.",
+            "Task set for class {cls}, band {band} ({src}): level {level}.",
+            "Bộ nhiệm vụ theo phân loại {cls}, mức {band} ({src}): cấp {level}.",
         ),
         "tk_required_open": (
             "{n} of {total} required tasks open",
@@ -2006,12 +1906,12 @@ _T.update(
         "atab_assurance": ("Assurance", "Đảm bảo chất lượng"),
         "atab_compliance": ("Compliance", "Tuân thủ"),
         "agent_purpose": (
-            "One agent: its state, the one action that fits, its rules, tools, traces and cases.",
-            "Một tác tử: trạng thái, một hành động phù hợp, quy tắc, công cụ, dấu vết và vụ việc.",
+            "Status, rules, tools, activity and cases of one agent, and the action you can take now.",
+            "Trạng thái, quy tắc, công cụ, hoạt động và vụ việc của một tác tử, cùng thao tác bạn có thể làm ngay.",
         ),
         "agent_why": (
-            "Pause is one click for any reviewer. Resume needs two different people.",
-            "Tạm dừng chỉ cần một cú nhấp của người rà soát. Tiếp tục cần hai người khác nhau.",
+            "Any reviewer can pause an agent. Resuming needs two different people.",
+            "Người rà soát nào cũng có thể tạm dừng tác tử. Cho chạy lại cần hai người khác nhau.",
         ),
         "open_agent_page": ("Open the agent page", "Mở trang tác tử"),
         "gate_24h": ("Gate, last 24 hours", "Cổng, 24 giờ qua"),
@@ -2021,8 +1921,8 @@ _T.update(
         "gate_median": ("Median latency", "Độ trễ trung vị"),
         "policy_rules": ("Rules in scope", "Quy tắc áp dụng"),
         "policy_shadow_note": (
-            "Shadow: rules are checked and recorded, but nothing is stopped.",
-            "Chế độ bóng: quy tắc được kiểm tra và ghi lại, nhưng không chặn gì.",
+            "Shadow mode: rules are checked and logged, but nothing is blocked.",
+            "Chế độ theo dõi (shadow): quy tắc được kiểm tra và ghi lại, nhưng không chặn gì.",
         ),
         "policy_hash": ("policy hash", "mã băm chính sách"),
         "policy_version": ("policy version", "phiên bản chính sách"),
@@ -2034,13 +1934,10 @@ _T.update(
             "Chưa có quy tắc công cụ được duyệt cho tác tử này.",
         ),
         "policy_readonly": (
-            "Read only. Rules change in the policy files, by pull request.",
-            "Chỉ đọc. Quy tắc được đổi trong tệp chính sách, qua pull request.",
+            "Read only. Rule changes go through review in Git.",
+            "Chỉ đọc. Quy tắc chỉ đổi qua rà soát trong Git.",
         ),
-        "tl_in_analytics": (
-            "Open this agent in Analytics",
-            "Mở tác tử này trong trang Phân tích",
-        ),
+        "tl_in_analytics": ("See tool usage for all agents", "Xem mức dùng công cụ của mọi tác tử"),
         "inv_not_listed": (
             "This agent is not in the inventory",
             "Tác tử này chưa có trong kiểm kê",
@@ -2054,41 +1951,39 @@ _T.update(
         "trace_events": ("Events", "Sự kiện"),
         "outcome": ("Outcome", "Kết quả"),
         "traces_last_n": ("Last {n} traces of this agent.", "{n} dấu vết gần nhất của tác tử này."),
-        "no_traces": ("No trace yet", "Chưa có dấu vết"),
+        "no_traces": ("No activity trace yet", "Chưa có dấu vết hoạt động"),
         "no_traces_line": (
-            "Traces appear here when this agent sends events.",
-            "Dấu vết hiện ở đây khi tác tử này gửi sự kiện.",
+            "Traces appear here once this agent sends events.",
+            "Dấu vết sẽ hiện ở đây khi tác tử này gửi sự kiện.",
         ),
-        "as_no_agent_results": ("No assurance result", "Chưa có kết quả đảm bảo"),
+        "as_no_agent_results": ("No tests run yet.", "Chưa chạy kiểm thử nào."),
         "as_no_agent_results_line": (
-            "No run has this agent as its target.",
-            "Chưa có lần chạy nào nhắm vào tác tử này.",
+            "No test has been run on this agent.",
+            "Chưa có kiểm thử nào chạy trên tác tử này.",
         ),
         "alerts_why": (
-            "An alert is a rule over the evidence. Acknowledging it is a decision of one person, "
-            "and it is recorded.",
-            "Cảnh báo là một quy tắc chạy trên bằng chứng. Xác nhận là quyết định của một người "
-            "và được ghi lại.",
+            "An alert means a rule found something in the evidence. One person acknowledges it, and the name is recorded.",
+            "Cảnh báo cho biết một quy tắc đã phát hiện điều đáng chú ý trong bằng chứng. Một người xác nhận và tên người đó được ghi lại.",
         ),
         "alerts_active": ("Active", "Đang hoạt động"),
         "alerts_st_open": ("Open", "Đang mở"),
         "alerts_st_acknowledged": ("Acknowledged", "Đã xác nhận"),
         "alerts_st_closed": ("Closed", "Đã đóng"),
         "no_alerts_line": (
-            "No alert matches these filters.",
-            "Không có cảnh báo nào khớp bộ lọc này.",
+            "No alert matches these filters. Change the filters to see more.",
+            "Không có cảnh báo nào khớp bộ lọc. Hãy đổi bộ lọc để xem thêm.",
         ),
         "alert_first": ("First seen", "Lần đầu"),
         "alert_last": ("Last seen", "Lần cuối"),
-        "alert_entry_hash": ("Chain entry hash", "Mã băm mục chuỗi"),
+        "alert_entry_hash": ("Evidence hash", "Mã băm bằng chứng"),
         "alert_rule_hash": ("Rule hash", "Mã băm quy tắc"),
-        "alert_routes": ("Delivery", "Kênh gửi"),
+        "alert_routes": ("Sent to", "Gửi tới"),
         "alert_acked_by": ("Acknowledged by", "Người xác nhận"),
         "so_purpose": (
             "High and critical cases that wait for a signature.",
             "Vụ việc mức cao và nghiêm trọng đang chờ chữ ký.",
         ),
-        "so_signatures": ("Signatures (of 2)", "Chữ ký (trên 2)"),
+        "so_signatures": ("Signatures (2 needed)", "Chữ ký (cần 2)"),
         "so_none": ("Nothing waits for a signature", "Không có gì chờ chữ ký"),
         "so_none_line": (
             "Cases that need two people appear here once they are triaged.",
@@ -2100,9 +1995,8 @@ _T.update(
             "Cách tác tử dùng công cụ, cổng hoạt động ra sao và giám sát đang thế nào.",
         ),
         "an_why": (
-            "One range and one agent apply to every tab. Numbers are counts, not scores.",
-            "Một khoảng thời gian và một tác tử áp dụng cho mọi tab. Số liệu là số đếm, "
-            "không phải điểm.",
+            "Range and agent apply to all tabs.",
+            "Khoảng thời gian và tác tử áp dụng cho mọi thẻ.",
         ),
         "an_tab_gate": ("Gate", "Cổng"),
         "an_tab_tools": ("Tools", "Công cụ"),
@@ -2112,8 +2006,8 @@ _T.update(
         "an_range_default": ("default", "mặc định"),
         "an_days": ("{n} days", "{n} ngày"),
         "an_capped": (
-            "scan limit reached: older events are not counted",
-            "đã chạm giới hạn quét: sự kiện cũ hơn không được tính",
+            "Limit reached. Older events are not counted.",
+            "Đã chạm giới hạn. Sự kiện cũ hơn không được tính.",
         ),
         "an_p95": ("p95 latency (ms)", "Độ trễ p95 (ms)"),
         "an_gate_none": (
@@ -2131,12 +2025,12 @@ _T.update(
             "Khoảng: {a} .. {b} ({n} ngày, UTC)",
         ),
         "an_window_stored": (
-            "Window: every stored day, {a} .. {b}",
-            "Khoảng: mọi ngày đã lưu, {a} .. {b}",
+            "All days on record, {a} to {b}",
+            "Mọi ngày đã có dữ liệu, {a} đến {b}",
         ),
         "an_window_stored_none": (
-            "Window: every stored day (none yet)",
-            "Khoảng: mọi ngày đã lưu (chưa có)",
+            "All days on record (none yet)",
+            "Mọi ngày đã có dữ liệu (chưa có)",
         ),
         "an_window_live": (
             "Window: live counters since this process started",
@@ -2145,8 +2039,8 @@ _T.update(
         "so_sig_n": ("{n}/2 signatures", "{n}/2 chữ ký"),
         "alert_window_val": ("{n}/{max} in {s} s", "{n}/{max} trong {s} giây"),
         "an_latency_note": (
-            "Live counters of this process since it started.",
-            "Bộ đếm trực tiếp của tiến trình này từ lúc khởi động.",
+            "Live counts since the service started.",
+            "Số liệu trực tiếp từ lúc dịch vụ khởi động.",
         ),
         "open_case": ("Open the case", "Mở vụ việc"),
         "inbox_st_unread": ("Unread", "Chưa đọc"),
@@ -2154,8 +2048,8 @@ _T.update(
         "inbox_st_queued": ("Queued", "Đang chờ gửi"),
         "cp_no_matrix": ("No compliance matrix", "Chưa có ma trận tuân thủ"),
         "cp_no_matrix_line": (
-            "This agent has no matrix yet. Build one with the advisor command.",
-            "Tác tử này chưa có ma trận. Hãy tạo bằng lệnh của cố vấn.",
+            "This agent has no compliance matrix yet. Ask an administrator to build one with the advisor command.",
+            "Tác tử này chưa có ma trận tuân thủ. Hãy nhờ quản trị viên tạo bằng lệnh của cố vấn.",
         ),
     }
 )
@@ -2171,10 +2065,8 @@ _T.update(
             "các bước.",
         ),
         "col_why": (
-            "Add issues the first key of the agent. The key is shown once; Supervisor cannot "
-            "show it again.",
-            "Thêm sẽ cấp khóa đầu tiên của tác tử. Khóa chỉ hiện một lần; Supervisor không thể "
-            "hiện lại.",
+            "Add creates the first key for this agent. The key is shown once only.",
+            "Thêm sẽ tạo khóa đầu tiên cho tác tử này. Khóa chỉ hiện một lần.",
         ),
         "col_cat_sdk": ("SDK", "SDK (thư viện)"),
         "col_cat_middleware": ("Middleware", "Middleware (lớp trung gian)"),
@@ -2192,7 +2084,7 @@ _T.update(
         "col_key_state": ("Key", "Khóa"),
         "col_key_active": ("active", "đang dùng"),
         "col_key_none": ("none", "chưa có"),
-        "col_consumers": ("Consumers", "Bên dùng"),
+        "col_consumers": ("Callers", "Bên gọi"),
         "col_open": ("Open", "Mở"),
         "col_none_agents": ("No agent is registered", "Chưa có tác tử nào được đăng ký"),
         "col_none_agents_line": (
@@ -2210,48 +2102,44 @@ _T.update(
         "col_steps": ("Setup steps", "Các bước cài đặt"),
         "col_snippet": ("Code", "Mã"),
         "col_manual": (
-            "The key store is {store}. Supervisor could not save the key. Do this first:",
-            "Kho khóa là {store}. Supervisor không thể lưu khóa. Hãy làm bước này trước:",
+            "Supervisor could not save the key to {store}. Do this first:",
+            "Supervisor không lưu được khóa vào {store}. Hãy làm bước này trước:",
         ),
         "col_ingress_off": (
-            "Ingress authentication is off (INGRESS_AUTH_ENABLED=0). The key is not checked yet. "
-            "Turn it on before production.",
-            "Xác thực đầu vào đang tắt (INGRESS_AUTH_ENABLED=0). Khóa chưa được kiểm tra. "
-            "Hãy bật trước khi chạy thật.",
+            "Agent sign-in is off (INGRESS_AUTH_ENABLED=0), so keys are not checked. Turn it on before go-live.",
+            "Đăng nhập của tác tử đang tắt (INGRESS_AUTH_ENABLED=0) nên khóa không được kiểm tra. Hãy bật trước khi chạy thật.",
         ),
         "col_template": ("Way to attach", "Cách gắn"),
         "dtab_connection": ("Connection", "Kết nối"),
         "dtab_credential": ("Credential", "Thông tin xác thực"),
-        "dtab_binding": ("Policy binding", "Gắn chính sách"),
+        "dtab_binding": ("Linked policy", "Chính sách đã gắn"),
         "col_cred_note": (
-            "Only the key id, state and dates are shown. The secret is never shown again.",
-            "Chỉ hiện mã khóa, trạng thái và ngày. Bí mật không bao giờ hiện lại.",
+            "Only the key ID, status and dates are shown. The key itself is never shown again.",
+            "Chỉ hiện mã khóa, trạng thái và ngày. Bản thân khóa không bao giờ hiện lại.",
         ),
-        "col_rotate": ("Rotate the key on the command line", "Đổi khóa bằng dòng lệnh"),
+        "col_rotate": ("Replace the key from the command line", "Đổi khóa bằng dòng lệnh"),
         "col_no_keys_agent": (
-            "This agent has no active key. Use Add on the catalogue.",
-            "Tác tử này chưa có khóa đang dùng. Dùng Thêm trong danh mục.",
+            "This agent has no active key. Select Add in the catalog.",
+            "Tác tử này chưa có khóa đang dùng. Chọn Thêm trong danh mục.",
         ),
         "col_bind_mode": ("Policy mode", "Chế độ chính sách"),
-        "col_bind_preset": ("Detector preset", "Mức nhạy của bộ dò"),
+        "col_bind_preset": ("Detector sensitivity", "Mức nhạy của bộ dò"),
         "col_bind_disabled": ("Rules switched off", "Quy tắc đã tắt"),
         "col_bind_rules": ("Rules in scope", "Quy tắc áp dụng"),
-        "col_bind_consumers": ("Consumer overrides", "Cấu hình riêng theo bên dùng"),
+        "col_bind_consumers": ("Settings per caller", "Cấu hình riêng theo bên gọi"),
         "col_bind_none": (
-            "No consumer override. Every caller gets the agent settings.",
-            "Không có cấu hình riêng. Mọi bên gọi dùng cấu hình của tác tử.",
+            "No special settings for callers. All callers use the agent settings.",
+            "Không có cấu hình riêng cho bên gọi. Mọi bên gọi dùng cấu hình của tác tử.",
         ),
         "col_bind_note": (
-            "The policy lives in git. To change mode or consumers, edit the policy file and "
-            "review it like any other change.",
-            "Chính sách nằm trong git. Muốn đổi chế độ hoặc bên dùng, hãy sửa tệp chính sách "
-            "và duyệt như mọi thay đổi khác.",
+            "The policy is kept in git. To change the mode or callers, edit the policy file and have the change reviewed.",
+            "Chính sách được lưu trong git. Muốn đổi chế độ hoặc bên gọi, hãy sửa tệp chính sách và nhờ duyệt thay đổi.",
         ),
         "col_bind_enable": ("switch on", "bật"),
         "col_bind_disable": ("switch off", "tắt"),
         "col_bind_unavailable": (
-            "The policy could not be read.",
-            "Không đọc được chính sách.",
+            "The policy could not be read. Check the policy file.",
+            "Không đọc được chính sách. Hãy kiểm tra tệp chính sách.",
         ),
         "mode_enforce": ("enforce", "thực thi"),
         "mode_observe": ("observe", "quan sát"),
@@ -2263,23 +2151,23 @@ _T.update(
         "pg_sample_pick": ("Load a sample", "Nạp một mẫu"),
         "pg_extra": ("Extra attributes", "Thuộc tính bổ sung"),
         "pg_extra_line": (
-            "These fill the context of the check.",
-            "Các thuộc tính này được điền vào ngữ cảnh của lần kiểm tra.",
+            "These are added to the details of the test.",
+            "Các thuộc tính này được thêm vào chi tiết của lần thử.",
         ),
-        "pg_consumer": ("Consumer id", "Mã bên dùng"),
+        "pg_consumer": ("Caller ID", "Mã bên gọi"),
         "pg_direction": ("Direction", "Hướng"),
-        "pg_dir_input": ("input (what the agent sends)", "input (agent gửi đi)"),
-        "pg_dir_output": ("output (what a tool returned)", "output (công cụ trả về)"),
+        "pg_dir_input": ("input (sent by the agent)", "input (tác tử gửi đi)"),
+        "pg_dir_output": ("output (returned by a tool)", "output (công cụ trả về)"),
         "pg_tool_class": ("Declared tool class", "Loại công cụ khai báo"),
         "pg_result_mode": ("Policy mode", "Chế độ chính sách"),
-        "pg_observed": ("Observed decision", "Quyết định đã quan sát"),
+        "pg_observed": ("Observed decision", "Quyết định quan sát được"),
         "pg_observed_line": (
-            "In observe mode this decision would have stopped the call. The call is allowed.",
-            "Ở chế độ quan sát, quyết định này lẽ ra đã chặn lệnh gọi. Lệnh gọi vẫn được phép.",
+            "In observe mode, this decision would have stopped the call. The call was allowed.",
+            "Ở chế độ quan sát, quyết định này lẽ ra đã chặn lệnh gọi. Lệnh gọi vẫn được cho phép.",
         ),
         "pg_consumer_ignored": (
-            "The consumer id has no entry for this agent: the agent settings were used.",
-            "Mã bên dùng không có cấu hình riêng cho tác tử này: đã dùng cấu hình của tác tử.",
+            "This caller ID has no settings for this agent, so the agent's own settings were used.",
+            "Mã bên gọi này không có cấu hình riêng cho tác tử, nên dùng cấu hình của tác tử.",
         ),
     }
 )
@@ -2301,20 +2189,17 @@ _T.update(
             "riêng.",
         ),
         "tp_advisory": (
-            "Advisory only. This is a working aid, not legal advice; bank counsel must confirm.",
-            "Chỉ mang tính tham khảo. Đây là công cụ hỗ trợ, không phải tư vấn pháp lý; "
-            "bộ phận pháp chế của ngân hàng phải xác nhận.",
+            "For guidance only. Not legal advice; bank counsel confirms.",
+            "Chỉ để tham khảo. Không phải tư vấn pháp lý; pháp chế ngân hàng xác nhận.",
         ),
-        "tp_d33_rows": ("Decision 33 obligations", "Nghĩa vụ theo Quyết định 33"),
+        "tp_d33_rows": ("Decision 33 duties", "Nghĩa vụ theo Quyết định 33"),
         "tp_d33_missing": (
-            "These Decision 33 obligation ids are cited by the classification but are missing "
-            "from the matrix: {ids}",
-            "Các mã nghĩa vụ của Quyết định 33 được phần phân loại nêu nhưng không có trong ma "
-            "trận: {ids}",
+            "The classification cites these Decision 33 duties, but the matrix does not have them: {ids}",
+            "Phân loại nêu các nghĩa vụ sau của Quyết định 33 nhưng ma trận không có: {ids}",
         ),
         "tp_gaps": (
-            "Open items in the matrix (partial, gap or needs an answer)",
-            "Mục còn mở trong ma trận (một phần, thiếu hoặc cần trả lời)",
+            "Open items in the compliance matrix: partly met, not met or unanswered",
+            "Mục còn mở trong ma trận tuân thủ: đáp ứng một phần, chưa đáp ứng hoặc chưa trả lời",
         ),
         "tp_agent_card": ("Agent card", "Thẻ tác tử"),
         "tp_judge_card": (
@@ -2322,25 +2207,20 @@ _T.update(
             "Thẻ mô hình của bộ đánh giá (bộ đánh giá của Supervisor, không phải mô hình của "
             "tác tử)",
         ),
-        "tp_controls_empty": (
-            "No controls data in this build.",
-            "Bản này chưa có dữ liệu kiểm soát.",
-        ),
+        "tp_controls_empty": ("No control data yet.", "Chưa có dữ liệu kiểm soát."),
         "tp_backlog_none": (
-            "No open backlog item names this agent.",
-            "Không có hạng mục tồn đọng nào nêu tên tác tử này.",
+            "No open items for this agent.",
+            "Tác tử này không có hạng mục nào đang mở.",
         ),
         "tp_ns_none": ("Nothing to add.", "Không có gì bổ sung."),
         "tp_verify_failed": (
-            "The offline check of the evidence chain FAILED. Treat the records of this agent as "
-            "not proven until the cause is found.",
-            "Kiểm tra ngoại tuyến chuỗi bằng chứng KHÔNG ĐẠT. Chưa coi các bản ghi của tác tử "
-            "này là đã được chứng minh cho đến khi tìm ra nguyên nhân.",
+            "The offline check of the evidence chain FAILED. Treat this agent's records as unproven until the cause is found.",
+            "Kiểm tra ngoại tuyến chuỗi bằng chứng KHÔNG ĐẠT. Chưa coi hồ sơ của tác tử này là đáng tin cho đến khi tìm ra nguyên nhân.",
         ),
         # section titles
         "tp_s_identity": ("Identity and ownership", "Danh tính và trách nhiệm"),
         "tp_s_classification": ("Classification (Decision 33)", "Phân loại (Quyết định 33)"),
-        "tp_s_inventory": ("Components (inventory)", "Thành phần (kiểm kê)"),
+        "tp_s_inventory": ("Components", "Thành phần"),
         "tp_s_compliance": ("Compliance matrix", "Ma trận tuân thủ"),
         "tp_s_cards": ("Agent and model cards", "Thẻ tác tử và thẻ mô hình"),
         "tp_s_assurance": ("Assurance results", "Kết quả đảm bảo"),
@@ -2474,7 +2354,7 @@ _T.update(
         "tp_f_business_owner": ("Business owner", "Chủ nghiệp vụ"),
         "tp_f_kind": ("Kind", "Loại"),
         "tp_f_purpose": ("Purpose", "Mục đích"),
-        "tp_f_host": ("Host / plug point", "Nơi chạy / điểm gắn"),
+        "tp_f_host": ("Where it runs / connection point", "Nơi chạy / điểm kết nối"),
         "tp_f_model_family": ("Model family", "Họ mô hình"),
         "tp_f_risk_tier": ("Risk tier", "Hạng rủi ro"),
         "tp_f_status": ("Status", "Trạng thái"),
@@ -2494,24 +2374,24 @@ _T.update(
         "tp_f_matrix_class": ("Class suggested by the matrix", "Phân loại do ma trận đề xuất"),
         "tp_f_entry": ("Entry", "Mục"),
         "tp_f_triggered": ("Triggered", "Kích hoạt"),
-        "tp_f_obligations": ("Obligation ids", "Mã nghĩa vụ"),
+        "tp_f_obligations": ("Duty ids", "Mã nghĩa vụ"),
         "tp_f_own_risk": ("Own risk level", "Mức rủi ro riêng"),
         "tp_f_eff_risk": ("Effective risk level", "Mức rủi ro hiệu lực"),
-        "tp_f_nodes": ("Nodes in the graph", "Số nút trong đồ thị"),
+        "tp_f_nodes": ("Items in the graph", "Số mục trong đồ thị"),
         "tp_f_group": ("Link", "Liên kết"),
         "tp_f_component": ("Component", "Thành phần"),
         "tp_f_source": ("Source", "Nguồn"),
         "tp_f_evidence_ref": ("Evidence (file:line)", "Bằng chứng (tệp:dòng)"),
         "tp_f_matrix_source": ("Matrix source", "Nguồn của ma trận"),
         "tp_f_as_of": ("As of", "Tính đến ngày"),
-        "tp_f_regkb": ("Regulation base version", "Phiên bản cơ sở quy định"),
-        "tp_f_obl_total": ("Obligations in the matrix", "Số nghĩa vụ trong ma trận"),
+        "tp_f_regkb": ("Regulation library version", "Phiên bản kho quy định"),
+        "tp_f_obl_total": ("Duties in the matrix", "Số nghĩa vụ trong ma trận"),
         "tp_f_by_status": ("By status", "Theo trạng thái"),
         "tp_f_by_applies": ("By applicability", "Theo mức áp dụng"),
         "tp_f_questions": ("Open questions", "Câu hỏi còn mở"),
         "tp_f_thr_gaps": ("Threshold gaps", "Khoảng trống ngưỡng"),
         "tp_f_thr_exceeds": ("Limits above a cap", "Hạn mức vượt trần"),
-        "tp_f_obligation": ("Obligation", "Nghĩa vụ"),
+        "tp_f_obligation": ("Duty", "Nghĩa vụ"),
         "tp_f_article": ("Article", "Điều"),
         "tp_f_applies": ("Applies", "Áp dụng"),
         "tp_f_version": ("Version", "Phiên bản"),
@@ -2537,9 +2417,9 @@ _T.update(
         "tp_f_false_alarm": ("False alarm rate (bp)", "Tỷ lệ báo động giả (bp)"),
         "tp_f_roles_assigned": ("Model risk roles filled", "Vai trò rủi ro mô hình đã gán"),
         "tp_f_role_name": ("Role: {role}", "Vai trò: {role}"),
-        "tp_f_packs": ("Packs run", "Số gói đã chạy"),
+        "tp_f_packs": ("Checks run", "Số kiểm tra đã chạy"),
         "tp_f_mock_n": ("Mock results", "Kết quả giả lập"),
-        "tp_f_pack": ("Pack", "Gói"),
+        "tp_f_pack": ("Check", "Kiểm tra"),
         "tp_f_day": ("Day", "Ngày"),
         "tp_f_items": ("Items", "Số mục"),
         "tp_f_validations": ("Validation runs", "Số lần thẩm định"),
@@ -2547,8 +2427,8 @@ _T.update(
         "tp_f_required": ("Validation required to judge", "Bắt buộc thẩm định mới được đánh giá"),
         "tp_f_decision": ("Decision", "Quyết định"),
         "tp_f_masking_on": ("Masking on", "Đang che dữ liệu"),
-        "tp_f_masker": ("Masker", "Bộ che dữ liệu"),
-        "tp_f_capture": ("Capture level", "Mức ghi nhận"),
+        "tp_f_masker": ("Masking tool", "Công cụ che dữ liệu"),
+        "tp_f_capture": ("Recording level", "Mức ghi nhận"),
         "tp_f_amounts": ("Amounts masked", "Che số tiền"),
         "tp_f_monitor": ("Monitor", "Bộ giám sát"),
         "tp_f_bound": ("Bound", "Đã gắn"),
@@ -2564,14 +2444,8 @@ _T.update(
         "tp_f_links": ("Links (evidence / reference)", "Liên kết (bằng chứng / tham chiếu)"),
         "tp_links_val": ("{e} evidence / {r} reference", "{e} bằng chứng / {r} tham chiếu"),
         "tp_evidence_rule": (
-            "Only rule links, packs not scored by a judge model and these monitors count as "
-            "evidence: "
-            "{m}. Judge-scored packs (unless the owner allows them), other monitor links, matrix "
-            "links and case links are references and never lower a score.",
-            "Chỉ liên kết quy tắc, gói không do mô hình đánh giá chấm và các bộ giám sát sau "
-            "được tính là bằng chứng: {m}. Gói do mô hình đánh giá chấm (trừ khi chủ sở hữu cho "
-            "phép), liên kết bộ giám sát khác, ma trận và vụ việc chỉ là tham chiếu và không bao "
-            "giờ làm giảm điểm.",
+            "Evidence is limited to rule links, checks not scored by an AI judge, and these monitors: {m}. Everything else is a reference only and never lowers a score. This includes AI-judged checks (unless the owner allows them), other monitor links, matrix links and case links.",
+            "Chỉ liên kết quy tắc, kiểm tra không do bộ đánh giá AI chấm và các bộ giám sát sau được tính là bằng chứng: {m}. Còn lại chỉ là tham chiếu và không bao giờ làm giảm điểm, gồm kiểm tra do bộ đánh giá AI chấm (trừ khi chủ sở hữu cho phép), liên kết bộ giám sát khác, ma trận và vụ việc.",
         ),
         "tp_f_ctl_in_scope": ("Controls in scope", "Số kiểm soát trong phạm vi"),
         "tp_f_ctl_working": ("Working", "Đang hoạt động"),
@@ -2593,23 +2467,19 @@ _T.update(
         "tp_f_ctl_by": ("Implemented by", "Do ai thực hiện"),
         "tp_f_ctl_n": ("Controls", "Số kiểm soát"),
         "tp_ctl_bank_note": (
-            "Controls the bank owns cannot be observed by the product, so they never read "
-            "working. Read the figure above with that in mind: it is not a statement that the "
-            "bank is non-compliant.",
-            "Kiểm soát do ngân hàng sở hữu không thể được sản phẩm quan sát nên không bao giờ "
-            "hiển thị là hoạt động. Hãy đọc tỷ lệ trên với lưu ý đó: đây không phải khẳng định "
-            "ngân hàng không tuân thủ.",
+            "The product cannot see controls the bank owns, so they never show as working. The figure above does not mean the bank is non-compliant.",
+            "Sản phẩm không thể quan sát các kiểm soát do ngân hàng sở hữu nên chúng không bao giờ hiển thị là đang hoạt động. Tỷ lệ trên không có nghĩa ngân hàng không tuân thủ.",
         ),
         "tp_f_risk": ("Risk", "Rủi ro"),
         "tp_f_category": ("Category", "Nhóm"),
         "tp_f_evidence": ("Evidence", "Bằng chứng"),
         "tp_f_via": ("Reached via", "Đến qua"),
         "tp_f_owner": ("Owner", "Người phụ trách"),
-        "tp_f_lane": ("Chain lane", "Làn chuỗi"),
+        "tp_f_lane": ("Record trail", "Chuỗi bản ghi"),
         "tp_f_entries": ("Entries", "Số bản ghi"),
-        "tp_f_head": ("Head hash", "Mã băm đầu chuỗi"),
+        "tp_f_head": ("Latest record code", "Mã bản ghi mới nhất"),
         "tp_f_root_key": ("Signing key (kind / id)", "Khóa ký (loại / mã)"),
-        "tp_f_anchored": ("Anchored outside the database", "Đã neo ra ngoài cơ sở dữ liệu"),
+        "tp_f_anchored": ("Anchored outside the system", "Đã neo bên ngoài hệ thống"),
         "tp_f_verify": ("Offline check", "Kiểm tra ngoại tuyến"),
         "tp_f_verify_how": ("How the check was made", "Cách kiểm tra"),
         "tp_f_failures": ("Failures", "Số lỗi"),
@@ -2752,8 +2622,8 @@ _T.update(
             "Dữ liệu cá nhân được che trước khi lưu vào hồ sơ giám sát của chúng tôi.",
         ),
         "tp_c_mask_off": (
-            "Masking of personal data is not switched on for the monitoring records.",
-            "Việc che dữ liệu cá nhân chưa được bật cho hồ sơ giám sát.",
+            "Personal data is not masked in the monitoring records.",
+            "Dữ liệu cá nhân chưa được che trong hồ sơ giám sát.",
         ),
         "tp_c_monitors": (
             "{n} of {m} kinds of automatic monitoring are switched on.",
@@ -2776,10 +2646,8 @@ _T.update(
             "Hồ sơ chống sửa đổi chưa được kiểm tra khi tạo báo cáo này.",
         ),
         "tp_c_risks": (
-            "We keep a register of risks for this assistant: {n} tracked, highest remaining "
-            "level: {level}.",
-            "Chúng tôi lập sổ rủi ro cho trợ lý này: {n} rủi ro được theo dõi, mức còn lại cao "
-            "nhất: {level}.",
+            "We track {n} risks for this assistant. Highest remaining level: {level}.",
+            "Chúng tôi theo dõi {n} rủi ro của trợ lý này. Mức còn lại cao nhất: {level}.",
         ),
         "tp_c_risks_none": (
             "No risks are registered yet for this assistant.",
@@ -2806,7 +2674,7 @@ _T.update(
         "tp_meta_version": ("Report version", "Phiên bản báo cáo"),
         "tp_meta_generated": ("Generated at (UTC)", "Tạo lúc (UTC)"),
         "tp_meta_status": ("Status", "Tình trạng"),
-        "tp_meta_schema": ("Data model version", "Phiên bản mô hình dữ liệu"),
+        "tp_meta_schema": ("Report format version", "Phiên bản định dạng báo cáo"),
         "tp_meta_content": ("Content hash", "Mã băm nội dung"),
         "tp_status_signed": ("signed into the evidence chain", "đã ký vào chuỗi bằng chứng"),
         "tp_status_preview": (
@@ -2814,21 +2682,18 @@ _T.update(
             "XEM TRƯỚC: chưa ký vào chuỗi bằng chứng",
         ),
         "tp_footer": (
-            "The sha256 of the JSON file and of each rendered file is recorded in the evidence "
-            "chain (record_type transparency_report). Not legal advice.",
-            "Mã băm SHA-256 của tệp JSON và của từng tệp hiển thị được ghi vào chuỗi bằng chứng "
-            "(record_type transparency_report). Không phải tư vấn pháp lý.",
+            "SHA-256 hashes of the JSON file and each report file are saved in the evidence chain (record_type transparency_report). Not legal advice.",
+            "Mã băm SHA-256 của tệp JSON và từng tệp báo cáo được lưu vào chuỗi bằng chứng (record_type transparency_report). Không phải tư vấn pháp lý.",
         ),
         "tp_footer_c": ("Not legal advice.", "Không phải tư vấn pháp lý."),
         # console page and Agent tab
         "tp_purpose": (
-            "One report per agent, built from facts the system already holds, in three versions.",
-            "Mỗi tác tử một báo cáo, tạo từ các dữ kiện hệ thống đã có, gồm ba phiên bản.",
+            "One report per agent, built from data Supervisor already holds. Three versions: customer, internal and regulator.",
+            "Mỗi tác tử một báo cáo, tạo từ dữ liệu Supervisor đã có. Gồm ba phiên bản: khách hàng, nội bộ và cơ quan quản lý.",
         ),
         "tp_why": (
-            "A regulator, a customer and the bank each see only the fields their version allows.",
-            "Cơ quan quản lý, khách hàng và ngân hàng chỉ thấy các trường mà phiên bản của họ "
-            "cho phép.",
+            "Regulators, customers and the bank each see only what their version allows.",
+            "Cơ quan quản lý, khách hàng và ngân hàng chỉ thấy nội dung mà phiên bản của mình cho phép.",
         ),
         "tp_col_agent": ("Agent", "Tác tử"),
         "tp_col_variant": ("Version", "Phiên bản"),
@@ -2837,16 +2702,16 @@ _T.update(
         "tp_col_files": ("Files", "Tệp"),
         "tp_col_state": ("State", "Tình trạng"),
         "tp_generate": ("Generate", "Tạo báo cáo"),
-        "tp_generate_all": ("Generate all versions", "Tạo mọi phiên bản"),
+        "tp_generate_all": ("Create all versions", "Tạo mọi phiên bản"),
         "tp_never": ("never", "chưa có"),
-        "tp_preview_line": ("Preview of the current facts", "Xem trước theo dữ kiện hiện tại"),
+        "tp_preview_line": ("Preview based on current data", "Xem trước theo dữ liệu hiện tại"),
         "tp_unchanged": (
             "Nothing changed since version {v}: no new version was made.",
             "Không có gì thay đổi từ phiên bản {v}: không tạo phiên bản mới.",
         ),
         "tp_generated": (
-            "Report version {v} made and signed into the chain.",
-            "Đã tạo báo cáo phiên bản {v} và ký vào chuỗi.",
+            "Report version {v} created and signed into the evidence chain.",
+            "Đã tạo báo cáo phiên bản {v} và ký vào chuỗi bằng chứng.",
         ),
         "tp_download": ("Download", "Tải về"),
         "tp_open_page": ("Open the Transparency page", "Mở trang Minh bạch"),
@@ -2855,10 +2720,8 @@ _T.update(
             "Báo cáo minh bạch đang tắt trong bản cài đặt này.",
         ),
         "tp_no_pdf": (
-            "PDF files need the optional fpdf2 package and a local Unicode font; without them "
-            "only JSON and HTML are made.",
-            "Tệp PDF cần gói tùy chọn fpdf2 và phông Unicode trên máy; nếu thiếu thì chỉ tạo "
-            "JSON và HTML.",
+            "PDF needs the optional fpdf2 package and a Unicode font on this server. Without them, only JSON and HTML are made.",
+            "Tệp PDF cần gói tùy chọn fpdf2 và phông Unicode trên máy chủ này. Nếu thiếu, chỉ tạo JSON và HTML.",
         ),
         "tp_no_agents": ("No agents are registered.", "Chưa có tác tử nào được đăng ký."),
         "tp_sections_ok": ("{n} of {m} sections have data", "{n} trên {m} phần có dữ liệu"),
@@ -2874,13 +2737,13 @@ _T.update(
             "Mọi quyết định của cổng, kèm trạng thái phán quyết, phát hiện và phạm vi kiểm tra.",
         ),
         "decisions_why_v2": (
-            "Open a row for the masked request, the response, each finding and the latency split.",
-            "Mở một dòng để xem yêu cầu đã che, phản hồi, từng phát hiện và cách chia độ trễ.",
+            "Open a decision to see the request, response and findings.",
+            "Mở một quyết định để xem yêu cầu, phản hồi và phát hiện.",
         ),
         "detection_code": ("Detection code", "Mã phát hiện"),
-        "not_evaluated": ("Not evaluated", "Chưa được đánh giá"),
-        "ne_only": ("Not evaluated only", "Chỉ chưa được đánh giá"),
-        "consumer": ("Consumer", "Ứng dụng gọi"),
+        "not_evaluated": ("Not assessed", "Chưa đánh giá"),
+        "ne_only": ("Show only items not evaluated", "Chỉ hiện mục chưa được đánh giá"),
+        "consumer": ("Calling application", "Ứng dụng gọi"),
         "direction": ("Direction", "Chiều"),
         "correlation_id": ("Correlation id", "Mã tương quan"),
         "detections": ("Detections", "Phát hiện"),
@@ -2894,12 +2757,12 @@ _T.update(
         "st_skip": ("Skip", "Bỏ qua"),
         "ne_execution_failed": ("a detector failed", "một bộ phát hiện bị lỗi"),
         "ne_invalid_config": ("a detector had a bad setting", "một bộ phát hiện sai cấu hình"),
-        "ne_payload_too_large": ("payload too large", "dữ liệu quá lớn"),
+        "ne_payload_too_large": ("content too large", "nội dung quá lớn"),
         "ne_content_uninspectable": ("content could not be read", "không đọc được nội dung"),
         "ne_timed_out": ("a detector timed out", "một bộ phát hiện quá thời gian"),
-        "ne_budget_exhausted": (  # WP-D4
-            "a detector ran out of its time or call budget",
-            "một bộ phát hiện hết ngân sách thời gian hoặc số lần gọi",
+        "ne_budget_exhausted": (
+            "a detector used up its time or call limit",
+            "một bộ phát hiện dùng hết giới hạn thời gian hoặc số lần gọi",
         ),
         "ne_skipped_by_policy": ("skipped by policy", "bị bỏ qua theo chính sách"),
         "ne_gate_failed": ("the gate could not decide", "cổng không thể quyết định"),
@@ -2912,28 +2775,28 @@ _T.update(
         "dtab_response": ("Response", "Phản hồi"),
         "dtab_detections": ("Detections", "Phát hiện"),
         "dtab_metadata": ("Metadata", "Siêu dữ liệu"),
-        "part_args": ("Arguments", "Tham số"),
+        "part_args": ("Inputs", "Tham số"),
         "part_tool_results": ("Tool results", "Kết quả công cụ"),
         "part_output": ("Output", "Đầu ra"),
         "request_note": (
-            "Masked text from the recorder. The gate stores only a keyed hash of the arguments.",
-            "Văn bản đã che từ bộ ghi. Cổng chỉ lưu mã băm có khóa của tham số.",
+            "Text is masked. The gate keeps only a keyed hash of the call details, not the details themselves.",
+            "Văn bản đã được che. Cổng chỉ lưu mã băm có khóa của nội dung lệnh gọi, không lưu nội dung.",
         ),
         "no_request_text": ("No request text", "Không có văn bản yêu cầu"),
         "no_request_text_line": (
-            "No masked text is stored for this call, or no masker is set.",
-            "Không có văn bản đã che cho lệnh gọi này, hoặc chưa cấu hình bộ che.",
+            "No masked text was saved for this call, or masking is not set up.",
+            "Không có văn bản đã che nào được lưu cho lệnh gọi này, hoặc chưa thiết lập che dữ liệu.",
         ),
         "masked_record": ("Masked record (JSON)", "Bản ghi đã che (JSON)"),
         "decision": ("Decision", "Quyết định"),
         "allowed": ("allowed", "được phép"),
         "denied": ("denied", "bị từ chối"),
-        "transformed_payload": ("Payload after masking", "Dữ liệu sau khi che"),
+        "transformed_payload": ("Text after masking", "Nội dung sau khi che"),
         "transformed_note": (
-            "Rebuilt from the masked record; the gate does not store the transformed payload.",
-            "Dựng lại từ bản ghi đã che; cổng không lưu dữ liệu đã biến đổi.",
+            "Rebuilt from the masked record. The gate does not keep the text after masking.",
+            "Dựng lại từ bản ghi đã che. Cổng không lưu văn bản sau khi che.",
         ),
-        "no_transform": ("The payload was not changed.", "Dữ liệu không bị thay đổi."),
+        "no_transform": ("The content was not changed.", "Nội dung không bị thay đổi."),
         "detector": ("Detector", "Bộ phát hiện"),
         "code": ("Code", "Mã"),
         "entities": ("Entities and fragments (masked)", "Thực thể và đoạn (đã che)"),
@@ -2941,55 +2804,51 @@ _T.update(
         "leaf_precision": ("whole text", "toàn văn bản"),
         "no_detections": ("No findings", "Không có phát hiện"),
         "no_detections_line": (
-            "No detector fired on this decision.",
-            "Không bộ phát hiện nào kích hoạt cho quyết định này.",
+            "No automated check raised a finding on this decision.",
+            "Không có kiểm tra tự động nào ghi nhận phát hiện cho quyết định này.",
         ),
         "located_fragments": ("Fragments in the masked text", "Đoạn trong văn bản đã che"),
-        "unlocated_fragments": ("Fragments not located", "Đoạn không định vị được"),
+        "unlocated_fragments": (
+            "Text we could not place",
+            "Đoạn văn bản chưa xác định được vị trí",
+        ),
         "lat_total": ("Latency total", "Tổng độ trễ"),
         "lat_rules": ("Rules", "Quy tắc"),
         "lat_detectors": ("Detectors", "Bộ phát hiện"),
-        "lat_overhead": ("Overhead", "Thời gian còn lại"),
+        "lat_overhead": ("Other processing", "Xử lý khác"),
         "open_trace_span": ("Open the trace span", "Mở đoạn dấu vết"),
-        "same_correlation": ("{n} decisions share this id", "{n} quyết định cùng mã này"),
+        "same_correlation": (
+            "{n} decisions belong to this request",
+            "{n} quyết định thuộc cùng yêu cầu này",
+        ),
         "open_alert": ("Open alert", "Mở cảnh báo"),
         "an_tab_detectors": ("Detectors", "Bộ phát hiện"),
         "dd_requests": ("Requests", "Yêu cầu"),
-        "dd_none": ("No rows in this window.", "Không có dòng nào trong khoảng này."),
-        "dd_empty": ("No rollup rows yet", "Chưa có dữ liệu tổng hợp"),
+        "dd_none": ("No decisions in this period.", "Không có quyết định nào trong khoảng này."),
+        "dd_empty": ("No daily summary yet", "Chưa có tổng hợp theo ngày"),
         "dd_empty_line": (
-            "Run python -m supervisor.jobs.decision_rollup (the scheduler does it every hour).",
-            "Chạy python -m supervisor.jobs.decision_rollup (bộ lập lịch chạy mỗi giờ).",
+            "Run python -m supervisor.jobs.decision_rollup. The scheduler also runs it every hour.",
+            "Chạy python -m supervisor.jobs.decision_rollup. Bộ lập lịch cũng tự chạy mỗi giờ.",
         ),
         "dd_series": (
-            "Gate outcomes by day (daily rollup)",
+            "Gate outcomes by day (daily summary)",
             "Kết quả của cổng theo ngày (tổng hợp theo ngày)",
         ),
         "dd_rollup_note": (
-            "The chart and the four tables below read the daily rollup. The tiles and the first "
-            "table above count single gate calls in the window. The rollup can hold more traffic "
-            "than those calls (for example rolled-up history of demo agents), so the totals can "
-            "differ.",
-            "Biểu đồ và bốn bảng bên dưới đọc từ bảng tổng hợp theo ngày. Các ô và bảng đầu tiên "
-            "ở trên đếm từng lệnh gọi qua cổng trong khoảng thời gian. Bảng tổng hợp có thể chứa "
-            "nhiều lưu lượng hơn các lệnh gọi đó (ví dụ lịch sử tổng hợp của tác tử demo), nên "
-            "tổng số có thể khác.",
+            "The chart and the four tables below use the daily summary. The tiles and the first table above count single gate calls in the period. The summary can include more traffic (for example, demo agent history), so totals can differ.",
+            "Biểu đồ và bốn bảng bên dưới dùng tổng hợp theo ngày. Các ô và bảng đầu tiên ở trên đếm từng lệnh gọi qua cổng trong khoảng thời gian. Bản tổng hợp có thể gồm nhiều lưu lượng hơn (ví dụ lịch sử của tác tử demo), nên tổng số có thể khác.",
         ),
-        "dd_per_agent": ("Per agent (daily rollup)", "Theo tác tử (tổng hợp theo ngày)"),
+        "dd_per_agent": ("By agent (daily summary)", "Theo tác tử (tổng hợp theo ngày)"),
         "dd_per_consumer": ("Per application", "Theo ứng dụng"),
         "dd_per_rule": ("Per rule", "Theo quy tắc"),
         "dd_per_detector": ("Per detector and code", "Theo bộ phát hiện và mã"),
-        "det_latency": ("Detector latency", "Độ trễ bộ phát hiện"),
+        "det_latency": ("Detector response time", "Thời gian phản hồi của bộ phát hiện"),
         "det_runs": ("Runs", "Lượt chạy"),
-        "det_verdict": ("Harness verdict", "Kết luận kiểm thử"),
-        "det_adversarial": ("adversarial recall", "độ phủ đối kháng"),
+        "det_verdict": ("Test result", "Kết quả kiểm thử"),
+        "det_adversarial": ("attack detection rate", "tỷ lệ phát hiện tấn công"),
         "det_approx": (
-            "Over several days p50 is the weighted mean of daily p50; p95 is the highest "
-            "daily p95. GO (indicative): the point value passes, the 95 percent interval "
-            "does not prove it.",
-            "Nhiều ngày: p50 là trung bình có trọng số của p50 từng ngày; p95 là p95 cao "
-            "nhất của một ngày. GO (indicative): giá trị điểm đạt, khoảng tin cậy 95 phần "
-            "trăm chưa chứng minh.",
+            "Over several days, p50 is the weighted average of the daily p50 and p95 is the highest daily p95. GO (indicative): the measured value passes, but the 95 percent interval does not prove it.",
+            "Nhiều ngày: p50 là trung bình có trọng số của p50 từng ngày, p95 là p95 cao nhất trong ngày. GO (indicative): giá trị đo đạt, nhưng khoảng tin cậy 95 phần trăm chưa chứng minh.",
         ),
         "observed_mode": ("Mode", "Chế độ"),
         "mode_shadow": ("shadow", "chạy ngầm"),
@@ -3008,18 +2867,12 @@ _T.update(
         "back_to_list": ("Back to the list", "Quay lại danh sách"),
         "det_not_run": ("not run", "chưa chạy"),
         "det_not_run_line": (
-            "The harness verdict is read from a report file; none is recorded. Run "
-            "python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
-            "Kết luận kiểm thử được đọc từ tệp báo cáo; chưa có tệp. Chạy "
-            "python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
+            "No test result recorded. Run python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
+            "Chưa có kết quả kiểm thử. Chạy python -m supervisor.detectors.harness --json DATA_DIR/eval/detectors_report.json",
         ),
         "dd_series_note": (
-            "Counts decisions by verdict status (block before pause). The Blocked and Paused tiles "
-            "above count the stopping rule (pause before block), so a call that matched both is "
-            "Paused there and Block here.",
-            "Đếm quyết định theo trạng thái phán quyết (chặn trước tạm dừng). Ô Đã chặn và Tạm "
-            "dừng ở trên đếm theo quy tắc dừng (tạm dừng trước chặn), nên một lệnh khớp cả hai "
-            "là Tạm dừng ở trên và Chặn ở đây.",
+            "Counts each decision by its verdict, with Blocked ranked above Paused. The tiles above rank Paused above Blocked, so a call that matches both shows as Paused there and Blocked here.",
+            "Đếm mỗi quyết định theo kết luận, ưu tiên Chặn hơn Tạm dừng. Các ô ở trên ưu tiên Tạm dừng hơn Chặn, nên một lệnh khớp cả hai hiện là Tạm dừng ở trên và Chặn ở đây.",
         ),
         "findings_chip": ("{n} findings", "{n} phát hiện"),
         "open_decision": ("Open the gate decision", "Mở quyết định của cổng"),
@@ -3029,12 +2882,12 @@ _T.update(
             "Chỉ các cột đã che, tối đa {n} dòng.",
         ),
         "export_done": (
-            "CSV built: {n} rows, {cols} columns.",
-            "Đã tạo CSV: {n} dòng, {cols} cột.",
+            "CSV ready: {n} rows, {cols} columns.",
+            "CSV đã sẵn sàng: {n} dòng, {cols} cột.",
         ),
         "export_once": (
-            "The link works once, for you only, for 15 minutes.",
-            "Liên kết chỉ dùng được một lần, chỉ cho bạn, trong 15 phút.",
+            "This link works once, only for you, and expires in 15 minutes.",
+            "Liên kết này chỉ dùng được một lần, chỉ cho bạn, và hết hạn sau 15 phút.",
         ),
     }
 )
@@ -3050,8 +2903,8 @@ _T.update(
         "nav_g_protect": ("Protect", "Bảo vệ"),
         "nav_catalog": ("Catalog", "Danh mục"),
         "cat_lede": (
-            "Browse the guardian capabilities of this Supervisor.",
-            "Xem các năng lực bảo vệ của Supervisor này.",
+            "See which guardians this Supervisor offers.",
+            "Xem các bộ bảo vệ mà Supervisor này cung cấp.",
         ),
         "cat_tab_catalog": ("Catalog", "Danh mục"),
         "cat_tab_active": ("Active", "Đang bật"),
@@ -3084,10 +2937,8 @@ _T.update(
         "catk_proves": ("Proves", "Chứng minh"),
         "cat_policy_rules": ("Policy rules", "Quy tắc chính sách"),
         "cat_policy_rules_d": (
-            "Deterministic rules per agent and tool: allow, log, alert, block or pause a call "
-            "before it reaches the tool.",
-            "Quy tắc xác định theo tác tử và công cụ: cho phép, ghi nhận, cảnh báo, chặn hoặc tạm "
-            "dừng lệnh gọi trước khi đến công cụ.",
+            "Fixed rules for each agent and tool. A call can be allowed, logged, alerted, blocked or paused before it reaches the tool.",
+            "Quy tắc cố định theo từng tác tử và công cụ. Lệnh gọi có thể được cho phép, ghi nhận, cảnh báo, chặn hoặc tạm dừng trước khi đến công cụ.",
         ),
         "cat_pause_switch": ("Pause switch and quarantine", "Công tắc tạm dừng và cách ly"),
         "cat_pause_switch_d": (
@@ -3139,21 +2990,17 @@ _T.update(
             "Bộ phân loại cục bộ trên kết quả và mô tả công cụ; chỉ được tạm dừng công cụ tiền "
             "và tín dụng.",
         ),
-        "cat_inline_redaction": ("Inline redaction", "Che dữ liệu tại cổng"),
+        "cat_inline_redaction": ("Data masking at the gate", "Che dữ liệu tại cổng"),
         "cat_inline_redaction_d": (
-            "Masks amounts and personal data in the arguments of listed tools before the tool "
-            "sees them.",
-            "Che số tiền và dữ liệu cá nhân trong tham số của công cụ được liệt kê trước khi "
-            "công cụ nhận.",
+            "Hides amounts and personal data in the inputs of listed tools before the tool receives them.",
+            "Che số tiền và dữ liệu cá nhân trong đầu vào của các công cụ được liệt kê trước khi công cụ nhận.",
         ),
-        "cat_judge_tiers": ("Tiered AI judges", "Giám khảo AI nhiều tầng"),
+        "cat_judge_tiers": ("Two-level AI judges", "Giám khảo AI hai tầng"),
         "cat_judge_tiers_d": (
-            "Tier 1 scores every trace, Tier 2 confirms. A verdict opens a case or raises "
-            "severity; it never calls the gate.",
-            "Tầng 1 chấm mọi trace, tầng 2 xác nhận. Phán quyết mở hồ sơ hoặc nâng mức nghiêm "
-            "trọng; không bao giờ gọi cổng.",
+            "AI judges review every conversation, and a second judge confirms. They open cases but never block a call.",
+            "Giám khảo AI xem xét mọi cuộc hội thoại và giám khảo thứ hai xác nhận. Họ mở vụ việc nhưng không bao giờ chặn lệnh gọi.",
         ),
-        "cat_judge_advisory": ("Judge advisory detector", "Bộ phát hiện tư vấn của giám khảo"),
+        "cat_judge_advisory": ("AI judge (advice only)", "Giám khảo AI (chỉ tư vấn)"),
         "cat_judge_advisory_d": (
             "Asks the Tier 1 judge for an opinion inside the gate call; report only, never "
             "fail closed.",
@@ -3162,46 +3009,40 @@ _T.update(
         ),
         "cat_redteam": ("Multi-turn red team", "Red team nhiều lượt"),
         "cat_redteam_d": (
-            "Nightly Vietnamese multi-turn attacks against each agent; results feed the "
-            "assurance packs.",
-            "Tấn công nhiều lượt bằng tiếng Việt hằng đêm vào từng tác tử; kết quả đưa vào gói "
-            "bảo đảm.",
+            "Every night, tests each agent with simulated attack conversations in Vietnamese. Results feed the assurance tests.",
+            "Mỗi đêm, thử từng tác tử bằng các cuộc hội thoại tấn công giả lập bằng tiếng Việt. Kết quả đưa vào bộ kiểm thử bảo đảm.",
         ),
         "cat_drift": ("Drift monitor", "Giám sát trôi dạt"),
         "cat_drift_d": (
-            "A baseline band per agent version; a case opens when a metric stays outside it.",
-            "Dải chuẩn theo từng phiên bản tác tử; mở hồ sơ khi một chỉ số liên tục nằm ngoài dải.",
+            "Sets a normal range for each agent version. Opens a case when a metric stays outside it.",
+            "Đặt dải bình thường cho từng phiên bản tác tử. Mở vụ việc khi một chỉ số liên tục nằm ngoài dải.",
         ),
         "cat_fairness": ("Fairness monitor", "Giám sát công bằng"),
         "cat_fairness_d": (
-            "Approval and block rates across permitted customer groups; a gap above the "
-            "threshold opens a case.",
-            "Tỷ lệ phê duyệt và chặn giữa các nhóm khách hàng được phép; chênh lệch vượt ngưỡng "
-            "sẽ mở hồ sơ.",
+            "Compares approval and block rates across permitted customer groups. A gap above the threshold opens a case.",
+            "So sánh tỷ lệ phê duyệt và chặn giữa các nhóm khách hàng được phép. Chênh lệch vượt ngưỡng sẽ mở vụ việc.",
         ),
         "cat_quality": ("Quality monitor", "Giám sát chất lượng"),
         "cat_quality_d": (
-            "Scores customer replies for groundedness and the bank reply guidelines.",
-            "Chấm điểm câu trả lời khách hàng về tính có căn cứ và hướng dẫn trả lời của ngân "
-            "hàng.",
+            "Scores customer replies on accuracy against sources and on the bank's reply guidelines.",
+            "Chấm điểm câu trả lời khách hàng về độ chính xác so với nguồn và theo hướng dẫn trả lời của ngân hàng.",
         ),
         "cat_multiagent": ("Multi-agent monitor", "Giám sát đa tác tử"),
         "cat_multiagent_d": (
             "Finds a payment split across several agents to stay under a limit, and opens a case.",
-            "Phát hiện khoản thanh toán bị chia qua nhiều tác tử để né hạn mức và mở hồ sơ.",
+            "Phát hiện khoản thanh toán bị chia qua nhiều tác tử để né hạn mức và mở vụ việc.",
         ),
         "cat_tool_analytics": ("Tool analytics", "Phân tích công cụ"),
         "cat_tool_analytics_d": (
-            "Tool use per agent and least-privilege advice: tools granted but never used.",
-            "Mức dùng công cụ theo tác tử và tư vấn đặc quyền tối thiểu: công cụ được cấp nhưng "
-            "không dùng.",
+            "Shows tool use by agent and flags tools that are granted but never used.",
+            "Cho thấy mức dùng công cụ theo tác tử và chỉ ra công cụ được cấp nhưng không dùng.",
         ),
         "cat_alerts": ("Alerts", "Cảnh báo"),
         "cat_alerts_d": (
-            "Turns monitor and gate signals into alerts with an owner and a clock.",
+            "Turns monitor and gate signals into alerts with an owner and a deadline.",
             "Biến tín hiệu từ giám sát và cổng thành cảnh báo có người phụ trách và thời hạn.",
         ),
-        "cat_evidence_chain": ("Hash-chained evidence", "Bằng chứng chuỗi băm"),
+        "cat_evidence_chain": ("Tamper-proof evidence", "Bằng chứng chống sửa đổi"),
         "cat_evidence_chain_d": (
             "Every decision goes into a SHA-256 chain with a signed head; supervisor-verify "
             "checks it offline.",
@@ -3213,21 +3054,20 @@ _T.update(
             "One file per case with the decisions, verdicts and sign-offs an auditor needs.",
             "Mỗi vụ việc một hồ sơ gồm quyết định, phán quyết và phê duyệt mà kiểm toán viên cần.",
         ),
-        "cat_assurance": ("Assurance packs", "Gói bảo đảm"),
+        "cat_assurance": ("Assurance tests", "Bộ kiểm thử bảo đảm"),
         "cat_assurance_d": (
-            "Test packs for the agent and its judge, with a go or no-go before launch.",
-            "Bộ kiểm thử cho tác tử và giám khảo của nó, kết luận đạt hoặc không đạt trước khi "
-            "triển khai.",
+            "Tests for the agent and its AI judge, with a go or no-go before launch.",
+            "Bộ kiểm thử cho tác tử và giám khảo AI của nó, kết luận đạt hoặc không đạt trước khi triển khai.",
         ),
         "cat_transparency": ("Transparency report", "Báo cáo minh bạch"),
         "cat_transparency_d": (
             "A plain-language report per agent: what it does, its limits and its controls.",
             "Báo cáo dễ hiểu cho từng tác tử: chức năng, giới hạn và các biện pháp kiểm soát.",
         ),
-        "cat_collectors": ("Trace collectors", "Bộ thu thập trace"),
+        "cat_collectors": ("Activity collectors", "Bộ thu thập hoạt động"),
         "cat_collectors_d": (
-            "Connect an agent framework so its traces reach the recorder.",
-            "Kết nối framework của tác tử để trace được gửi đến bộ ghi.",
+            "Connect an agent framework so its activity is recorded.",
+            "Kết nối framework của tác tử để hoạt động của nó được ghi lại.",
         ),
         "cat_siem": ("SIEM export", "Xuất sang SIEM"),
         "cat_siem_d": (
@@ -3243,19 +3083,16 @@ _T.update(
         # --- WP-G0: Systems pages (docs/governance.md) ---
         "nav_systems": ("Systems", "Hệ thống AI"),
         "sy_purpose": (
-            "The AI systems of the bank: who owns each one, its stage, its risk level "
-            "and what it is made of.",
-            "Các hệ thống AI của ngân hàng: ai sở hữu, giai đoạn, mức rủi ro và các thành phần.",
+            "The bank's AI systems: who owns each, which stage it is in, and its risk level.",
+            "Các hệ thống AI của ngân hàng: ai sở hữu, đang ở giai đoạn nào và mức rủi ro.",
         ),
         "sy_why": (
-            "A system is the unit of governance. Its risk level is the higher of the level "
-            "set by a person and the level inherited from the agents and parts linked to it.",
-            "Hệ thống là đơn vị quản trị. Mức rủi ro là mức cao hơn giữa mức do người đặt "
-            "và mức kế thừa từ các agent và thành phần được liên kết.",
+            "Governance works at the AI system level. Its risk level is the higher of the level you set and the level inherited from its linked agents and parts.",
+            "Quản trị được thực hiện ở cấp hệ thống AI. Mức rủi ro là mức cao hơn giữa mức bạn đặt và mức kế thừa từ các tác tử và thành phần liên kết.",
         ),
         "sy_scope_note": (
-            "You see the systems you are on, own, or that your team owns.",
-            "Bạn thấy các hệ thống bạn tham gia, sở hữu, hoặc do nhóm của bạn sở hữu.",
+            "You see AI systems you work on, own, or that your team owns.",
+            "Bạn thấy các hệ thống AI bạn tham gia, sở hữu, hoặc do nhóm của bạn sở hữu.",
         ),
         "sy_tile_all": ("All systems", "Tất cả hệ thống"),
         "sy_tile_active": ("Active", "Đang hoạt động"),
@@ -3267,14 +3104,13 @@ _T.update(
         "sy_col_components": ("Parts", "Thành phần"),
         "sy_no_systems": ("No AI systems", "Chưa có hệ thống AI"),
         "sy_no_systems_line": (
-            "Register the first system with the form below, or POST /v1/systems.",
-            "Đăng ký hệ thống đầu tiên bằng biểu mẫu bên dưới, hoặc POST /v1/systems.",
+            "Register your first AI system with the form below.",
+            "Đăng ký hệ thống AI đầu tiên bằng biểu mẫu bên dưới.",
         ),
-        "sy_register": ("Register a system", "Đăng ký hệ thống"),
+        "sy_register": ("Register an AI system", "Đăng ký hệ thống AI"),
         "sy_register_hint": (
-            "Few fields, all required. Everything else is set later or inherited. "
-            "You become the owner.",
-            "Ít trường, đều bắt buộc. Phần còn lại được đặt sau hoặc kế thừa. Bạn là người sở hữu.",
+            "Fill in the required fields. The rest is added later or comes from linked parts. You become the owner.",
+            "Điền các trường bắt buộc. Phần còn lại được bổ sung sau hoặc lấy từ các thành phần liên kết. Bạn là người sở hữu.",
         ),
         "sy_open": ("Open the system page", "Mở trang hệ thống"),
         "sy_dtab_team": ("Team", "Nhóm"),
@@ -3287,19 +3123,19 @@ _T.update(
         "sy_inherited_via": ("Inherited from", "Kế thừa từ"),
         "sy_source_manual": ("set by a person", "do người đặt"),
         "sy_source_inherited": ("inherited", "kế thừa"),
-        "sy_source_classifier": ("classifier", "bộ phân loại"),
+        "sy_source_classifier": ("from classification", "từ kết quả phân loại"),
         "sy_team_role": ("Team role", "Vai trò trong nhóm"),
         "sy_no_team": ("No team members.", "Chưa có thành viên."),
         "sy_no_components": (
             "No agents or parts are linked yet.",
-            "Chưa liên kết agent hay thành phần nào.",
+            "Chưa liên kết tác tử hay thành phần nào.",
         ),
         "sy_ref": ("Linked item", "Mục liên kết"),
         "sy_link_role": ("Role", "Vai trò"),
         "sy_link_source": ("Source", "Nguồn"),
         "sy_yes": ("Yes", "Có"),
         "sy_no": ("No", "Không"),
-        "sy_st_draft": ("Draft", "Nháp"),
+        "sy_st_draft": ("Draft", "Bản nháp"),
         "sy_st_active": ("Active", "Đang hoạt động"),
         "sy_st_archived": ("Archived", "Đã lưu trữ"),
         "sy_stage_initiation": ("Initiation", "Khởi tạo"),
@@ -3349,7 +3185,7 @@ _T.update(
         "sy_role_compliance_specialist": ("Compliance specialist", "Chuyên viên tuân thủ"),
         "sy_role_reviewer": ("Reviewer", "Người rà soát"),
         "sy_role_oversight_manager": ("Oversight manager", "Người giám sát"),
-        "sy_ref_agent": ("Agent", "Tác nhân"),
+        "sy_ref_agent": ("Agent", "Tác tử"),
         "sy_ref_node": ("Inventory item", "Mục kiểm kê"),
         "sy_link_component_of": ("Component of", "Là thành phần của"),
         "sy_link_built_on": ("Built on", "Xây dựng trên"),
@@ -3362,7 +3198,7 @@ _T.update(
         "sy_f_user_segment": ("Users", "Người dùng"),
         "sy_f_personal_data": ("Personal data", "Dữ liệu cá nhân"),
         "sy_f_money_movement": ("Moves money", "Chuyển tiền"),
-        "sy_f_credit_decision": ("Takes credit decisions", "Quyết định tín dụng"),
+        "sy_f_credit_decision": ("Makes credit decisions", "Đưa ra quyết định tín dụng"),
         "sy_f_human_control": ("Human control", "Kiểm soát của con người"),
         "sy_f_risk_justification": ("Risk justification", "Lý giải mức rủi ro"),
         "sy_f_decision33_class": ("Decision 33 class", "Phân loại theo Quyết định 33"),
@@ -3389,29 +3225,32 @@ _T.update(
         "nv3_settings": ("Settings", "Cài đặt"),
         "nv3_close": ("Close", "Đóng"),
         "nv3_gear_none": (
-            "No settings page is on for your role.",
-            "Không có trang cài đặt nào được bật cho vai trò của bạn.",
+            "No settings page is open to your role.",
+            "Vai trò của bạn không có trang cài đặt nào.",
         ),
         "nv3_policies_code": ("Policies as code", "Chính sách dạng mã"),
         "nv3_on": ("on", "bật"),
         "nv3_off": ("off", "tắt"),
         "nv3_yes": ("yes", "có"),
         "nv3_no": ("no", "không"),
-        "nv3_st_collectors_on": ("Collectors on", "Bộ thu thập: bật"),
-        "nv3_st_collectors_off": ("Collectors off", "Bộ thu thập: tắt"),
-        "nv3_st_ingress_on": ("Agent credentials required", "Bắt buộc xác thực tác tử"),
-        "nv3_st_ingress_off": ("Agent credentials not required", "Không bắt buộc xác thực tác tử"),
-        "nv3_st_audit_on": ("Console actions are logged", "Thao tác trên bảng điều khiển được ghi"),
+        "nv3_st_collectors_on": ("Data collection: on", "Thu thập dữ liệu: bật"),
+        "nv3_st_collectors_off": ("Data collection: off", "Thu thập dữ liệu: tắt"),
+        "nv3_st_ingress_on": ("Agents must sign in", "Tác tử phải xác thực"),
+        "nv3_st_ingress_off": ("Agents do not need to sign in", "Tác tử không cần xác thực"),
+        "nv3_st_audit_on": (
+            "Console actions are logged",
+            "Thao tác trên bảng điều khiển được ghi lại",
+        ),
         "nv3_st_audit_off": ("Console action log is off", "Nhật ký thao tác đang tắt"),
         "nv3_st_auth": ("Sign-in: {kind}", "Đăng nhập: {kind}"),
         "nv3_st_mode": ("Mode: {mode}", "Chế độ: {mode}"),
-        "nv3_st_policy": ("Deployed rules, read only", "Quy tắc đang chạy, chỉ đọc"),
+        "nv3_st_policy": ("Rules in force (read only)", "Quy tắc đang áp dụng (chỉ đọc)"),
         # tabs
         "nv3_t_models": ("Models", "Mô hình"),
         "nv3_t_tools": ("Tools", "Công cụ"),
         "nv3_t_datasets": ("Datasets", "Bộ dữ liệu"),
         "nv3_t_mcp": ("MCP servers", "Máy chủ MCP"),
-        "nv3_t_unmanaged": ("Unmanaged", "Chưa quản lý"),
+        "nv3_t_unmanaged": ("Inventory", "Kiểm kê"),
         "nv3_t_policies": ("Compliance", "Tuân thủ"),
         "nv3_t_obligations": ("Obligations", "Nghĩa vụ"),
         "nv3_t_library": ("Library", "Thư viện"),
@@ -3421,24 +3260,24 @@ _T.update(
         "nv3_t_monitors": ("Monitors", "Bộ giám sát"),
         "nv3_t_packs": ("Packs", "Gói kiểm thử"),
         "nv3_t_approvals": ("Approvals", "Phê duyệt"),
-        "nv3_t_evidence": ("Evidence chain", "Chuỗi bằng chứng"),
+        "nv3_t_evidence": ("Evidence", "Bằng chứng"),
         # scope and tiles
         "nv3_scope": ("Scope", "Phạm vi"),
         "nv3_scope_my": ("Mine", "Của tôi"),
         "nv3_scope_team": ("My team", "Nhóm của tôi"),
         "nv3_scope_all": ("All", "Tất cả"),
-        "nv3_na": ("not available", "không có số liệu"),
+        "nv3_na": ("not available", "chưa có số liệu"),
         "nv3_tile_agents": ("Agents in scope", "Tác tử trong phạm vi"),
         "nv3_tile_models": ("Models in use", "Mô hình đang dùng"),
-        "nv3_tile_cover": ("Guardian coverage", "Độ phủ bộ bảo vệ"),
-        "nv3_tile_actions": ("Open actions", "Việc cần làm"),
+        "nv3_tile_cover": ("Guardian coverage", "Phạm vi bộ bảo vệ"),
+        "nv3_tile_actions": ("Actions waiting", "Việc cần làm"),
         "nv3_tile_classified": ("Classification rate", "Tỷ lệ phân loại"),
         "nv3_tile_readiness": ("Control readiness", "Mức sẵn sàng của kiểm soát"),
         "nv3_tile_overdue": ("Overdue tasks", "Công việc quá hạn"),
-        "nv3_tile_checked": ("Calls checked 24 h", "Lượt gọi đã kiểm tra 24 giờ"),
+        "nv3_tile_checked": ("Calls checked, 24 h", "Lệnh gọi đã kiểm tra, 24 giờ"),
         "nv3_tile_stopped": ("Stopped by a rule", "Bị quy tắc chặn"),
         "nv3_tile_cases": ("Open cases", "Vụ việc đang mở"),
-        "nv3_unmanaged_n": ("{n} unmanaged", "{n} chưa quản lý"),
+        "nv3_unmanaged_n": ("{n} not managed", "{n} chưa quản lý"),
         "nv3_actions_split": (
             "{cases} cases · {approvals} approvals · {tasks} tasks",
             "{cases} vụ việc · {approvals} phê duyệt · {tasks} công việc",
@@ -3451,38 +3290,29 @@ _T.update(
             "{n} of {of} control checks working",
             "{n} trên {of} kiểm tra kiểm soát đang hoạt động",
         ),
-        "nv3_overdue_oldest": ("oldest {d} d", "lâu nhất {d} ngày"),
-        "nv3_no_clock": ("no SBV clock running", "không có đồng hồ SBV đang chạy"),
-        "nv3_cover_full": ("full", "đủ"),
-        "nv3_cover_below": ("below floor", "dưới mức tối thiểu"),
+        "nv3_overdue_oldest": ("oldest: {d} days", "lâu nhất: {d} ngày"),
+        "nv3_no_clock": (
+            "no SBV reporting clock running",
+            "không có đồng hồ báo cáo NHNN đang chạy",
+        ),
+        "nv3_cover_full": ("fully covered", "đủ"),
+        "nv3_cover_below": ("below the minimum", "dưới mức tối thiểu"),
         "nv3_cover_master_off": (
-            "Detectors are off (DETECTORS_ENABLED=1 turns them on), so no agent is covered.",
-            "Bộ phát hiện đang tắt (DETECTORS_ENABLED=1 để bật), nên chưa tác tử nào được phủ.",
+            "Detectors are switched off, so no agent is covered.",
+            "Bộ phát hiện đang tắt nên chưa có tác tử nào được bảo vệ.",
         ),
         # reasons a figure is not available
-        "nv3_na_inventory_off": (
-            "Inventory is off (INVENTORY_ENABLED=1 turns it on).",
-            "Kiểm kê đang tắt (INVENTORY_ENABLED=1 để bật).",
-        ),
-        "nv3_na_controls_off": (
-            "Controls are off (CONTROLS_ENABLED=1 turns them on).",
-            "Kiểm soát đang tắt (CONTROLS_ENABLED=1 để bật).",
-        ),
-        "nv3_na_risks_off": (
-            "The risk register is off (RISK_REGISTER_ENABLED=1 turns it on).",
-            "Sổ rủi ro đang tắt (RISK_REGISTER_ENABLED=1 để bật).",
-        ),
-        "nv3_na_compliance_off": (
-            "The compliance tab is off (CONSOLE_COMPLIANCE_ENABLED=1 turns it on).",
-            "Tab tuân thủ đang tắt (CONSOLE_COMPLIANCE_ENABLED=1 để bật).",
-        ),
+        "nv3_na_inventory_off": ("Inventory is switched off.", "Phần kiểm kê đang tắt."),
+        "nv3_na_controls_off": ("Controls are switched off.", "Phần kiểm soát đang tắt."),
+        "nv3_na_risks_off": ("The risk register is switched off.", "Sổ rủi ro đang tắt."),
+        "nv3_na_compliance_off": ("The compliance tab is switched off.", "Tab tuân thủ đang tắt."),
         "nv3_na_detector_file": (
-            "config/detectors.yaml cannot be read.",
+            "Cannot read config/detectors.yaml.",
             "Không đọc được config/detectors.yaml.",
         ),
         "nv3_na_no_mandatory": (
-            "No detector in config/detectors.yaml is marked fail_closed.",
-            "Không có bộ phát hiện nào trong config/detectors.yaml đặt fail_closed.",
+            "No detector in config/detectors.yaml is set to fail_closed.",
+            "Chưa bộ phát hiện nào trong config/detectors.yaml được đặt fail_closed.",
         ),
         "nv3_na_no_agents": ("No agent is in scope.", "Không có tác tử nào trong phạm vi."),
         "nv3_na_no_status": (
@@ -3498,77 +3328,71 @@ _T.update(
         "nv3_c_risk": ("Risk tier", "Mức rủi ro"),
         "nv3_c_guardian": ("Guardian", "Bộ bảo vệ"),
         "nv3_c_cases": ("Open cases", "Vụ việc mở"),
-        "nv3_c_coverage": ("Gate coverage", "Độ phủ cổng"),
+        "nv3_c_coverage": ("Gate coverage", "Phạm vi cổng bảo vệ"),
         "nv3_no_agents": ("No agent in this scope", "Không có tác tử trong phạm vi này"),
         "nv3_no_agents_line": (
-            "Switch the scope to see more agents.",
+            "Change the scope to see more agents.",
             "Đổi phạm vi để xem thêm tác tử.",
         ),
         "nv3_waiting": ("Actions waiting on me", "Việc đang chờ tôi"),
         "nv3_waiting_none": ("Nothing waits on you", "Không có việc nào chờ bạn"),
         "nv3_waiting_none_line": (
-            "Assigned cases, sign-offs and required tasks show here.",
-            "Vụ việc được giao, phê duyệt và công việc bắt buộc sẽ hiện ở đây.",
+            "Cases assigned to you, approvals and required tasks show here.",
+            "Vụ việc được giao, phê duyệt và công việc bắt buộc dành cho bạn sẽ hiện ở đây.",
         ),
-        "nv3_c_what": ("What", "Việc"),
+        "nv3_c_what": ("Action", "Việc cần làm"),
         "nv3_c_kind": ("Kind", "Loại"),
         "nv3_kind_case": ("case", "vụ việc"),
         "nv3_kind_approval": ("approval", "phê duyệt"),
         "nv3_kind_task": ("task", "công việc"),
-        "nv3_inbox_n": ("{n} unread notices in the inbox", "{n} thông báo chưa đọc trong hộp thư"),
+        "nv3_inbox_n": ("{n} unread notices", "{n} thông báo chưa đọc"),
         "nv3_recent": ("Recent events", "Sự kiện gần đây"),
         # Governance overview
         "nv3_gov_overview": ("Governance overview", "Tổng quan quản trị"),
-        "nv3_gov_sub": (
-            "The portfolio of the {n} agents in scope.",
-            "Danh mục của {n} tác tử trong phạm vi.",
-        ),
+        "nv3_gov_sub": ("All {n} agents in scope.", "Toàn bộ {n} tác tử trong phạm vi."),
         "nv3_by_stage": ("By lifecycle stage", "Theo giai đoạn vòng đời"),
         "nv3_c_stage": ("Stage", "Giai đoạn"),
-        "nv3_c_open_required": ("Open required tasks", "Công việc bắt buộc đang mở"),
-        "nv3_risk_posture": ("Risk posture", "Tình hình rủi ro"),
+        "nv3_c_open_required": ("Required tasks open", "Công việc bắt buộc đang mở"),
+        "nv3_risk_posture": ("Risk overview", "Tổng quan rủi ro"),
         "nv3_c_band": ("Band", "Mức"),
-        "nv3_c_risks": ("Active risks", "Rủi ro đang hiệu lực"),
+        "nv3_c_risks": ("Active risks", "Rủi ro hiện hành"),
         "nv3_c_treated": ("Treated", "Đã xử lý"),
         "nv3_c_accepted": ("Accepted", "Chấp nhận"),
-        "nv3_no_risks": ("No active risk in scope.", "Không có rủi ro hiệu lực trong phạm vi."),
+        "nv3_no_risks": ("No active risks in scope.", "Không có rủi ro hiện hành trong phạm vi."),
         "nv3_policy_impl": ("Policy implementation", "Triển khai chính sách"),
         "nv3_c_obligations": ("Obligations that apply", "Nghĩa vụ áp dụng"),
-        "nv3_c_met": ("Met", "Đạt"),
-        "nv3_c_gap": ("Gap", "Thiếu"),
+        "nv3_c_met": ("Met", "Đã đạt"),
+        "nv3_c_gap": ("Not met", "Chưa đạt"),
         "nv3_c_progress": ("Progress", "Tiến độ"),
         "nv3_no_matrix": (
             "No compliance matrix for the agents in scope.",
             "Chưa có ma trận tuân thủ cho các tác tử trong phạm vi.",
         ),
         "nv3_policy_note": (
-            "From the advisory compliance matrix. Not legal advice; bank counsel confirms.",
-            "Từ ma trận tuân thủ mang tính tư vấn. Không phải tư vấn pháp lý; pháp chế ngân "
-            "hàng xác nhận.",
+            "From the advisory compliance matrix. Not legal advice. Bank counsel confirms.",
+            "Lấy từ ma trận tuân thủ mang tính tham khảo. Không phải tư vấn pháp lý. Pháp chế ngân hàng xác nhận.",
         ),
         # Supervisor overview
         "nv3_sup_overview": ("Supervisor overview", "Tổng quan giám sát"),
         "nv3_sup_sub": (
-            "Runtime health of the {n} agents in scope.",
-            "Tình trạng vận hành của {n} tác tử trong phạm vi.",
+            "How the {n} agents in scope are running.",
+            "Tình hình vận hành của {n} tác tử trong phạm vi.",
         ),
-        "nv3_c_blocks": ("Stops 24 h", "Bị chặn 24 giờ"),
+        "nv3_c_blocks": ("Stopped, 24 h", "Bị chặn 24 giờ"),
         "nv3_c_detectors": ("Detectors", "Bộ phát hiện"),
         "nv3_c_p95": ("Latency p95", "Độ trễ p95"),
         "nv3_capped": (
-            "scan limit reached, newest rows only",
-            "đạt giới hạn quét, chỉ các dòng mới nhất",
+            "scan limit reached, newest items only",
+            "đạt giới hạn quét, chỉ hiển thị mục mới nhất",
         ),
         "nv3_classified_note": (
-            "Classified means the agent has a Decision 33 class set in the registry; a proposal "
-            "from Onboard does not count.",
-            "Đã phân loại nghĩa là tác tử có phân loại Quyết định 33 trong sổ đăng ký; đề xuất từ "
-            "Onboard không được tính.",
+            "Classified means a Decision 33 class is set for the agent. A suggestion from Onboard does not count.",
+            "Đã phân loại nghĩa là tác tử đã có phân loại Quyết định 33. Đề xuất từ Tiếp nhận chưa được tính.",
         ),
-        "nv3_ast_active": ("active", "đang dùng"),
-        "nv3_ast_unmanaged": ("unmanaged", "chưa quản lý"),
-        "nv3_ast_allowlisted": ("allow-listed", "cho phép"),
-        "nv3_ast_gone": ("gone", "đã biến mất"),
+        "nv3_ast_active": ("in use", "đang dùng"),
+        "nv3_ast_unmanaged": ("not managed", "chưa quản lý"),
+        "nv3_ast_allowlisted": ("approved to run", "được phép dùng"),
+        "nv3_ast_gone": ("no longer found", "không còn tìm thấy"),
         "nv3_stage_initiation": ("initiation", "khởi tạo"),
         "nv3_stage_design": ("design", "thiết kế"),
         "nv3_stage_validation": ("validation", "thẩm định"),
@@ -3580,66 +3404,66 @@ _T.update(
         "nv3_ms": ("{ms} ms", "{ms} mili giây"),
         "nv3_checked_sub": ("across {n} agents", "trên {n} tác tử"),
         "nv3_no_task_list": ("no task list yet", "chưa có danh sách công việc"),
-        "nv3_c_chain": ("Chain", "Chuỗi"),
-        "nv3_alerts_7d": ("Alerts fired 7 d", "Cảnh báo 7 ngày"),
+        "nv3_c_chain": ("Evidence", "Bằng chứng"),
+        "nv3_alerts_7d": ("Alerts, last 7 days", "Cảnh báo 7 ngày qua"),
         "nv3_c_rule": ("Rule", "Quy tắc"),
         "nv3_c_count": ("Count", "Số lượng"),
-        "nv3_no_alerts": ("No alert fired in 7 days.", "Không có cảnh báo trong 7 ngày."),
-        "nv3_judges_packs": ("Judges and packs", "Bộ đánh giá AI và gói kiểm thử"),
-        "nv3_c_item": ("Item", "Mục"),
-        "nv3_no_model": ("no judge model set", "chưa đặt mô hình đánh giá"),
-        "nv3_last_pack": ("Assurance packs, last run", "Gói kiểm thử, lần chạy gần nhất"),
-        "nv3_pack_counts": (
-            "{ok} ok · {warn} warn · {fail} fail",
-            "{ok} đạt · {warn} cảnh báo · {fail} lỗi",
+        "nv3_no_alerts": (
+            "No alerts in the last 7 days.",
+            "Không có cảnh báo nào trong 7 ngày qua.",
         ),
-        "nv3_no_pack": ("no run yet", "chưa chạy"),
+        "nv3_judges_packs": ("AI judges and test packs", "Bộ đánh giá AI và gói kiểm thử"),
+        "nv3_c_item": ("Item", "Mục"),
+        "nv3_no_model": ("no AI judge model set", "chưa chọn mô hình cho bộ đánh giá AI"),
+        "nv3_last_pack": ("Test packs, latest run", "Gói kiểm thử, lần chạy gần nhất"),
+        "nv3_pack_counts": (
+            "{ok} passed · {warn} warnings · {fail} failed",
+            "{ok} đạt · {warn} cảnh báo · {fail} không đạt",
+        ),
+        "nv3_no_pack": ("not run yet", "chưa chạy"),
         # Catalogues and Guardians tabs
         "nv3_c_name": ("Name", "Tên"),
         "nv3_c_own_risk": ("Own risk", "Rủi ro riêng"),
         "nv3_c_last_seen": ("Last seen", "Thấy lần cuối"),
         "nv3_unspecified": ("unspecified", "chưa xác định"),
-        "nv3_assets_none": ("Nothing in this catalogue", "Danh mục này chưa có mục nào"),
+        "nv3_assets_none": ("Nothing listed yet", "Chưa có mục nào"),
         "nv3_assets_none_line": (
-            "python -m supervisor.jobs.inventory fills it.",
-            "Chạy python -m supervisor.jobs.inventory để điền.",
+            "Run python -m supervisor.jobs.inventory to fill the list.",
+            "Chạy python -m supervisor.jobs.inventory để lập danh sách.",
         ),
         "nv3_g_lede_detectors": (
-            "Checks that run inside the gate call. Only dlp_vn may change a call; the rest report.",
-            "Các kiểm tra chạy trong lượt gọi qua cổng. Chỉ dlp_vn được sửa nội dung; còn lại "
-            "chỉ báo cáo.",
+            "Checks that run on every call through the gate. Only dlp_vn may change a call. The others only report.",
+            "Các kiểm tra chạy trên mọi lệnh gọi qua cổng. Chỉ dlp_vn được sửa nội dung lệnh gọi. Các kiểm tra khác chỉ báo cáo.",
         ),
         "nv3_g_lede_judges": (
-            "AI judges advise. They open a case or raise severity; they never block.",
-            "Bộ đánh giá AI chỉ tư vấn. Chúng mở vụ việc hoặc nâng mức độ; không bao giờ chặn.",
+            "AI judges advise only. They can open a case or raise severity. They never block a call.",
+            "Bộ đánh giá AI chỉ tư vấn. Chúng có thể mở vụ việc hoặc nâng mức độ, nhưng không chặn lệnh gọi.",
         ),
         "nv3_g_lede_monitors": (
-            "Monitors watch behaviour over time and open cases or alerts.",
-            "Bộ giám sát theo dõi hành vi theo thời gian và mở vụ việc hoặc cảnh báo.",
+            "Monitors watch agent behaviour over time. They open cases or alerts.",
+            "Bộ giám sát theo dõi hành vi tác tử theo thời gian và mở vụ việc hoặc cảnh báo.",
         ),
         "nv3_c_detector": ("Detector", "Bộ phát hiện"),
-        "nv3_c_in_file": ("In the file", "Trong tệp"),
+        "nv3_c_in_file": ("In the config file", "Trong tệp cấu hình"),
         "nv3_c_mandatory": ("Mandatory", "Bắt buộc"),
         "nv3_mandatory_note": (
-            "Mandatory means fail_closed in config/detectors.yaml. An agent has full guardian "
-            "coverage when all of them are on for it.",
-            "Bắt buộc nghĩa là fail_closed trong config/detectors.yaml. Tác tử được phủ đủ khi "
-            "tất cả đều bật cho nó.",
+            "Mandatory means fail_closed in config/detectors.yaml. An agent is fully covered when all mandatory detectors are on for it.",
+            "Bắt buộc nghĩa là fail_closed trong config/detectors.yaml. Tác tử được bảo vệ đầy đủ khi mọi bộ phát hiện bắt buộc đều bật cho tác tử đó.",
         ),
         # Workflows
         "nv3_wf_lede": (
-            "What runs by itself in this instance. Read only: there is no editor yet.",
-            "Những gì tự chạy trong hệ thống này. Chỉ đọc: chưa có trình chỉnh sửa.",
+            "Automatic jobs and rules. View only.",
+            "Các công việc và quy tắc tự động. Chỉ xem.",
         ),
         "nv3_c_workflow": ("Workflow", "Quy trình"),
-        "nv3_c_every": ("Every or window", "Chu kỳ hoặc cửa sổ"),
+        "nv3_c_every": ("How often", "Tần suất"),
         "nv3_c_last_run": ("Last run", "Lần chạy cuối"),
-        "nv3_kind_wf_job": ("scheduler job", "tác vụ định kỳ"),
+        "nv3_kind_wf_job": ("scheduled job", "tác vụ theo lịch"),
         "nv3_kind_wf_alert": ("alert rule", "quy tắc cảnh báo"),
         "nv3_kind_wf_approval": ("approval", "phê duyệt"),
-        "nv3_kind_wf_sink": ("sink", "đầu ra"),
-        "nv3_wf_signoff": ("Case sign-off", "Phê duyệt vụ việc"),
-        "nv3_wf_resume": ("Resume a paused agent", "Cho tác tử tạm dừng chạy lại"),
+        "nv3_kind_wf_sink": ("evidence destination", "nơi lưu bằng chứng"),
+        "nv3_wf_signoff": ("Case approval", "Phê duyệt vụ việc"),
+        "nv3_wf_resume": ("Restart a paused agent", "Cho tác tử đang tạm dừng chạy lại"),
         "nv3_wf_waive": ("Waive a required task", "Miễn một công việc bắt buộc"),
         "nv3_wf_siem": ("SIEM export", "Xuất sang SIEM"),
         "nv3_wf_webhook": ("Webhook notices", "Thông báo webhook"),
@@ -3648,22 +3472,20 @@ _T.update(
             "hai người cho vụ việc mức cao và nghiêm trọng",
         ),
         "nv3_wfd_resume": ("the owner and a reviewer", "chủ sở hữu và một người rà soát"),
-        "nv3_wfd_waive": ("a reason and a second person", "cần lý do và người thứ hai"),
+        "nv3_wfd_waive": ("a reason and a second approver", "cần lý do và người phê duyệt thứ hai"),
         "nv3_wf_sched_none": (
-            "not running in this process, so job state is not available",
-            "không chạy trong tiến trình này, nên không có trạng thái tác vụ",
+            "not running here, so job status is not available",
+            "không chạy tại đây nên chưa có trạng thái tác vụ",
         ),
         "nv3_wf_rules_unreadable": (
-            "config/alerts.yaml cannot be read, so the alert rules are not listed.",
+            "Cannot read config/alerts.yaml, so alert rules are not listed.",
             "Không đọc được config/alerts.yaml nên không liệt kê quy tắc cảnh báo.",
         ),
         "nv3_threshold": ("threshold {n}", "ngưỡng {n}"),
-        "nv3_never": ("never", "chưa chạy"),
+        "nv3_never": ("Never run", "Chưa chạy lần nào"),
         "nv3_wf_note": (
-            "Assignment rules, the Decision 33 question flow and event actions come with the "
-            "governance work packages; this page lists them when they exist.",
-            "Quy tắc phân công, luồng câu hỏi Quyết định 33 và hành động theo sự kiện sẽ đến "
-            "cùng các gói công việc quản trị; trang này sẽ liệt kê khi chúng có.",
+            "Assignment rules, the Decision 33 question flow and event actions will be listed here once they are set up.",
+            "Quy tắc phân công, luồng câu hỏi Quyết định 33 và hành động theo sự kiện sẽ được liệt kê ở đây khi được thiết lập.",
         ),
     }
 )
@@ -3693,10 +3515,8 @@ _T.update(
             "Chưa có tác tử nào liên kết với hệ thống này nên chưa có danh sách nhiệm vụ.",
         ),
         "sy_tasks_initiation_only": (
-            "The risk level of the system is not set. Only the initiation tasks are shown "
-            "until a person sets the level.",
-            "Chưa đặt mức rủi ro của hệ thống. Chỉ có nhiệm vụ khởi tạo cho đến khi có người "
-            "đặt mức.",
+            "The risk level is not set yet. Only initiation tasks show until someone sets it.",
+            "Chưa đặt mức rủi ro. Chỉ hiện các nhiệm vụ khởi tạo cho đến khi có người đặt mức.",
         ),
         "sy_rv_title": ("Review", "Rà soát"),
         "sy_rv_kind": ("Kind", "Loại"),
@@ -3705,15 +3525,18 @@ _T.update(
         "sy_rv_kind_conformity": ("Conformity", "Đánh giá sự phù hợp"),
         "sy_rv_kind_classification_audit": ("Classification audit", "Kiểm toán phân loại"),
         "sy_rv_reviewer": ("Reviewer", "Người rà soát"),
-        "sy_rv_window": ("Window", "Khoảng thời gian"),
+        "sy_rv_window": ("Period", "Khoảng thời gian"),
         "sy_rv_reports": ("Reports", "Báo cáo"),
         "sy_rv_st_planned": ("Planned", "Đã lên kế hoạch"),
         "sy_rv_st_in_progress": ("In progress", "Đang thực hiện"),
-        "sy_rv_st_completed": ("Completed", "Hoàn thành"),
+        "sy_rv_st_completed": ("Completed", "Hoàn tất"),
         "sy_rv_st_reopened": ("Reopened", "Mở lại"),
         "sy_rv_locked": ("locked", "đã khóa"),
-        "sy_rv_reopened_n": ("reopened {n}x", "mở lại {n} lần"),
-        "sy_rv_none": ("No reviews yet.", "Chưa có đợt rà soát."),
+        "sy_rv_reopened_n": ("reopened {n} times", "mở lại {n} lần"),
+        "sy_rv_none": (
+            "No reviews yet. Reviews start at the Validation stage.",
+            "Chưa có đợt rà soát. Rà soát bắt đầu ở giai đoạn Thẩm định.",
+        ),
     }
 )
 
@@ -3723,7 +3546,7 @@ _T.update(
     {
         # tabs of the system page
         "ux4b_tab_reports": ("Reports", "Báo cáo"),
-        "ux4b_risks_sum": ("Risks that reach this system", "Rủi ro chạm tới hệ thống này"),
+        "ux4b_risks_sum": ("Risks affecting this system", "Rủi ro ảnh hưởng đến hệ thống này"),
         "ux4b_risks_line": (
             "{active} active risks, {inherited} of them inherited from a part the system uses.",
             "{active} rủi ro đang áp dụng, trong đó {inherited} rủi ro thừa hưởng từ thành "
@@ -3736,52 +3559,43 @@ _T.update(
             "Không có rủi ro đang áp dụng nào chạm tới hệ thống này.",
         ),
         "ux4b_risks_none_line": (
-            "Link an agent or a node that has risks, or add a risk on the Risks page.",
-            "Hãy liên kết tác tử hoặc nút có rủi ro, hoặc thêm rủi ro ở trang Rủi ro.",
+            "Link an agent that has risks, or add a risk on the Risks page.",
+            "Hãy liên kết tác tử có rủi ro, hoặc thêm rủi ro ở trang Rủi ro.",
         ),
         "ux4b_agents_unregistered": (
             "Linked agents that are not registered",
             "Tác tử đã liên kết nhưng chưa đăng ký",
         ),
-        "ux4b_policies_sum": (
-            "Obligations that apply to this system",
-            "Nghĩa vụ áp dụng cho hệ thống này",
-        ),
+        "ux4b_policies_sum": ("Duties that apply", "Nghĩa vụ áp dụng"),
         "ux4b_na_no_matrix": (
             "No linked agent has a compliance matrix yet.",
             "Chưa có tác tử nào liên kết có ma trận tuân thủ.",
         ),
         "ux4b_policies_source": ("Matrices read from", "Ma trận đọc từ"),
-        "ux4b_policies_rule": (
-            "{n} obligations assigned by rules",
-            "{n} nghĩa vụ do quy tắc gán",
-        ),
+        "ux4b_policies_rule": ("{n} duties assigned by rules", "{n} nghĩa vụ do quy tắc gán"),
         "ux4b_policies_missing": (
-            "Agents with no matrix (not counted as met or as gap)",
-            "Tác tử chưa có ma trận (không tính là đạt hay thiếu)",
+            "Agents with no compliance matrix (not counted as met or gap)",
+            "Tác tử chưa có ma trận tuân thủ (không tính là đạt hay thiếu)",
         ),
         "ux4b_class_approval_unchecked": (
-            "Unclassified: a human approval before the action is declared, but not checked in "
-            "code. A person confirms.",
-            "Chưa phân loại: có khai báo người phê duyệt trước khi thực hiện, nhưng chưa kiểm "
-            "tra trong mã. Người có thẩm quyền xác nhận.",
+            "Not classified yet. Approval before the action is declared, but the system does not check it. A reviewer confirms.",
+            "Chưa phân loại. Có khai báo phê duyệt trước khi thực hiện, nhưng hệ thống chưa kiểm tra. Người có thẩm quyền xác nhận.",
         ),
         "ux4b_class_none_declared": (
-            "Unclassified: no money movement or credit decision declared. A person classifies.",
-            "Chưa phân loại: không khai báo chuyển tiền hay quyết định tín dụng. Người có thẩm "
-            "quyền phân loại.",
+            "Not classified yet. No money movement or credit decision declared. A reviewer classifies.",
+            "Chưa phân loại. Chưa khai báo chuyển tiền hay quyết định tín dụng. Người có thẩm quyền phân loại.",
         ),
         "ux4b_na_repo_disabled": (
-            "The readiness advisor is off in the wizard (ONBOARD_ALLOWED_ROOTS is empty).",
-            "Cố vấn mức sẵn sàng đang tắt trong trình hướng dẫn (ONBOARD_ALLOWED_ROOTS trống).",
+            "The readiness check is switched off. Ask an administrator to set ONBOARD_ALLOWED_ROOTS.",
+            "Kiểm tra mức sẵn sàng đang tắt. Hãy nhờ quản trị viên đặt ONBOARD_ALLOWED_ROOTS.",
         ),
         "ux4b_na_time_limit": (
-            "The advisor did not finish within 30 s.",
-            "Cố vấn chưa xong trong 30 giây.",
+            "The readiness check took longer than 30 s and stopped.",
+            "Kiểm tra mức sẵn sàng quá 30 giây nên đã dừng.",
         ),
         "ux4b_intake_missing": (
-            "The draft is registered, but its intake tasks could not be opened.",
-            "Bản nháp đã được đăng ký, nhưng chưa mở được các nhiệm vụ khai báo.",
+            "Draft registered, but the intake tasks were not created. Try again.",
+            "Bản nháp đã đăng ký, nhưng chưa tạo được các nhiệm vụ khai báo. Hãy thử lại.",
         ),
         "ux4b_intake_retry": ("Create the intake tasks", "Tạo các nhiệm vụ khai báo"),
         "ux4b_dimname_accuracy": ("Accuracy", "Độ chính xác"),
@@ -3791,45 +3605,40 @@ _T.update(
         "ux4b_dimname_security": ("Security", "Bảo mật"),
         "ux4b_dimname_robustness": ("Robustness", "Độ bền vững"),
         "ux4b_gate_required": ("required", "bắt buộc"),
-        "ux4b_gate_advisory": ("advisory", "tham vấn"),
+        "ux4b_gate_advisory": ("advice only", "chỉ khuyến nghị"),
         "ux4b_gate_off": ("off", "tắt"),
         "ux4b_class_open_questions": (
-            "Some questions are left to a person, so the class stays a proposal. After "
-            "registering, the Classification tab holds the draft.",
-            "Một số câu hỏi do con người trả lời nên phân loại chỉ là đề xuất. Sau khi đăng ký, "
-            "tab Phân loại giữ bản nháp.",
+            "Some questions need a reviewer, so this class is only a suggestion. After you register, find the draft on the Classification tab.",
+            "Một số câu hỏi cần người có thẩm quyền trả lời, nên phân loại này chỉ là đề xuất. Sau khi đăng ký, bạn xem bản nháp ở tab Phân loại.",
         ),
-        "ux4b_instrument": ("Instrument", "Văn bản"),
+        "ux4b_instrument": ("Regulation", "Văn bản quy định"),
         "ux4b_partial": ("Partial", "Một phần"),
         "ux4b_binding": ("binding", "có hiệu lực bắt buộc"),
-        "ux4b_policies_gaps": ("Obligations with a gap", "Nghĩa vụ còn thiếu"),
-        "ux4b_obligation": ("Obligation", "Nghĩa vụ"),
+        "ux4b_policies_gaps": ("Duties with a gap", "Nghĩa vụ còn thiếu"),
+        "ux4b_obligation": ("Duty", "Nghĩa vụ"),
         "ux4b_more": ("{n} more not shown.", "Còn {n} mục không hiển thị."),
-        "ux4b_policies_none": (
-            "No obligation applies yet.",
-            "Chưa có nghĩa vụ nào áp dụng.",
-        ),
+        "ux4b_policies_none": ("No duty applies yet.", "Chưa có nghĩa vụ nào áp dụng."),
         "ux4b_policies_none_line": (
-            "The matrices list no obligation with applies = yes.",
-            "Các ma trận không có nghĩa vụ nào được đánh dấu áp dụng.",
+            "No duty is marked as applying in the compliance matrices.",
+            "Chưa có nghĩa vụ nào được đánh dấu là áp dụng trong các ma trận tuân thủ.",
         ),
         "ux4b_detectors_on": ("Detectors on", "Bộ phát hiện đang bật"),
         "ux4b_mandatory_file": (
             "Mandatory in config/detectors.yaml (fail_closed)",
             "Bắt buộc trong config/detectors.yaml (fail_closed)",
         ),
-        "ux4b_floor": ("Mandatory guardian floor", "Mức bảo vệ tối thiểu bắt buộc"),
+        "ux4b_floor": ("Minimum required guardians", "Bộ bảo vệ tối thiểu bắt buộc"),
         "ux4b_floor_none": (
             "No rule assigns a guardian to this system.",
             "Chưa có quy tắc nào gán bộ bảo vệ cho hệ thống này.",
         ),
         "ux4b_guardians_readonly": (
-            "Read only. Per-system switches come with the guardian bindings work package.",
-            "Chỉ xem. Công tắc theo từng hệ thống sẽ có ở gói công việc liên kết bộ bảo vệ.",
+            "View only. Switching guardians on or off per system is not available yet.",
+            "Chỉ xem. Chưa thể bật hoặc tắt bộ bảo vệ cho từng hệ thống.",
         ),
         "ux4b_na_no_rules": (
-            "The assignment rules engine is not installed in this build.",
-            "Bản dựng này chưa có bộ máy quy tắc gán.",
+            "Rule-based assignment is not available in this version.",
+            "Phiên bản này chưa có tính năng gán theo quy tắc.",
         ),
         "ux4b_na_transparency_off": (
             "Transparency reports are off (TRANSPARENCY_ENABLED=1 turns them on).",
@@ -3846,8 +3655,8 @@ _T.update(
         "ux4b_audit_pack_open": ("Open the Evidence page", "Mở trang Bằng chứng"),
         "ux4b_incidents": ("Incidents", "Sự cố"),
         "ux4b_na_incidents_flag": (
-            "Incidents are off (GOVERNANCE_ACTIONS_ENABLED=1 turns them on).",
-            "Sự cố đang tắt (GOVERNANCE_ACTIONS_ENABLED=1 để bật).",
+            "Incidents are switched off. Ask an administrator to set GOVERNANCE_ACTIONS_ENABLED=1.",
+            "Sự cố đang tắt. Hãy nhờ quản trị viên đặt GOVERNANCE_ACTIONS_ENABLED=1.",
         ),
         # register wizard
         "ux4b_register_wizard": ("Register a system", "Đăng ký hệ thống"),
@@ -3857,14 +3666,12 @@ _T.update(
         "ux4b_step_checks": ("Preliminary checks", "Kiểm tra sơ bộ"),
         "ux4b_step_register": ("Register the draft", "Đăng ký bản nháp"),
         "ux4b_wiz_hint": (
-            "Answer the intake questions. The next page runs the preliminary checks. Nothing is "
-            "stored until you confirm it.",
-            "Trả lời các câu hỏi khai báo. Trang kế tiếp chạy kiểm tra sơ bộ. Chưa lưu gì cho "
-            "đến khi bạn xác nhận.",
+            "Answer the intake questions. Preliminary checks run on the next page. Nothing is saved until you confirm.",
+            "Trả lời các câu hỏi khai báo. Kiểm tra sơ bộ chạy ở trang tiếp theo. Chưa lưu gì cho đến khi bạn xác nhận.",
         ),
         "ux4b_wiz_scope": (
-            "You register for yourself, and only for a team you already work in: {teams}.",
-            "Bạn đăng ký cho chính mình, và chỉ cho nhóm bạn đã làm việc: {teams}.",
+            "You can register only for yourself, in a team you already work in: {teams}.",
+            "Bạn chỉ đăng ký được cho chính mình, trong nhóm bạn đang làm việc: {teams}.",
         ),
         "ux4b_f_autonomy": ("Autonomy level", "Mức tự chủ"),
         "ux4b_autonomy_unset": ("not set", "chưa đặt"),
@@ -3882,65 +3689,62 @@ _T.update(
         "ux4b_autonomy_l5_self_directed": ("L5 Self directed", "L5 Tự định hướng"),
         "ux4b_f_repo": ("Repository folder (optional)", "Thư mục mã nguồn (không bắt buộc)"),
         "ux4b_f_repo_hint": (
-            "With a folder, the checks run the integration readiness advisor on it. Read only; "
-            "the folder must be inside a git repository.",
-            "Khi có thư mục, kiểm tra sẽ chạy cố vấn mức sẵn sàng tích hợp trên đó. Chỉ đọc; "
-            "thư mục phải nằm trong một kho git.",
+            "Add a folder and the checks also review how ready your code is to connect. The folder is only read and must be in a git repository.",
+            "Nếu có thư mục, kiểm tra sẽ đánh giá thêm mức sẵn sàng kết nối của mã nguồn. Thư mục chỉ được đọc và phải nằm trong một kho git.",
         ),
         "ux4b_run_checks": ("Run the preliminary checks", "Chạy kiểm tra sơ bộ"),
         "ux4b_cancel": ("Cancel", "Hủy"),
         "ux4b_back": ("Back to the form", "Quay lại biểu mẫu"),
         "ux4b_nothing_applied": ("Nothing is applied.", "Chưa áp dụng gì."),
         "ux4b_nothing_applied_line": (
-            "These are proposals. Registering stores a draft and opens the initiation tasks. "
-            "A person sets the class and the risk level later.",
-            "Đây chỉ là đề xuất. Đăng ký chỉ lưu bản nháp và mở các nhiệm vụ khởi tạo. "
-            "Người có thẩm quyền sẽ đặt phân loại và mức rủi ro sau.",
+            "These are suggestions. Registering saves a draft and opens the intake tasks. A reviewer sets the class and risk level later.",
+            "Đây chỉ là đề xuất. Đăng ký sẽ lưu bản nháp và mở các nhiệm vụ khai báo. Người có thẩm quyền sẽ đặt phân loại và mức rủi ro sau.",
         ),
         "ux4b_readiness": ("Integration readiness", "Mức sẵn sàng tích hợp"),
         "ux4b_readiness_line": (
-            "Folder {folder}: {tools} tools found, {patches} patches proposed.",
-            "Thư mục {folder}: tìm thấy {tools} công cụ, đề xuất {patches} bản vá.",
+            "Folder {folder}: {tools} tools found, {patches} fixes suggested.",
+            "Thư mục {folder}: tìm thấy {tools} công cụ, đề xuất {patches} bản sửa.",
         ),
         "ux4b_readiness_note": (
-            "Static analysis only; no model wrote these numbers. The band is advice.",
-            "Chỉ phân tích tĩnh; không mô hình nào tạo các số này. Mức này chỉ là lời khuyên.",
+            "Based on a code scan only. No AI model produced these numbers. The rating is advice, not a decision.",
+            "Chỉ dựa trên quét mã nguồn. Không có mô hình AI nào tạo ra các số này. Mức đánh giá chỉ là khuyến nghị, không phải quyết định.",
         ),
         "ux4b_area": ("Area", "Hạng mục"),
         "ux4b_points": ("Points", "Điểm"),
-        "ux4b_band_ready": ("Ready for shadow onboarding", "Sẵn sàng đưa vào chế độ bóng"),
-        "ux4b_band_patches": ("Needs the patches", "Cần áp dụng các bản vá"),
+        "ux4b_band_ready": (
+            "Ready to start in monitor-only mode",
+            "Sẵn sàng chạy ở chế độ chỉ theo dõi",
+        ),
+        "ux4b_band_patches": (
+            "Apply the suggested fixes first",
+            "Cần áp dụng các bản sửa đề xuất trước",
+        ),
         "ux4b_band_work": ("Needs work first", "Cần xử lý trước"),
         "ux4b_na_no_repo": (
             "No repository folder was given.",
             "Chưa cung cấp thư mục mã nguồn.",
         ),
         "ux4b_na_advisor_failed": (
-            "The advisor could not read this folder.",
-            "Cố vấn không đọc được thư mục này.",
+            "The readiness check could not read this folder. Check the path and try again.",
+            "Kiểm tra mức sẵn sàng không đọc được thư mục này. Hãy kiểm tra đường dẫn và thử lại.",
         ),
-        "ux4b_class": ("Risk class proposal", "Đề xuất phân loại rủi ro"),
-        "ux4b_class_level": (
-            "proposed risk level: {level}",
-            "mức rủi ro đề xuất: {level}",
-        ),
+        "ux4b_class": ("Suggested risk class", "Phân loại rủi ro đề xuất"),
+        "ux4b_class_level": ("Suggested risk level: {level}", "Mức rủi ro đề xuất: {level}"),
         "ux4b_class_nolevel": (
-            "no level proposed; a person sets it",
-            "chưa đề xuất mức; người có thẩm quyền sẽ đặt",
+            "No level suggested. A reviewer sets it.",
+            "Chưa đề xuất mức. Người có thẩm quyền sẽ đặt.",
         ),
-        "ux4b_class_src_declared": ("from the declared fields", "từ các trường đã khai báo"),
+        "ux4b_class_src_declared": ("from your answers", "từ nội dung bạn đã khai"),
         "ux4b_class_src_rules": ("from the classification rules", "từ quy tắc phân loại"),
-        "ux4b_class_because": ("Because of", "Vì"),
+        "ux4b_class_because": ("Based on", "Dựa trên"),
         "ux4b_class_note": (
-            "Decision 33: money movement or a credit decision without a human approval before "
-            "the action is high risk. A person confirms the class.",
-            "Quyết định 33: chuyển tiền hoặc quyết định tín dụng mà không có người phê duyệt "
-            "trước khi thực hiện là rủi ro cao. Người có thẩm quyền xác nhận phân loại.",
+            "Under Decision 33, moving money or making a credit decision without prior human approval is high risk. A reviewer confirms the class.",
+            "Theo Quyết định 33, chuyển tiền hoặc ra quyết định tín dụng mà không có người phê duyệt trước là rủi ro cao. Người có thẩm quyền xác nhận phân loại.",
         ),
-        "ux4b_packs": ("Assurance packs to run", "Gói đảm bảo cần chạy"),
+        "ux4b_packs": ("Automated checks to run", "Kiểm tra tự động cần chạy"),
         "ux4b_packs_sub": ("for the declared system", "cho hệ thống đã khai báo"),
-        "ux4b_pack": ("Pack", "Gói"),
-        "ux4b_dimension": ("Dimension", "Khía cạnh"),
+        "ux4b_pack": ("Check", "Kiểm tra"),
+        "ux4b_dimension": ("Risk type", "Loại rủi ro"),
         "ux4b_why": ("Why", "Lý do"),
         "ux4b_gate": ("Launch gate", "Cổng ra mắt"),
         "ux4b_packs_note": (
@@ -3950,8 +3754,8 @@ _T.update(
             "--target agent:<id>.",
         ),
         "ux4b_na_packs": (
-            "The pack manifests cannot be read or none applies.",
-            "Không đọc được tệp mô tả gói hoặc không có gói nào áp dụng.",
+            "No automated checks apply, or their details could not be read.",
+            "Không có kiểm tra tự động nào áp dụng, hoặc không đọc được thông tin của chúng.",
         ),
         "ux4b_dim_acts": (
             "the system answers or acts for people",
@@ -3978,8 +3782,8 @@ _T.update(
             "hệ thống chạy công cụ hoặc luồng dữ liệu có thể lỗi",
         ),
         "ux4b_confirm_line": (
-            "Register this draft and open its initiation tasks?",
-            "Đăng ký bản nháp này và mở các nhiệm vụ khởi tạo?",
+            "Register this draft and start its intake tasks?",
+            "Đăng ký bản nháp này và mở các nhiệm vụ khai báo?",
         ),
         "ux4b_register_draft": ("Register the draft", "Đăng ký bản nháp"),
         # overviews on systems
@@ -3990,9 +3794,8 @@ _T.update(
             " · {n} chưa có tác tử",
         ),
         "ux4b_my_sub": (
-            "{systems} systems under your care. {actions} items wait on you, {cases} cases are "
-            "open.",
-            "{systems} hệ thống bạn phụ trách. {actions} việc đang chờ bạn, {cases} ca đang mở.",
+            "You look after {systems} systems. {actions} items wait for you. {cases} cases are open.",
+            "Bạn phụ trách {systems} hệ thống. {actions} việc đang chờ bạn. {cases} vụ việc đang mở.",
         ),
         "ux4b_actions_split": (
             "{cases} cases · {approvals} approvals · {tasks} tasks · {stages} stage moves",
@@ -4008,19 +3811,17 @@ _T.update(
             "Không có hệ thống nào trong phạm vi này.",
         ),
         "ux4b_no_systems_line": (
-            "Register a system, or widen the scope.",
-            "Hãy đăng ký một hệ thống, hoặc mở rộng phạm vi.",
+            "Register an AI system, or widen the scope.",
+            "Hãy đăng ký hệ thống AI, hoặc mở rộng phạm vi.",
         ),
         "ux4b_na_no_systems": ("No system is in scope.", "Không có hệ thống nào trong phạm vi."),
         "ux4b_gov_sub": (
-            "Aggregated over the systems you may view: {n} of {total}.",
-            "Tổng hợp trên các hệ thống bạn được xem: {n} trong {total}.",
+            "Totals for the systems you can view: {n} of {total}.",
+            "Tổng hợp cho các hệ thống bạn được xem: {n} trong {total}.",
         ),
         "ux4b_classified_note": (
-            "Classification rate = systems with a Decision 33 class a person set, over systems "
-            "in scope.",
-            "Tỷ lệ phân loại = số hệ thống đã có phân loại Quyết định 33 do người đặt, trên số "
-            "hệ thống trong phạm vi.",
+            "Classification rate: systems with a Decision 33 class set by a reviewer, out of all systems in scope.",
+            "Tỷ lệ phân loại: số hệ thống đã được người có thẩm quyền đặt phân loại theo Quyết định 33, trên tổng số hệ thống trong phạm vi.",
         ),
         "ux4b_classified_n": ("{n} of {of} systems", "{n} trên {of} hệ thống"),
         "ux4b_by_stage": ("Systems by stage", "Hệ thống theo giai đoạn"),
@@ -4057,14 +3858,8 @@ _T.update(
             "Sự cố được tạo từ các sự kiện quản trị",
         ),
         "inc_why": (
-            "The governance loop turns an alert, a gate stop on a risky tool, a failed "
-            "detector, a failing monitor, an assurance NO-GO, a chain break, a new model "
-            "version or a judge escalation into an incident. Only a person moves an incident "
-            "on and closes it. The loop never pauses or blocks an agent.",
-            "Vòng quản trị biến cảnh báo, việc cổng chặn công cụ rủi ro, bộ phát hiện lỗi, bộ "
-            "giám sát thất bại, kết quả NO-GO của bài đánh giá, chuỗi bằng chứng bị đứt, "
-            "phiên bản mô hình mới hoặc leo thang của bộ đánh giá thành sự cố. Chỉ có người mới "
-            "chuyển trạng thái và đóng sự cố. Vòng này không bao giờ tạm dừng hay chặn tác tử.",
+            "Alerts, gate stops, failed checks and escalations become incidents. Only a person can change the status or close one. Incidents never stop an agent.",
+            "Cảnh báo, lần chặn của cổng, kiểm tra thất bại và leo thang trở thành sự cố. Chỉ con người mới đổi trạng thái hoặc đóng sự cố. Sự cố không bao giờ chặn tác tử.",
         ),
         "inc_incident": ("Incident", "Sự cố"),
         "inc_system": ("System", "Hệ thống"),
@@ -4079,25 +3874,29 @@ _T.update(
         "inc_st_resolved": ("Resolved", "Đã xử lý"),
         "inc_st_closed": ("Closed", "Đã đóng"),
         "inc_kind_alert": ("Alert", "Cảnh báo"),
-        "inc_kind_gate_stop": ("Gate stop on a risky tool", "Cổng chặn công cụ rủi ro"),
+        "inc_kind_gate_stop": (
+            "Risky tool call stopped at the gate",
+            "Cổng chặn lệnh gọi công cụ rủi ro",
+        ),
         "inc_kind_detector_failed": ("Detector failed", "Bộ phát hiện lỗi"),
-        "inc_kind_monitor_failing": ("Monitor failing", "Bộ giám sát thất bại"),
+        "inc_kind_monitor_failing": ("Monitor is failing", "Bộ giám sát đang lỗi"),
         "inc_kind_pack_no_go": ("Assurance NO-GO", "NO-GO của bài đánh giá"),
-        "inc_kind_chain_break": ("Chain break", "Chuỗi bằng chứng bị đứt"),
+        "inc_kind_chain_break": ("Evidence chain broken", "Chuỗi bằng chứng bị đứt"),
         "inc_kind_model_version_change": ("Model version change", "Đổi phiên bản mô hình"),
-        "inc_kind_judge_escalation": ("Judge escalation", "Bộ đánh giá leo thang"),
+        "inc_kind_judge_escalation": (
+            "Judge escalated for review",
+            "Giám khảo chuyển lên để xem xét",
+        ),
         "inc_none": ("No incidents.", "Không có sự cố."),
         "inc_none_line": (
-            "An incident appears when a governance rule matches an event.",
-            "Sự cố xuất hiện khi một quy tắc quản trị khớp với một sự kiện.",
+            "Incidents appear here when a governance rule is triggered.",
+            "Sự cố xuất hiện ở đây khi một quy tắc quản trị được kích hoạt.",
         ),
-        "inc_move_to": ("Move to", "Chuyển sang"),
-        "inc_move_btn": ("Move incident", "Chuyển trạng thái"),
+        "inc_move_to": ("New status", "Trạng thái mới"),
+        "inc_move_btn": ("Change status", "Đổi trạng thái"),
         "inc_close_note": (
-            "Closing is final and is done by a person. The root cause and the affected scope "
-            "are your own text; the evidence chain keeps only a hash of each.",
-            "Đóng là quyết định cuối và do người thực hiện. Nguyên nhân gốc và phạm vi ảnh "
-            "hưởng là văn bản của bạn; chuỗi bằng chứng chỉ giữ giá trị băm của từng mục.",
+            "Only a person can close an incident, and closing is final. Root cause and affected scope are your own words. The evidence chain keeps only a hash of each.",
+            "Chỉ con người mới đóng được sự cố, và đóng là quyết định cuối. Nguyên nhân gốc và phạm vi ảnh hưởng là lời của bạn. Chuỗi bằng chứng chỉ giữ giá trị băm của từng mục.",
         ),
         # --- WP-S1: per-system guardian switches on the Catalog page ---
         "gb_system": ("AI system", "Hệ thống AI"),
@@ -4113,14 +3912,12 @@ _T.update(
         "gb_pick": ("Choose a system", "Chọn một hệ thống"),
         "gb_show": ("Show switches", "Hiện công tắc"),
         "gb_lede": (
-            "Switches for {name}. A switch only turns a feature off for the agents of this system; "
-            "it never turns on a feature this instance has off.",
-            "Công tắc cho {name}. Công tắc chỉ tắt một tính năng cho các tác nhân của hệ thống "
-            "này; không bao giờ bật một tính năng mà hệ thống đang tắt.",
+            "Switches for {name}. A switch can only turn a feature off for this system's agents. It cannot turn on a feature that is off platform-wide.",
+            "Công tắc cho {name}. Công tắc chỉ tắt một tính năng cho các tác tử của hệ thống này. Không thể bật một tính năng đang tắt trên toàn nền tảng.",
         ),
         "gb_read_only": (
-            "You can see the switches. You need the right to edit this system to change them.",
-            "Bạn xem được các công tắc. Cần quyền sửa hệ thống này để thay đổi.",
+            "You can view the switches. To change them, you need edit rights on this system.",
+            "Bạn xem được các công tắc. Để thay đổi, bạn cần quyền sửa hệ thống này.",
         ),
         "gb_locked": ("Locked", "Đã khóa"),
         "gb_floor": (
@@ -4128,10 +3925,10 @@ _T.update(
             "Bắt buộc theo quy tắc {rules}; không thể tắt",
         ),
         "gb_never": (
-            "Gate rules block or pause. No one switches them per system.",
-            "Quy tắc cổng chặn hoặc tạm dừng. Không ai tắt được theo từng hệ thống.",
+            "Gate rules block or pause calls. They cannot be switched off for one system.",
+            "Quy tắc cổng chặn hoặc tạm dừng lệnh gọi. Không thể tắt cho từng hệ thống.",
         ),
-        "gb_instance_off": ("Off in this instance", "Đang tắt trên hệ thống này"),
+        "gb_instance_off": ("Off for the whole platform", "Đang tắt trên toàn nền tảng"),
         "gb_state_on": ("On for this system", "Bật cho hệ thống này"),
         "gb_state_off": ("Off for this system", "Tắt cho hệ thống này"),
         "gb_switch_off": ("Switch off", "Tắt"),
@@ -4140,53 +3937,52 @@ _T.update(
         "sy_tab_rules": ("Rules", "Quy tắc"),
         "sy_tab_classification": ("Classification", "Phân loại"),
         "sy_rules_intro": (
-            "What the assignment rules put on this system. The same system and the same rules "
-            "file always give the same list.",
-            "Những gì quy tắc phân công gán cho hệ thống này. Cùng hệ thống và cùng tệp quy tắc "
-            "luôn cho cùng một danh sách.",
+            "Rules that assign guardians and duties to this AI system. The same facts always give the same result.",
+            "Các quy tắc gán bộ bảo vệ và nghĩa vụ cho hệ thống AI này. Cùng dữ kiện luôn cho cùng kết quả.",
         ),
         "sy_rules_none": (
-            "No rule has fired for this system yet.",
-            "Chưa có quy tắc nào áp dụng cho hệ thống này.",
+            "No rule applies to this AI system yet.",
+            "Chưa có quy tắc nào áp dụng cho hệ thống AI này.",
         ),
         "sy_rules_file": ("Rules file sha256", "sha256 của tệp quy tắc"),
         "sy_rules_run": ("Run the rules now", "Chạy quy tắc ngay"),
         "sy_rules_floor": (
-            "Guardian floor (cannot be switched off)",
-            "Mức sàn bảo vệ (không thể tắt)",
+            "Required guardians (cannot be switched off)",
+            "Bộ bảo vệ bắt buộc (không thể tắt)",
         ),
-        "sy_rules_floor_none": ("No feature is mandatory.", "Không có tính năng bắt buộc."),
+        "sy_rules_floor_none": ("No guardian is required.", "Không có bộ bảo vệ bắt buộc."),
         "sy_rules_off_hint": (
-            "Rows switched off stay as history.",
-            "Các dòng đã tắt được giữ lại làm lịch sử.",
+            "Rules that are switched off stay here as history.",
+            "Các quy tắc đã tắt vẫn được giữ lại làm lịch sử.",
         ),
         "sy_rule_col_kind": ("Kind", "Loại"),
         "sy_rule_col_ref": ("Assigned", "Được gán"),
         "sy_rule_col_rule": ("Rule", "Quy tắc"),
-        "sy_rule_col_fields": ("Fields that fired", "Trường kích hoạt"),
+        "sy_rule_col_fields": ("Triggered by", "Kích hoạt bởi"),
         "sy_rule_col_status": ("Status", "Trạng thái"),
         "sy_rule_active": ("active", "đang bật"),
         "sy_rule_inactive": ("off", "đã tắt"),
-        "sy_kind_obligation": ("Obligation", "Nghĩa vụ"),
+        "sy_kind_obligation": ("Duty", "Nghĩa vụ"),
         "sy_kind_control": ("Control", "Kiểm soát"),
         "sy_kind_risk": ("Risk", "Rủi ro"),
         "sy_kind_task": ("Task", "Nhiệm vụ"),
-        "sy_kind_guardian": ("Guardian feature", "Tính năng bảo vệ"),
+        "sy_kind_guardian": ("Guardian", "Bộ bảo vệ"),
         "sy_cls_intro": (
-            "Decision 33 question flow. Answers come from the system fields where they can. A "
-            "person edits and applies; nothing is applied by itself.",
-            "Luồng câu hỏi theo Quyết định 33. Câu trả lời lấy từ các trường của hệ thống khi có "
-            "thể. Con người chỉnh sửa và áp dụng; không có gì tự động áp dụng.",
+            "Answer the 4 Decision 33 questions. Some are filled in from the AI system details. Nothing takes effect until you apply it.",
+            "Trả lời 4 câu hỏi theo Quyết định 33. Một số câu được điền sẵn từ thông tin hệ thống AI. Chưa có gì có hiệu lực cho đến khi bạn áp dụng.",
         ),
         "sy_cls_illustrative": (
-            "Illustrative, not legal advice. Counsel confirms.",
-            "Mang tính minh họa, không phải tư vấn pháp lý. Cần luật sư xác nhận.",
+            "Illustrative. Not legal advice. Bank counsel confirms.",
+            "Chỉ mang tính minh họa. Không phải tư vấn pháp lý. Bộ phận pháp chế của ngân hàng xác nhận.",
         ),
         "sy_cls_current": ("Applied classification", "Phân loại đã áp dụng"),
         "sy_cls_none_applied": ("Not applied yet.", "Chưa áp dụng."),
         "sy_cls_draft": ("Draft", "Bản nháp"),
-        "sy_cls_no_draft": ("There is no draft.", "Chưa có bản nháp."),
-        "sy_cls_make": ("Make a draft from the rules", "Tạo bản nháp từ quy tắc"),
+        "sy_cls_no_draft": (
+            "No draft yet. Create one from the rules.",
+            "Chưa có bản nháp. Hãy tạo từ quy tắc.",
+        ),
+        "sy_cls_make": ("Create a draft from the rules", "Tạo bản nháp từ quy tắc"),
         "sy_cls_remake": ("Start again from the rules", "Làm lại từ quy tắc"),
         "sy_cls_save": ("Save answers", "Lưu câu trả lời"),
         "sy_cls_apply": ("Apply this classification", "Áp dụng phân loại này"),
@@ -4203,13 +3999,13 @@ _T.update(
         "sy_cls_open": ("not answered", "chưa trả lời"),
         "sy_cls_yes": ("yes", "có"),
         "sy_cls_no": ("no", "không"),
-        "sy_cls_src_rules": ("from system fields", "từ trường của hệ thống"),
-        "sy_cls_src_ai_prefill": ("AI pre-fill", "AI điền sẵn"),
+        "sy_cls_src_rules": ("from AI system details", "từ thông tin hệ thống AI"),
+        "sy_cls_src_ai_prefill": ("Filled in by AI", "AI điền sẵn"),
         "sy_cls_src_person": ("a person", "do người nhập"),
         "sy_cls_mock": ("mock model", "mô hình giả lập"),
         "sy_cls_ai_note": (
-            "AI pre-filled answers are advice only. A person must check them.",
-            "Câu trả lời do AI điền sẵn chỉ là gợi ý. Con người phải kiểm tra.",
+            "AI-filled answers are suggestions. You must check them.",
+            "Câu trả lời do AI điền sẵn chỉ là gợi ý. Bạn cần kiểm tra lại.",
         ),
         "sy_f_autonomy_level": ("Autonomy level", "Mức tự chủ"),
         "sy_autonomy_level_unspecified": ("Not set", "Chưa đặt"),
@@ -4229,10 +4025,8 @@ _T.update(
         ),
         "sy_autonomy_level_l5_self_directed": ("L5 self-directed", "L5 tự đặt mục tiêu"),
         "sy_cls_autonomy_proposal": (
-            "A scan proposes autonomy level {level}. It is only a proposal: "
-            "a person sets the level of the system.",
-            "Quá trình quét đề xuất mức tự chủ {level}. Đây chỉ là đề xuất: "
-            "con người đặt mức của hệ thống.",
+            "The scan suggests autonomy level {level}. You set the final level.",
+            "Quá trình quét gợi ý mức tự chủ {level}. Bạn đặt mức cuối cùng.",
         ),
         "sy_cls_history": ("Classifications applied before", "Các phân loại đã áp dụng trước đây"),
     }
@@ -4244,25 +4038,20 @@ _T.update(
         # --- WP-G6: KPI block of the Governance overview (MCP_SERVER_ENABLED) ----------------
         "g6_kpi_title": ("Governance KPIs", "Chỉ số KPI quản trị"),
         "g6_kpi_sub": (
-            "The same figures as GET /v1/kpis and the MCP tool kpis. A rate is basis points, "
-            "shown as a percent; a figure that cannot be computed says why.",
-            "Cùng số liệu với GET /v1/kpis và công cụ MCP kpis. Tỷ lệ tính bằng điểm cơ bản, "
-            "hiển thị theo phần trăm; số liệu không tính được sẽ nêu lý do.",
+            "Figures for the AI systems in your scope. Rates show as percentages. If a figure cannot be calculated, the reason is shown.",
+            "Số liệu của các hệ thống AI trong phạm vi của bạn. Tỷ lệ hiển thị theo phần trăm. Số liệu không tính được sẽ ghi rõ lý do.",
         ),
         "g6_kpi_coverage": ("Coverage", "Phạm vi"),
         "g6_kpi_quality": ("Quality", "Chất lượng"),
         "g6_kpi_speed": ("Speed", "Tốc độ"),
         "g6_kpi_assets": ("Assets by kind", "Tài sản theo loại"),
         "g6_kpi_by_risk": ("Systems by risk level", "Hệ thống theo mức rủi ro"),
-        "g6_kpi_by_stage": ("Systems by stage", "Hệ thống theo giai đoạn"),
-        "g6_kpi_class_rate": ("Classification rate", "Tỷ lệ đã phân loại"),
         "g6_kpi_policy_cov": ("Policy coverage", "Độ phủ chính sách"),
         "g6_kpi_risk_treat": ("Risk treatment coverage", "Độ phủ xử lý rủi ro"),
         "g6_kpi_residual": ("Acceptable residual rate", "Tỷ lệ rủi ro dư chấp nhận được"),
         "g6_kpi_readiness": ("Control readiness", "Mức sẵn sàng của kiểm soát"),
         "g6_kpi_impl": ("Implementation per policy", "Mức triển khai theo chính sách"),
         "g6_kpi_days": ("Average days per stage", "Số ngày trung bình mỗi giai đoạn"),
-        "g6_kpi_overdue": ("Overdue tasks", "Công việc quá hạn"),
         "g6_kpi_inherit": ("Risk inheritance rate", "Tỷ lệ kế thừa mức rủi ro"),
         "g6_kpi_runs": ("Rule runs", "Số lần chạy quy tắc"),
         "g6_kpi_events": ("Governance events", "Sự kiện quản trị"),
@@ -4283,12 +4072,12 @@ _T.update(
             "Hệ thống AI đang tắt (GOVERNANCE_ENABLED).",
         ),
         "g6_na_error": (
-            "The figures could not be computed; see the server log.",
-            "Không tính được số liệu; xem nhật ký máy chủ.",
+            "The figures could not be calculated. Ask an administrator to check the server log.",
+            "Không tính được số liệu. Hãy nhờ quản trị viên kiểm tra nhật ký máy chủ.",
         ),
         "g6_na_capped": (
-            "The store has more rows than one pass reads.",
-            "Kho dữ liệu có nhiều dòng hơn mức một lần đọc.",
+            "There is more data than one pass can read, so this figure may be incomplete.",
+            "Có nhiều dữ liệu hơn mức một lần đọc, nên số liệu này có thể chưa đầy đủ.",
         ),
         "g6_na_no_obligations": (
             "No obligation is assigned yet.",
@@ -4318,8 +4107,8 @@ _T.update(
         "pg_doc_status": ("Status", "Trạng thái"),
         "pg_doc_reason": ("Reason", "Lý do"),
         "pg_doc_note": (
-            "Only the hash, size and type of a document are kept. The text is not stored.",
-            "Chỉ băm, kích thước và loại của tài liệu được giữ lại. Nội dung không được lưu.",
+            "Only the hash, size and type of a document are kept. The text is not saved.",
+            "Chỉ lưu mã băm, kích thước và loại của tài liệu. Nội dung không được lưu.",
         ),
         "pg_doc_findings": ("Findings", "Phát hiện"),
     }
@@ -4329,10 +4118,7 @@ _T.update(
 # WP-D4: judge moderation detector (Catalog card)
 _T.update(
     {
-        "cat_judge_moderation": (
-            "Judge moderation detector",
-            "Bộ phát hiện kiểm duyệt của giám khảo",
-        ),
+        "cat_judge_moderation": ("AI judge: content check", "Giám khảo AI: kiểm tra nội dung"),
         "cat_judge_moderation_d": (
             "Asks the judge whether text is toxic and whether it belongs to up to five topics "
             "you define, on the user text and on the reply. Advises and reports only; the "
@@ -4353,12 +4139,8 @@ _T.update(
             "Mô hình bảo vệ (jailbreak và chèn lệnh)",
         ),
         "cat_guard_model_d": (
-            "A configured model scores user text, tool results, tool descriptions and documents "
-            "for jailbreak and hidden instructions. It reports a finding; on money and credit "
-            "tools it may pause only when the model card names the approver.",
-            "Một mô hình được cấu hình chấm văn bản người dùng, kết quả công cụ, mô tả công cụ "
-            "và tài liệu để tìm jailbreak và lệnh ẩn. Mô hình chỉ báo phát hiện; trên công cụ "
-            "tiền và tín dụng nó chỉ được tạm dừng khi thẻ mô hình ghi tên người phê duyệt.",
+            "An AI model checks text for jailbreak attempts and hidden instructions, and reports findings. It can pause money and credit calls only when a named approver is set.",
+            "Một mô hình AI kiểm tra văn bản để tìm jailbreak và lệnh ẩn, rồi báo phát hiện. Chỉ khi đã có người phê duyệt được nêu tên, nó mới được tạm dừng lệnh gọi về tiền và tín dụng.",
         ),
     }
 )
@@ -4367,7 +4149,6 @@ _T.update(
 # --- WP-N2 --- My agents tab, Register and Guardians tabs of the Agent page
 _T.update(
     {
-        "mya_tab": ("My agents", "Tác tử của tôi"),
         "mya_title": ("My agents", "Tác tử của tôi"),
         "mya_purpose": (
             "Every agent in your scope: registered, known only to the gate, or found in the workspace.",  # noqa: E501
@@ -4388,7 +4169,10 @@ _T.update(
         "mya_node_system": ("Databricks App", "Ứng dụng Databricks"),
         "mya_node_model_endpoint": ("Agent endpoint", "Endpoint tác tử"),
         "mya_node_genie_space": ("Genie space", "Không gian Genie"),
-        "mya_pending_resume": ("{n} resume approval waiting", "{n} phê duyệt tiếp tục đang chờ"),
+        "mya_pending_resume": (
+            "Waiting for {n} approval(s) to resume",
+            "Đang chờ {n} phê duyệt để tiếp tục",
+        ),
         "mya_on_of": ("on {n} / of {m}", "bật {n} / trên {m}"),
         "mya_cover_full": ("full", "đủ"),
         "mya_cover_below_floor": ("below floor", "dưới mức sàn"),
@@ -4420,7 +4204,7 @@ _T.update(
             "{name} là tác tử chạy trên {family}, lưu trữ dạng {host}, có {tools} công cụ, mức rủi ro {tier}.",  # noqa: E501
         ),
         "atab_register": ("Register", "Đăng ký"),
-        "atab_guardians": ("Guardians", "Công cụ bảo vệ"),
+        "atab_guardians": ("Guardians", "Bộ bảo vệ"),
         "atab_source": ("Source", "Mã nguồn"),
         "atab_facts": ("Facts", "Dữ kiện"),
         "atab_predeploy": ("Pre-deploy", "Trước triển khai"),
@@ -4428,14 +4212,14 @@ _T.update(
         "atab_postdeploy": ("Post-deploy", "Sau triển khai"),
         "mya_reg_policy_only": ("Known to the gate, not registered", "Cổng biết, chưa đăng ký"),
         "mya_reg_policy_only_line": (
-            "The policy file lists this agent, but the registry has no row for it. Register it as part of an AI system.",  # noqa: E501
-            "Tệp chính sách có tác tử này nhưng sổ đăng ký chưa có dòng nào. Hãy đăng ký nó vào một hệ thống AI.",  # noqa: E501
+            "The gate policy lists this agent, but it is not registered. Register it under an AI system.",
+            "Chính sách của cổng có tác tử này nhưng chưa đăng ký. Hãy đăng ký nó vào một hệ thống AI.",
         ),
-        "mya_reg_registry": ("Registry row", "Dòng trong sổ đăng ký"),
+        "mya_reg_registry": ("Registry entry", "Mục trong sổ đăng ký"),
         "mya_reg_manifest": ("Manifest values", "Giá trị trong manifest"),
         "mya_reg_team": ("Owner team", "Nhóm sở hữu"),
         "mya_reg_host": ("Host type", "Loại lưu trữ"),
-        "mya_reg_plug": ("Plug point", "Điểm gắn"),
+        "mya_reg_plug": ("Connection point", "Điểm kết nối"),
         "mya_reg_since": ("Since", "Từ"),
         "mya_reg_initial": ("Initial state", "Trạng thái ban đầu"),
         "mya_reg_system": ("AI system", "Hệ thống AI"),
@@ -4452,10 +4236,10 @@ _T.update(
         "mya_reg_risk_level": ("Risk level", "Mức rủi ro"),
         "mya_reg_risk_source": ("Risk source", "Nguồn mức rủi ro"),
         "mya_src_registry": ("registry", "sổ đăng ký"),
-        "mya_src_proposal": ("proposal from Onboard", "đề xuất từ Onboard"),
+        "mya_src_proposal": ("suggested during onboarding", "đề xuất khi tiếp nhận"),
         "mya_src_system": ("AI system", "hệ thống AI"),
         "mya_src_agent_tier": ("agent risk tier", "mức rủi ro của tác tử"),
-        "mya_src_classifier": ("classifier", "bộ phân loại"),
+        "mya_src_classifier": ("automatic classification", "phân loại tự động"),
         "mya_src_inherited": ("inherited from components", "kế thừa từ thành phần"),
         "mya_src_manual": ("set by a person", "do con người đặt"),
         "mya_f_system_type": ("System type", "Loại hệ thống"),
@@ -4473,12 +4257,12 @@ _T.update(
         "mya_g_feature": ("Feature", "Tính năng"),
         "mya_g_group": ("Group", "Nhóm"),
         "mya_g_instance": ("Instance", "Hệ thống"),
-        "mya_g_binding": ("Binding per AI system", "Công tắc theo hệ thống AI"),
+        "mya_g_binding": ("Switch per AI system", "Công tắc theo hệ thống AI"),
         "mya_g_floor": ("Floor lock", "Khóa sàn"),
         "mya_g_effective": ("Effective", "Hiệu lực"),
         "mya_g_reason": ("Reason when off", "Lý do khi tắt"),
         "mya_g_never": ("never switchable", "không bao giờ tắt được"),
-        "mya_g_bind_off": ("bindings are off", "công tắc đang tắt"),
+        "mya_g_bind_off": ("switches are off", "công tắc đang tắt"),
         "mya_g_no_system": ("no AI system", "chưa có hệ thống AI"),
         "mya_g_by": ("by {who}", "bởi {who}"),
         "mya_g_locked": ("locked", "đã khóa"),
@@ -4488,29 +4272,26 @@ _T.update(
         "mya_grp_gate": ("Gate", "Cổng"),
         "mya_grp_judge": ("Judges", "Giám khảo"),
         "mya_grp_monitor": ("Monitors", "Bộ giám sát"),
-        "mya_grp_packs": ("Assurance packs", "Gói đảm bảo"),
+        "mya_grp_packs": ("Assurance checks", "Kiểm tra đảm bảo"),
         "mya_why_flag_off": ("flag off in this instance", "cờ đang tắt trong hệ thống"),
         "mya_why_file_off": ("off in config/detectors.yaml", "tắt trong config/detectors.yaml"),
         "mya_why_policy_off": ("off in the agent's policy", "tắt trong chính sách của tác tử"),
-        "mya_why_binding_off": (
-            "binding off, set by {who}",
-            "công tắc đã tắt, do {who} đặt",
-        ),
+        "mya_why_binding_off": ("switched off by {who}", "do {who} tắt"),
         "mya_g_results": ("Results", "Kết quả"),
         "mya_g_window": ("Window", "Khoảng thời gian"),
         "mya_win_24h": ("24 h", "24 giờ"),
         "mya_win_7d": ("7 days", "7 ngày"),
         "mya_win_30d": ("30 days", "30 ngày"),
         "mya_g_counts_only": (
-            "Counts only. No excerpt leaves the masked store.",
-            "Chỉ có số đếm. Không có đoạn trích nào rời kho đã che.",
+            "Counts only. No text excerpts are shown.",
+            "Chỉ có số đếm. Không hiển thị đoạn trích nội dung.",
         ),
         "mya_g_none_enabled": (
             "No enabled feature in this group.",
             "Không có tính năng nào đang bật trong nhóm này.",
         ),
         "mya_g_findings": ("Findings", "Phát hiện"),
-        "mya_g_top_codes": ("Top codes", "Mã nhiều nhất"),
+        "mya_g_top_codes": ("Most frequent codes", "Mã gặp nhiều nhất"),
         "mya_g_hints": ("Action hints", "Gợi ý hành động"),
         "mya_g_checks": ("Checks", "Lượt kiểm tra"),
         "mya_g_allowed": ("Allowed", "Cho phép"),
@@ -4521,8 +4302,8 @@ _T.update(
         "mya_g_cases_opened": ("Cases opened", "Vụ việc đã mở"),
         "mya_g_last_status": ("Last status", "Trạng thái gần nhất"),
         "mya_g_no_status": ("no status yet", "chưa có trạng thái"),
-        "mya_g_pack": ("Pack", "Gói"),
-        "mya_g_no_packs": ("No pack result for this agent.", "Chưa có kết quả gói cho tác tử này."),
+        "mya_g_pack": ("Assurance check", "Bài kiểm tra đảm bảo"),
+        "mya_g_no_packs": ("No assurance check results yet.", "Chưa có kết quả kiểm tra đảm bảo."),
         "mya_link_activity": ("Activity", "Hoạt động"),
         "mya_link_cases": ("Cases", "Vụ việc"),
         "mya_link_assurance": ("Assurance", "Đảm bảo"),
@@ -4555,41 +4336,41 @@ _T.update(
     {
         "sa_title": ("Move to RUNNING", "Chuyển sang RUNNING"),
         "sa_would_block": (
-            "Shadow would-block in the last {days} days:",
-            "Số lần shadow sẽ chặn trong {days} ngày qua:",
+            "Calls shadow mode would have blocked in the last {days} days:",
+            "Số lệnh gọi mà chế độ bóng lẽ ra đã chặn trong {days} ngày qua:",
         ),
-        "sa_request": ("Request RUNNING", "Yêu cầu RUNNING"),
-        "sa_approve": ("Approve RUNNING", "Duyệt RUNNING"),
+        "sa_request": ("Request move to RUNNING", "Yêu cầu chuyển sang RUNNING"),
+        "sa_approve": ("Approve move to RUNNING", "Duyệt chuyển sang RUNNING"),
         "sa_requested_by": (
-            "RUNNING requested by {who}.",
-            "{who} đã yêu cầu chuyển sang RUNNING.",
+            "{who} asked to move this agent to RUNNING.",
+            "{who} đã yêu cầu chuyển tác tử này sang RUNNING.",
         ),
         "sa_you_requested": (
             "You asked for this. A different person approves it.",
             "Bạn đã yêu cầu. Một người khác phải duyệt.",
         ),
         "sa_cannot_approve": (
-            "Only the agent owner or a policy reviewer approves.",
-            "Chỉ chủ sở hữu tác tử hoặc người rà soát trong chính sách được duyệt.",
+            "Only the agent owner or a policy reviewer can approve.",
+            "Chỉ chủ sở hữu tác tử hoặc người rà soát chính sách mới được phê duyệt.",
         ),
         "sa_rule": (
-            "Two different people: one asks, the agent owner or a policy reviewer approves.",
-            "Hai người khác nhau: một người yêu cầu, chủ sở hữu hoặc người rà soát duyệt.",
+            "Two people are needed. One asks. The agent owner or a policy reviewer approves.",
+            "Cần hai người khác nhau: một người yêu cầu, chủ sở hữu tác tử hoặc người rà soát chính sách phê duyệt.",
         ),
         "gb_reason_ph": ("Reason (required)", "Lý do (bắt buộc)"),
         "gb_second_person": (
-            "On a production or high-risk system a second person approves a switch-off.",
-            "Với hệ thống đang vận hành hoặc rủi ro cao, cần người thứ hai duyệt khi tắt.",
+            "For a live or high-risk system, a second approver must approve each switch-off.",
+            "Với hệ thống đang vận hành hoặc rủi ro cao, cần người phê duyệt thứ hai cho mỗi lần tắt.",
         ),
         "gb_pending_title": (
-            "Switch-off requests waiting for a second person",
-            "Yêu cầu tắt đang chờ người thứ hai",
+            "Switch-off requests waiting for a second approver",
+            "Yêu cầu tắt đang chờ người phê duyệt thứ hai",
         ),
-        "gb_pending_row": ("{slug}, asked by {who}", "{slug}, do {who} yêu cầu"),
+        "gb_pending_row": ("{slug}, requested by {who}", "{slug}, do {who} yêu cầu"),
         "gb_approve": ("Approve switch-off", "Duyệt việc tắt"),
         "gb_you_asked": (
-            "You asked for this. A different person approves it.",
-            "Bạn đã yêu cầu. Một người khác phải duyệt.",
+            "You requested this. A second approver must approve it.",
+            "Bạn đã yêu cầu. Cần người phê duyệt thứ hai duyệt.",
         ),
         "sy_cls_why_min": (
             "Every answer needs a justification of at least {n} characters.",
@@ -4647,53 +4428,49 @@ _T.update(
         # --- WP-N1: My overview as a dashboard, candidate triage (CONSOLE_OVERVIEW_V4) ---------
         "ov4_t_overview": ("Overview", "Tổng quan"),
         "ov4_t_agents": ("My agents", "Tác tử của tôi"),
-        "ov4_t_candidates": ("Candidates", "Ứng viên đăng ký"),
-        "ov4_how": ("How are we doing", "Tình hình hiện nay"),
+        "ov4_t_candidates": ("Candidates to register", "Ứng viên cần đăng ký"),
+        "ov4_how": ("How we are doing", "Tình hình hiện nay"),
         "ov4_state_good": ("Good", "Tốt"),
         "ov4_state_work": ("Work to do", "Còn việc phải làm"),
         "ov4_state_attention": ("Attention", "Cần chú ý"),
         "ov4_why_overdue_high": (
-            "A high-risk task is overdue: {arg}.",
-            "Một nhiệm vụ rủi ro cao đã quá hạn: {arg}.",
+            "Overdue high-risk task: {arg}.",
+            "Công việc rủi ro cao quá hạn: {arg}.",
         ),
         "ov4_why_critical": (
             "Critical cases open: {arg}.",
             "Vụ việc nghiêm trọng đang mở: {arg}.",
         ),
         "ov4_why_candidate": (
-            "A candidate with a high score waits for registration: {arg}.",
-            "Một ứng viên điểm cao đang chờ đăng ký: {arg}.",
+            "A high-scoring candidate is waiting to be registered: {arg}.",
+            "Có ứng viên điểm cao đang chờ đăng ký: {arg}.",
         ),
-        "ov4_why_overdue": (
-            "Required tasks overdue: {arg}.",
-            "Nhiệm vụ bắt buộc quá hạn: {arg}.",
-        ),
+        "ov4_why_overdue": ("Required tasks overdue: {arg}.", "Công việc bắt buộc quá hạn: {arg}."),
         "ov4_why_high_case": ("High cases open: {arg}.", "Vụ việc mức cao đang mở: {arg}."),
-        "ov4_why_actions": ("Items that wait on you: {arg}.", "Việc đang chờ bạn: {arg}."),
+        "ov4_why_actions": ("Items waiting on you: {arg}.", "Việc đang chờ bạn: {arg}."),
         "ov4_why_good": (
-            "No overdue task, no high case, no high-score candidate.",
-            "Không có nhiệm vụ quá hạn, vụ việc mức cao hay ứng viên điểm cao.",
+            "No overdue tasks, no high-severity cases, no high-scoring candidates.",
+            "Không có công việc quá hạn, vụ việc mức cao hay ứng viên điểm cao.",
         ),
         "ov4_open_items": ("Open items: {n}", "Việc đang mở: {n}"),
         "ov4_pipeline": ("Registration pipeline", "Quy trình đăng ký"),
         "ov4_stage_candidates": ("Candidates", "Ứng viên"),
         "ov4_stage_draft": ("Draft", "Bản nháp"),
-        "ov4_stage_intake": ("Intake confirmed", "Đã xác nhận thông tin"),
+        "ov4_stage_intake": ("Registration confirmed", "Đã xác nhận đăng ký"),
         "ov4_stage_classified": ("Classified", "Đã phân loại"),
         "ov4_stage_guarded": ("Guarded", "Đã bảo vệ"),
         "ov4_stage_production": ("In production", "Đang vận hành"),
         "ov4_pipeline_note": (
-            "Each figure counts the systems that meet the condition. A system can count in more "
-            "than one stage.",
-            "Mỗi số đếm các hệ thống đạt điều kiện. Một hệ thống có thể được đếm ở nhiều bước.",
+            "Counts overlap: one system can be in several steps.",
+            "Các số có thể trùng nhau: một hệ thống có thể ở nhiều bước.",
         ),
         "ov4_assess": ("Assessment completion", "Mức hoàn thành đánh giá"),
-        "ov4_dim_intake": ("Intake fields complete", "Thông tin đầu vào đầy đủ"),
-        "ov4_dim_class": ("Decision 33 class applied", "Đã áp dụng phân loại Quyết định 33"),
+        "ov4_dim_intake": ("Registration details complete", "Thông tin đăng ký đầy đủ"),
+        "ov4_dim_class": ("Decision 33 class set", "Đã có phân loại Quyết định 33"),
         "ov4_dim_checks": ("Readiness checked", "Đã kiểm tra mức sẵn sàng"),
-        "ov4_dim_guardians": ("Guardians at the floor", "Bộ bảo vệ đạt mức tối thiểu"),
-        "ov4_dim_tasks": ("Required tasks done", "Nhiệm vụ bắt buộc đã xong"),
-        "ov4_dim_duties": ("Duties closed (average)", "Nghĩa vụ đã đóng (trung bình)"),
+        "ov4_dim_guardians": ("Guardians at the minimum", "Bộ bảo vệ đạt mức tối thiểu"),
+        "ov4_dim_tasks": ("Required tasks done", "Công việc bắt buộc đã xong"),
+        "ov4_dim_duties": ("Duties closed, average", "Nghĩa vụ đã hoàn tất, trung bình"),
         "ov4_risk_by_autonomy": (
             "Risk classification by autonomy level",
             "Phân loại rủi ro theo mức tự chủ",
@@ -4703,38 +4480,38 @@ _T.update(
         "ov4_t_systems": ("AI systems", "Hệ thống AI"),
         "ov4_t_agents_gate": ("Registered agents", "Tác tử đã đăng ký"),
         "ov4_gate_split": (
-            "{r} running · {s} shadow · {p} paused",
-            "{r} đang chạy · {s} chế độ bóng · {p} tạm dừng",
+            "{r} running · {s} shadow mode · {p} paused",
+            "{r} đang chạy · {s} chế độ quan sát · {p} tạm dừng",
         ),
-        "ov4_t_cover": ("Guardian coverage", "Độ phủ bộ bảo vệ"),
+        "ov4_t_cover": ("Agents with a guardian", "Tác tử có bộ bảo vệ"),
         "ov4_t_cases": ("Open cases", "Vụ việc đang mở"),
-        "ov4_t_due": ("Tasks overdue", "Nhiệm vụ quá hạn"),
-        "ov4_actions": ("Your action items", "Việc cần bạn xử lý"),
+        "ov4_t_due": ("Tasks overdue", "Công việc quá hạn"),
+        "ov4_actions": ("Your actions", "Việc cần bạn xử lý"),
         "ov4_attention": ("Needs your attention ({n})", "Cần bạn chú ý ({n})"),
-        "ov4_input": ("Awaiting your input ({n})", "Đang chờ bạn bổ sung ({n})"),
-        "ov4_top_candidates": ("Top candidates to register", "Ứng viên nên đăng ký trước"),
+        "ov4_input": ("Waiting for your input ({n})", "Đang chờ bạn bổ sung ({n})"),
+        "ov4_top_candidates": ("Register these first", "Nên đăng ký trước"),
         "ov4_all_candidates": ("All candidates", "Tất cả ứng viên"),
-        "ov4_cand_off": ("The inventory is off", "Kho kiểm kê đang tắt"),
+        "ov4_cand_off": ("Inventory is switched off", "Kiểm kê đang tắt"),
         "ov4_cand_off_line": (
-            "INVENTORY_ENABLED=1 turns it on. Then the workspace scan finds candidates.",
-            "Bật INVENTORY_ENABLED=1. Khi đó quét workspace sẽ tìm ra ứng viên.",
+            "Set INVENTORY_ENABLED=1 to turn it on. The workspace scan then finds candidates.",
+            "Đặt INVENTORY_ENABLED=1 để bật. Sau đó quét workspace sẽ tìm ra ứng viên.",
         ),
         "ov4_cards": ("My systems and agents", "Hệ thống và tác tử của tôi"),
         "ov4_kind_system": ("AI system", "Hệ thống AI"),
         "ov4_kind_agent": ("Agent", "Tác tử"),
-        "ov4_guard_none": ("no guardian data", "chưa có dữ liệu bảo vệ"),
+        "ov4_guard_none": ("no guardian data", "chưa có dữ liệu bộ bảo vệ"),
         "ov4_cases_n": ("Cases: {n}", "Vụ việc: {n}"),
-        "ov4_na_none": ("No action", "Không cần làm gì"),
-        "ov4_na_finish_task_overdue": ("Finish task: {arg}", "Hoàn thành nhiệm vụ: {arg}"),
-        "ov4_na_finish_task": ("Finish task: {arg}", "Hoàn thành nhiệm vụ: {arg}"),
-        "ov4_na_approve_stage": ("Approve stage", "Phê duyệt giai đoạn"),
+        "ov4_na_none": ("Nothing to do", "Không cần làm gì"),
+        "ov4_na_finish_task_overdue": (
+            "Finish overdue task: {arg}",
+            "Hoàn thành công việc quá hạn: {arg}",
+        ),
+        "ov4_na_finish_task": ("Finish task: {arg}", "Hoàn thành công việc: {arg}"),
+        "ov4_na_approve_stage": ("Approve the stage", "Phê duyệt giai đoạn"),
         "ov4_na_classify": ("Classify (Decision 33)", "Phân loại (Quyết định 33)"),
         "ov4_na_switch_on": ("Switch on {arg}", "Bật {arg}"),
-        "ov4_na_request_running": (
-            "Request RUNNING for {arg}",
-            "Yêu cầu chuyển {arg} sang RUNNING",
-        ),
-        "ov4_na_triage_case": ("Triage cases ({arg})", "Phân loại vụ việc ({arg})"),
+        "ov4_na_request_running": ("Ask to start {arg}", "Yêu cầu cho {arg} bắt đầu chạy"),
+        "ov4_na_triage_case": ("Review cases ({arg})", "Xem xét vụ việc ({arg})"),
         # candidate triage
         "tri_title": ("Candidates to register", "Ứng viên cần đăng ký"),
         "tri_purpose": (
@@ -4742,8 +4519,8 @@ _T.update(
             "Các đối tượng trong workspace chưa thuộc hệ thống AI nào, điểm cao xếp trước.",
         ),
         "tri_why": (
-            "The score shows what to register first. It is a rule-based hint; a person decides.",
-            "Điểm cho biết nên đăng ký gì trước. Đây là gợi ý theo quy tắc; con người quyết định.",
+            "The score shows what to register first. It is a guide based on fixed rules. You decide.",
+            "Điểm cho biết nên đăng ký gì trước. Đây là gợi ý theo quy tắc cố định; bạn quyết định.",
         ),
         "tri_note": (
             "Score = impact x 0.6 + autonomy rank x 10 + complexity x 0.2, at most 100.",
@@ -4760,13 +4537,13 @@ _T.update(
         "tri_evidence": ("Evidence", "Bằng chứng"),
         "tri_none": ("No candidate", "Không có ứng viên"),
         "tri_none_line": (
-            "No unmanaged object matches. Run the workspace scan, or change the filters.",
-            "Không có đối tượng chưa quản lý nào phù hợp. Hãy chạy quét workspace hoặc đổi bộ lọc.",
+            "No unregistered objects match. Run the workspace scan or change the filters.",
+            "Không có đối tượng chưa đăng ký nào phù hợp. Hãy chạy quét workspace hoặc đổi bộ lọc.",
         ),
         "tri_register": ("Register", "Đăng ký"),
         "tri_register_off": (
-            "The register wizard is off (CONSOLE_SYSTEMS_ENABLED and CONSOLE_NAV_V3).",
-            "Trình đăng ký đang tắt (CONSOLE_SYSTEMS_ENABLED và CONSOLE_NAV_V3).",
+            "Registration is switched off. Ask an administrator to enable CONSOLE_SYSTEMS_ENABLED and CONSOLE_NAV_V3.",
+            "Chức năng đăng ký đang tắt. Hãy nhờ quản trị viên bật CONSOLE_SYSTEMS_ENABLED và CONSOLE_NAV_V3.",
         ),
         "tri_kind_app": ("Databricks App", "Databricks App"),
         "tri_kind_endpoint": ("Serving endpoint", "Endpoint phục vụ"),
@@ -4787,12 +4564,12 @@ _T.update(
             "Nó phục vụ hoặc gọi mô hình của nhà cung cấp bên ngoài (+20).",
         ),
         "tri_sigd_customer_table": (
-            "It reaches a customer, card, account, loan or payment table (+25).",
-            "Nó truy cập bảng khách hàng, thẻ, tài khoản, khoản vay hoặc thanh toán (+25).",
+            "It accesses customer, card, account, loan or payment data (+25).",
+            "Nó truy cập dữ liệu khách hàng, thẻ, tài khoản, khoản vay hoặc thanh toán (+25).",
         ),
         "tri_sigd_money_tool": (
-            "It reaches a tool of class money, credit or pii_export (+30).",
-            "Nó truy cập công cụ thuộc lớp money, credit hoặc pii_export (+30).",
+            "It uses a money, credit or pii_export tool (+30).",
+            "Nó dùng công cụ thuộc lớp money, credit hoặc pii_export (+30).",
         ),
         "tri_sigd_writes": ("The job writes data (+10).", "Job này ghi dữ liệu (+10)."),
         "tri_sigd_agent_endpoint": (
@@ -4809,7 +4586,7 @@ _T.update(
             "Chưa biết gì về đối tượng này (+5).",
         ),
         "tri_sigd_scheduled": ("It runs on a schedule (+0).", "Nó chạy theo lịch (+0)."),
-        "tri_sigd_no_owner": ("No owner group is known (+0).", "Chưa biết nhóm sở hữu (+0)."),
+        "tri_sigd_no_owner": ("No owner group on record (+0).", "Chưa có nhóm sở hữu (+0)."),
         "tri_band_high": ("High (70 or more)", "Cao (từ 70)"),
         "tri_band_medium": ("Medium (40 to 69)", "Trung bình (40 đến 69)"),
         "tri_band_low": ("Low (under 40)", "Thấp (dưới 40)"),
@@ -4864,6 +4641,9 @@ _T.update(_IK)
 from supervisor.console.i18n_facts import FK as _FK  # noqa: E402  (WP-O2, prefix fk_)
 
 _T.update(_FK)
+from supervisor.console.i18n_codeagent import CA as _CA  # noqa: E402  (source analysis agent, prefix ca_)
+
+_T.update(_CA)
 from supervisor.console.i18n_predeploy import PD as _PD  # noqa: E402  (WP-O3, prefix pd_)
 
 _T.update(_PD)
@@ -4889,6 +4669,9 @@ _T.update(_RW)
 from supervisor.console.i18n_regkb_change import RC as _RC  # noqa: E402  (WP-W2, prefix rc_)
 
 _T.update(_RC)
+from supervisor.console.i18n_kbgraph import KG as _KG  # noqa: E402  (KBGRAPH_ENABLED, prefix kg_)
+
+_T.update(_KG)
 from supervisor.console.i18n_factory import FA as _FA  # noqa: E402  (WP-F2, prefix fa_)
 
 _T.update(_FA)
@@ -4938,3 +4721,32 @@ _T.update(_U5G5)
 from supervisor.console.i18n_ux5_g6 import ALL as _U5G6  # noqa: E402
 
 _T.update(_U5G6)
+
+# --- UI audit batch 1 --- labels of the broken-link, count and placeholder fixes (prefix b1_)
+from supervisor.console.i18n_ux_b1 import B1 as _B1  # noqa: E402
+
+_T.update(_B1)
+
+# --- UI audit batch 3 --- names, labels, raw ids, en/vi (prefixes lbl_ and b3_)
+from supervisor.console.i18n_ux_b3 import CHANGED as _B3C  # noqa: E402
+from supervisor.console.i18n_ux_b3 import NEW as _B3N  # noqa: E402
+
+_T.update(_B3N)
+_T.update(_B3C)
+
+# --- W4 --- inventory run dashboard (prefix finv_)
+from supervisor.console.i18n_finv import FINV as _FINV  # noqa: E402
+
+_T.update(_FINV)
+from supervisor.console.i18n_exec import EX as _EX  # noqa: E402  (ORCH_EXEC_FINDINGS, prefix exec_)
+
+_T.update(_EX)
+from supervisor.console.i18n_guardian_kit import GK as _GK  # noqa: E402  (GUARDIAN_KIT, prefix gk_)
+
+_T.update(_GK)
+from supervisor.console.i18n_stability import ST as _ST  # noqa: E402  (W8, prefix st_)
+
+_T.update(_ST)
+from supervisor.console.i18n_redteam import RT as _RT  # noqa: E402  (W7, REDTEAM_TAB, prefix rt_)
+
+_T.update(_RT)

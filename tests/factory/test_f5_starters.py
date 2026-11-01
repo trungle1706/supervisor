@@ -1,5 +1,5 @@
 """WP-F5: the six starter agents, the two templates, their golden sets, the seed command and the
-fake-model gate run (development path)."""
+fake-model gate run (development path). Version 0.2 (W2) gives all eight a golden set."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from tools import factory_golden_gen as gen
 DIR = starters.STARTERS_DIR
 SIX = starters.STARTER_IDS
 TEMPLATES = starters.TEMPLATE_IDS
+EIGHT = (*SIX, *TEMPLATES)
 DIMENSION = {
     "model-risk-assessor": "model",
     "data-governance-assessor": "data_governance",
@@ -72,7 +73,7 @@ def test_definition_validates(agent_id: str) -> None:
 def test_starter_shape(agent_id: str) -> None:
     d = AgentDefinitionV1.model_validate(definition(agent_id))
     assert d.dimension_id == DIMENSION[agent_id]
-    assert 8 <= len(d.checklist) <= 14
+    assert 8 <= len(d.checklist) <= 18
     assert d.policy_refs and d.policy_refs[0].doc_id == "VN-TT53-2026"
     assert d.eval_pack == f"{agent_id}-golden-v1"
     loop = d.harness.loop
@@ -83,11 +84,11 @@ def test_starter_shape(agent_id: str) -> None:
 
 
 @pytest.mark.parametrize("agent_id", TEMPLATES)
-def test_templates_are_marked_and_empty(agent_id: str) -> None:
+def test_templates_have_a_golden_set_since_0_2(agent_id: str) -> None:
     d = definition(agent_id)
-    assert "TEMPLATE" in d["description"] and d["lifecycle"]["state"] == "draft"
-    assert cases(agent_id) == []
-    assert not (DIR / "golden" / agent_id / "calibration.json").exists()
+    assert d["lifecycle"]["state"] == "draft" and d["lifecycle"]["version"] == "0.2"
+    assert "TEMPLATE" not in d["description"]
+    assert len(cases(agent_id)) >= 50 and len(labels(agent_id)) >= 20
 
 
 def test_pack_items_read_the_pack_result() -> None:
@@ -126,7 +127,7 @@ def test_pack_items_read_the_pack_result() -> None:
 # ------------------------------------------------------------------------------ golden sets
 
 
-@pytest.mark.parametrize("agent_id", SIX)
+@pytest.mark.parametrize("agent_id", EIGHT)
 def test_golden_stratification(agent_id: str) -> None:
     d = definition(agent_id)
     ids = [c["id"] for c in d["checklist"]]
@@ -144,7 +145,7 @@ def test_golden_stratification(agent_id: str) -> None:
     assert {r["label_by"] for r in lab} == {"synthetic.labeller"}
 
 
-@pytest.mark.parametrize("agent_id", SIX)
+@pytest.mark.parametrize("agent_id", EIGHT)
 def test_expected_refs_point_at_the_case_inputs(agent_id: str) -> None:
     for c in cases(agent_id):
         refs = set(devfake._refs_of(c["inputs"]))
@@ -156,7 +157,7 @@ def test_expected_refs_point_at_the_case_inputs(agent_id: str) -> None:
             assert want, c["case_id"]
 
 
-@pytest.mark.parametrize("agent_id", SIX)
+@pytest.mark.parametrize("agent_id", EIGHT)
 def test_no_personal_data_in_any_case(agent_id: str) -> None:
     def strings(v: Any) -> Any:
         if isinstance(v, str):
@@ -188,14 +189,13 @@ def test_generator_output_is_current() -> None:
 def test_seed_creates_six_drafts_and_two_templates_once(env: gate.GateEnv) -> None:
     first = starters.seed(env.store, env.data_dir)
     assert first["created"] == [*SIX, *TEMPLATES] and first["skipped"] == []
+    assert first["added"] == []
     rows = {r["id"]: r for r in env.store.list_agents()}
     assert set(rows) == {*SIX, *TEMPLATES}
     assert {r["state"] for r in rows.values()} == {"draft"}
-    for agent_id in SIX:
+    for agent_id in EIGHT:
         assert len(golden.load_gate_cases(env.data_dir, agent_id)) == len(cases(agent_id))
         assert len(golden.load_labels(env.data_dir, agent_id)) == len(labels(agent_id))
-    for agent_id in TEMPLATES:
-        assert golden.load_gate_cases(env.data_dir, agent_id) == []
     before = [(r["id"], r["version"], r["row_version"]) for r in env.store.list_agents()]
     second = starters.seed(env.store, env.data_dir)
     assert second["created"] == [] and sorted(second["skipped"]) == sorted([*SIX, *TEMPLATES])
@@ -205,12 +205,12 @@ def test_seed_creates_six_drafts_and_two_templates_once(env: gate.GateEnv) -> No
 
 def test_seed_keeps_a_team_edit(env: gate.GateEnv) -> None:
     starters.seed(env.store, env.data_dir)
-    row = env.store.get("ethics-assessor", "0.1")
+    row = env.store.get("ethics-assessor", "0.2")
     edited = json.loads(json.dumps(row["definition"]))
     edited["description"] = "Edited by the ethics group."
-    env.store.save_draft("ethics-assessor", "0.1", edited, "reviewer.an", row["row_version"])
+    env.store.save_draft("ethics-assessor", "0.2", edited, "reviewer.an", row["row_version"])
     starters.seed(env.store, env.data_dir)
-    assert env.store.get("ethics-assessor", "0.1")["definition"]["description"].startswith("Edited")
+    assert env.store.get("ethics-assessor", "0.2")["definition"]["description"].startswith("Edited")
 
 
 def test_seed_cli(env: gate.GateEnv, capsys: pytest.CaptureFixture[str]) -> None:

@@ -1,6 +1,9 @@
 {# Inbox table and pager: swap target #inbox-rows and answer of "mark read" (WP-UX2). #}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
+{% if not page.items %}{# UI-030: no table with headers for "No notices" #}
+{{ ui.empty(t('no_notices')) }}
+{% else %}
 <div class="tablewrap">
 <table>
   <caption class="sr">{{ t('inbox') }}</caption>
@@ -31,10 +34,9 @@
         <button class="btn sm">{{ t('mark_read') }}</button>
       </form>{% endif %}</td>
   </tr>
-  {% else %}
-  <tr><td colspan="5" class="empty">{{ t('no_notices') }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
 </div>
+{% endif %}
 {{ tb.pager(page, '/console/inbox', '/console/inbox/rows', list_qs, '#inbox-rows') }}

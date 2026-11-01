@@ -774,6 +774,32 @@ Limits: the diff reads articles; a change only in an annex is flagged but not dr
 text of the instrument is imported when the consolidated text exists. The risk register line of
 WP-L3 is not refreshed by the event; use Re-evaluate on the Duties tab.
 
+## Regulation graph (KBGRAPH_ENABLED)
+
+Flag `KBGRAPH_ENABLED=1` (default off; needs `GOVERNANCE_ENABLED=1`) adds the tab **Regulation graph**
+under Risks & controls (`/console/regkb/graph`, permission `regkb.view`, v3 nav) and the JSON API
+`GET /v1/regkb/graph`. Off: every route answers HTTP 400 `kbgraph_off`, no tab.
+
+The graph has three columns, instrument | duty (RegKB obligation) | AI system. A line between a duty
+and a system is one `obligation_status` row that applies; its colour is the mark of the Duties tab
+tick strip: gap (open, no coverage; red), partial (amber), bank process (open, covered; blue), met
+(closed; green). Lines also differ by stroke (solid, dashed, dotted), so colour is not the only cue.
+Waived rows and rows that need an answer are not drawn. A person sees the systems of their scope only
+(`scope_for`, as on the Systems list).
+
+The view is bounded. Default: the instrument with the most gaps and the 20 systems with most gaps in
+it. Filters (GET): `instrument` (id or `all`), `risk` (the level set on the system), `coverage`,
+`q` (system id or name, duty id or article, instrument number), `n` (10, 20, 40, 60 systems), `view`
+(`graph` or `list`), `sel` (`sys:<id>`, `obl:<id>`, `ins:<id>`). At most 40 duties (30 with all
+instruments) and 400 lines are drawn; the page says how many systems and duties are left out. A bad
+value is HTTP 400. Click a node (or Tab and Enter) to see its links in the side panel; a system links to
+its Duties tab, a duty shows article, summary, mapped controls and the systems it binds. There is no
+stand-alone page per obligation in the console, so the panel is that view; with `LAWAGENT_ENABLED` it
+links to the drafts page of the instrument. The List view is a table of the same lines.
+
+Cost: two store reads per page (`obligation_status` where applies, `ai_system`); RegKB comes from its
+process cache. Read only; no audit row. Not legal advice.
+
 ## Open points for counsel
 
 - Whether the Decision 33 transition date for banks is 2027-09-01 ("finance", AI Law Art. 35)

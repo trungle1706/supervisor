@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """UX5 text for group G5 (CONSOLE_UX5): guardian catalog, guardian factory, playground, analytics
 tabs, metrics, traces.
 
@@ -44,10 +45,8 @@ UX5: dict[str, tuple[str, str]] = {
     ),
     "cat_guard_model": ("Guard model", "Mô hình bảo vệ"),
     "cat_guard_model_d": (
-        "An AI model scores text for jailbreak and hidden instructions. It reports findings. "
-        "It can pause money and credit calls only when an approver is named.",
-        "Một mô hình AI chấm văn bản để tìm jailbreak và lệnh ẩn. Nó báo phát hiện. Chỉ khi có "
-        "người phê duyệt được nêu tên, nó mới được tạm dừng lệnh gọi về tiền và tín dụng.",
+        "An AI model checks text for jailbreak attempts and hidden instructions, and reports findings. It can pause money and credit calls only when a named approver is set.",
+        "Một mô hình AI kiểm tra văn bản để tìm jailbreak và lệnh ẩn, rồi báo phát hiện. Chỉ khi đã có người phê duyệt được nêu tên, nó mới được tạm dừng lệnh gọi về tiền và tín dụng.",
     ),
     "cat_judge_moderation_d": (
         "An AI judge checks user text and replies for toxic language and off-topic content. "
@@ -56,20 +55,16 @@ UX5: dict[str, tuple[str, str]] = {
         "đề không. Chỉ tư vấn.",
     ),
     "cat_judge_tiers_d": (
-        "AI judges review every trace. A second judge confirms. They open cases but never block "
-        "a call.",
-        "Giám khảo AI xem xét mọi trace. Giám khảo thứ hai xác nhận. Họ mở hồ sơ nhưng không "
-        "bao giờ chặn lệnh gọi.",
+        "AI judges review every conversation, and a second judge confirms. They open cases but never block a call.",
+        "Giám khảo AI xem xét mọi cuộc hội thoại và giám khảo thứ hai xác nhận. Họ mở vụ việc nhưng không bao giờ chặn lệnh gọi.",
     ),
     "cat_judge_advisory_d": (
         "An AI judge gives an opinion during the call. It advises only and never blocks.",
         "Giám khảo AI đưa ý kiến ngay trong lệnh gọi. Chỉ tư vấn, không bao giờ chặn.",
     ),
     "cat_redteam_d": (
-        "Every night, tests each agent with Vietnamese attack conversations. Results go to the "
-        "test packs.",
-        "Mỗi đêm, thử từng tác tử bằng các cuộc hội thoại tấn công tiếng Việt. Kết quả đưa vào "
-        "gói kiểm thử.",
+        "Every night, tests each agent with simulated attack conversations in Vietnamese. Results feed the assurance tests.",
+        "Mỗi đêm, thử từng tác tử bằng các cuộc hội thoại tấn công giả lập bằng tiếng Việt. Kết quả đưa vào bộ kiểm thử bảo đảm.",
     ),
     "cat_evidence_chain_d": (
         "Every decision is saved in a tamper-proof record. An auditor can verify it offline.",
@@ -126,8 +121,8 @@ NEW: dict[str, tuple[str, str]] = {
     "cat_tech_rows": ("Technical details for admins", "Chi tiết kỹ thuật cho quản trị viên"),
     "cat_sw_on": ("On for this system", "Bật cho hệ thống này"),
     "cat_sw_off": ("Off for this system", "Tắt cho hệ thống này"),
-    "cat_sw_locked": ("Always on (policy floor)", "Luôn bật (mức sàn chính sách)"),
-    "cat_sw_inst_off": ("Off in this instance", "Tắt trên toàn phiên bản"),
+    "cat_sw_locked": ("Always on (policy minimum)", "Luôn bật (mức tối thiểu của chính sách)"),
+    "cat_sw_inst_off": ("Off on this platform", "Tắt trên nền tảng này"),
     "cat_filter_cat": ("Group", "Nhóm"),
 }
 
@@ -136,11 +131,11 @@ NEW: dict[str, tuple[str, str]] = {
 UX5.update(
     {
         "gf_purpose": (
-            "Create a new guardian. Describe the rule in words. Review the draft. Save it.",
-            "Tạo guardian mới. Mô tả quy tắc bằng lời. Xem lại bản nháp. Lưu lại.",
+            "Describe the rule in words, review the draft, then save it.",
+            "Mô tả quy tắc bằng lời, xem lại bản nháp, rồi lưu.",
         ),
         "gf_why": (
-            "Only fixed rules can block. Model types only log or ask approval.",
+            "Only fixed rules can block. Model-based types can only log or ask for approval.",
             "Chỉ quy tắc cố định mới chặn được. Loại dùng mô hình chỉ ghi nhận hoặc xin phê duyệt.",
         ),
         "gf_action_hint": (
@@ -151,8 +146,8 @@ UX5.update(
         ),
         "gf_bench_pack": ("Test pack (optional)", "Bộ kiểm thử (tùy chọn)"),
         "gf_words_hint": (
-            "Example: block account numbers. Your text goes to a model only after masking.",
-            "Ví dụ: chặn số tài khoản. Văn bản của bạn chỉ đến mô hình sau khi đã che dữ liệu.",
+            "Example: block account numbers. Your text is masked before it goes to an AI model.",
+            "Ví dụ: chặn số tài khoản. Văn bản của bạn được che dữ liệu trước khi đến mô hình AI.",
         ),
         "gf_b_save_first": ("Save the draft first.", "Hãy lưu bản nháp trước."),
         "gf_b_purpose": (
@@ -162,14 +157,12 @@ UX5.update(
             "có thể đánh dấu phiên bản đã kiểm thử.",
         ),
         "gf_s_purpose": (
-            "Trial run: the guardian watches live calls and records what it would do. Nothing is "
-            "blocked. Mark each finding Correct or False.",
-            "Chạy thử: guardian theo dõi lệnh gọi thật và ghi lại việc nó sẽ làm. Không chặn gì. "
-            "Đánh dấu từng phát hiện là Đúng hoặc Sai.",
+            "Trial run: the guardian watches live calls and records what it would do. Nothing is blocked. Mark each finding Correct or False.",
+            "Chạy thử: bộ bảo vệ theo dõi lệnh gọi thật và ghi lại việc nó sẽ làm. Không chặn gì. Đánh dấu từng phát hiện là Đúng hoặc Sai.",
         ),
         "gf_s_allow_hint": (
-            "Agents on this list are not checked. Each entry ends on a date.",
-            "Các agent trong danh sách này không bị kiểm tra. Mỗi mục có ngày hết hạn.",
+            "Agents on this list are not checked. Each entry has an end date.",
+            "Các tác tử trong danh sách này không bị kiểm tra. Mỗi mục có ngày hết hạn.",
         ),
         "gf_p_purpose": (
             "Two different people approve a finished trial run: the lead of the owner group and "
@@ -191,18 +184,15 @@ NEW.update(
         "gf_owner": ("Owner", "Nhóm sở hữu"),
         "gf_where": ("Where it runs", "Nơi chạy"),
         "gf_about_full": (
-            "Only a deterministic rule (regex, keyword list, policy) can block or redact. A "
-            "model type (classifier, judge prompt) can only log or ask for approval.",
-            "Chỉ quy tắc xác định (regex, danh sách từ khóa, chính sách) mới được chặn hoặc che. "
-            "Loại dùng mô hình (bộ phân loại, câu lệnh giám khảo) chỉ được ghi nhận hoặc xin "
-            "phê duyệt.",
+            "Only fixed rules (pattern/regex, keyword list, policy) can block or hide data. Model-based types (classifier, judge prompt) can only log or ask for approval.",
+            "Chỉ quy tắc cố định (mẫu regex, danh sách từ khóa, chính sách) mới được chặn hoặc che dữ liệu. Loại dùng mô hình (bộ phân loại, câu lệnh giám khảo) chỉ được ghi nhận hoặc xin phê duyệt.",
         ),
-        "gf_new_title": ("New guardian", "Guardian mới"),
+        "gf_new_title": ("New guardian", "Bộ bảo vệ mới"),
         "gf_new_purpose": (
             "Describe the rule in words, review the draft, then save it.",
             "Mô tả quy tắc bằng lời, xem lại bản nháp, rồi lưu.",
         ),
-        "gf_sec_describe": ("Describe the guardian", "Mô tả guardian"),
+        "gf_sec_describe": ("Describe the guardian", "Mô tả bộ bảo vệ"),
         "gf_f_id": ("Identifier (letters, digits, dashes)", "Mã định danh (chữ, số, dấu gạch)"),
         "gf_f_does": ("What it does", "Nó làm gì"),
         "gf_f_type": ("Rule type", "Loại quy tắc"),
@@ -210,7 +200,6 @@ NEW.update(
         "gf_adv": ("Advanced", "Nâng cao"),
         "gf_adv_json": ("Rule definition (JSON)", "Định nghĩa quy tắc (JSON)"),
         "gf_f_sens": ("Sensitivity (1-4)", "Độ nhạy (1-4)"),
-        "gf_f_thr": ("Pass thresholds for the test", "Ngưỡng đạt của bài kiểm thử"),
         "gf_f_tpr": ("Catch rate at least (%)", "Tỷ lệ bắt đúng tối thiểu (%)"),
         "gf_f_fpr": ("False-alarm rate at most (%)", "Tỷ lệ báo nhầm tối đa (%)"),
         "gf_f_p95": ("Speed, 95th percentile at most (ms)", "Tốc độ, phân vị 95 tối đa (ms)"),
@@ -260,14 +249,16 @@ NEW.update(
         "gf_s_k_ok": ("Correct", "Đúng"),
         "gf_s_k_false": ("False", "Sai"),
         "gf_s_k_pending": ("Not reviewed", "Chưa xem xét"),
-        "gf_s_k_skipped": ("Skipped (budget)", "Bỏ qua (ngân sách)"),
-        "gf_s_k_rate": ("False rate / limit", "Tỷ lệ sai / giới hạn"),
+        "gf_s_k_skipped": ("Skipped (cost limit)", "Bỏ qua (hết hạn mức chi phí)"),
+        "gf_s_k_rate": ("False-alarm rate / limit", "Tỷ lệ báo nhầm / giới hạn"),
         "gf_s_show_all": ("Show all {n}", "Xem cả {n}"),
-        "gf_s_first": ("First {n} of {total} findings", "{n} phát hiện đầu / {total}"),
+        "gf_s_first": (
+            "Showing the first {n} of {total} findings",
+            "Hiển thị {n} / {total} phát hiện đầu tiên",
+        ),
         "gf_s_c_rule": ("Finding", "Phát hiện"),
         "gf_p_slug_details": ("Details", "Chi tiết"),
         "gf_p_slug_label": ("Name used in logs", "Tên dùng trong nhật ký"),
-        "gf_hist_none": ("No events yet.", "Chưa có sự kiện nào."),
         "gfe_created": ("created the draft", "tạo bản nháp"),
         "gfe_saved": ("saved the draft", "lưu bản nháp"),
         "gfe_new_version": ("made a new version", "tạo phiên bản mới"),
@@ -296,7 +287,7 @@ UX5.update(
         ),
         "pg_args": ("Call details (JSON)", "Chi tiết lệnh gọi (JSON)"),
         "pg_context": ("Extra details (optional)", "Chi tiết bổ sung (tùy chọn)"),
-        "pg_consumer": ("Caller id", "Mã bên gọi"),
+        "pg_consumer": ("Caller ID", "Mã bên gọi"),
         "pg_tool_class": ("Tool type", "Loại công cụ"),
         "pg_samples_line": ("Pick a sample to fill the form.", "Chọn một mẫu để điền biểu mẫu."),
     }
@@ -304,7 +295,7 @@ UX5.update(
 
 NEW.update(
     {
-        "pg_advanced": ("Advanced", "Nâng cao"),
+        "pg_advanced": ("Advanced options", "Tùy chọn nâng cao"),
         "pg_version": ("Agent version", "Phiên bản tác tử"),
     }
 )
@@ -322,10 +313,13 @@ UX5.update(
             "{a} đến {b} ({n} ngày)",
         ),
         "an_window_stored": (
-            "Every stored day, {a} to {b}",
-            "Mọi ngày đã lưu, {a} đến {b}",
+            "All days on record, {a} to {b}",
+            "Mọi ngày đã có dữ liệu, {a} đến {b}",
         ),
-        "an_window_stored_none": ("Every stored day (none yet)", "Mọi ngày đã lưu (chưa có)"),
+        "an_window_stored_none": (
+            "All days on record (none yet)",
+            "Mọi ngày đã có dữ liệu (chưa có)",
+        ),
         "an_window_live": ("Since the service started", "Từ lúc dịch vụ khởi động"),
         "an_p95": ("95th percentile (ms)", "Phân vị 95 (ms)"),
     }
@@ -336,8 +330,8 @@ NEW.update(
         "an_show_all": ("Show all {n}", "Xem cả {n}"),
         "an_how": ("How counts are computed", "Cách tính số liệu"),
         "an_totals_differ": (
-            "Totals here count by verdict, so they can differ from the tiles above.",
-            "Tổng ở đây đếm theo phán quyết nên có thể khác các ô phía trên.",
+            "These totals count by decision, so they can differ from the tiles above.",
+            "Tổng ở đây đếm theo quyết định nên có thể khác các ô phía trên.",
         ),
         "an_c_reported": ("Reported", "Đã báo cáo"),
         "an_c_masked": ("Data masked", "Đã che dữ liệu"),
@@ -365,27 +359,18 @@ NEW.update(
         "an_det_cmd_label": ("Run the detector test", "Chạy kiểm thử bộ phát hiện"),
         "an_more_codes": ("more finding codes", "mã phát hiện khác"),
         "an_mon_purpose": (
-            "Status of each monitor per agent. Agents with nothing to measure are folded.",
-            "Trạng thái từng bộ giám sát theo tác tử. Tác tử không có gì để đo được gộp lại.",
+            "Monitor status for each agent. Agents with nothing to measure are grouped.",
+            "Trạng thái giám sát của từng tác tử. Tác tử không có gì để đo được gộp lại.",
         ),
         "an_mon_line": (
             "{ok} ok, {nd} no data, {na} not applicable",
             "{ok} bình thường, {nd} chưa có dữ liệu, {na} không áp dụng",
         ),
-        "an_mon_fold": (
-            "agents: not applicable (nothing to measure)",
-            "tác tử: không áp dụng (không có gì để đo)",
-        ),
+        "an_mon_fold": ("agents with nothing to measure", "tác tử không có gì để đo"),
         "an_no_data": (
-            "No data yet. Metrics appear after the first daily run.",
-            "Chưa có dữ liệu. Số liệu xuất hiện sau lần chạy hằng ngày đầu tiên.",
+            "No data yet. Numbers appear after the first daily check.",
+            "Chưa có dữ liệu. Số liệu xuất hiện sau lần kiểm tra hằng ngày đầu tiên.",
         ),
-        "an_chain": ("Evidence chain", "Chuỗi bằng chứng"),
-        "an_chain_line": (
-            "{lanes} lanes, {entries} entries.",
-            "{lanes} làn, {entries} bản ghi.",
-        ),
-        "an_chain_open": ("Open the evidence chain", "Mở chuỗi bằng chứng"),
     }
 )
 
@@ -398,8 +383,8 @@ UX5.update(
             "Mở một dấu vết để xem từng bước. Văn bản đã được che.",
         ),
         "digest_only": (
-            "No text stored for this step. Only hashes and numbers.",
-            "Bước này không lưu văn bản. Chỉ có mã băm và số.",
+            "No text is kept for this step. Only codes and numbers.",
+            "Bước này không lưu văn bản, chỉ có mã và số.",
         ),
     }
 )
@@ -413,8 +398,8 @@ NEW.update(
         "tr_blocked": ("Blocked", "Đã chặn"),
         "tr_blocked_paused": ("Blocked and paused", "Đã chặn và tạm dừng"),
         "tr_alert": ("Alert", "Cảnh báo"),
-        "tr_judge": ("AI judge notes: {n}", "Ghi chú của giám khảo AI: {n}"),
-        "tr_ai_judge": ("AI judge", "Giám khảo AI"),
+        "tr_judge": ("AI judge notes: {n}", "Ghi chú của bộ đánh giá AI: {n}"),
+        "tr_ai_judge": ("AI judge", "Bộ đánh giá AI"),
         "tr_more_filters": ("More filters", "Thêm bộ lọc"),
         "tr_view_case": ("View case", "Xem vụ việc"),
         "tr_view_decision": ("View decision", "Xem quyết định"),

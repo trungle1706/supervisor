@@ -2192,3 +2192,57 @@ tables:
       set_by: string
       set_at: timestamp
       note: text?
+
+  # --- W7 (v0.11.2) red team run before deployment (flag REDTEAM_TAB) --------------------------------
+  redteam_usecase_run:
+    kind: state
+    description: >
+      W7. One multi-turn red-team run against one AI system (its tools, risk classes and limits),
+      started from the registration flow or the Red team tab. The sandbox agent is simulated, the
+      gate and rules are real. summary holds integer counts and basis points only (no floats), the
+      verdict and the per-style table; replays holds at most six conversations with masked text
+      (long digit runs removed). No customer data, no secrets. The chain record
+      redteam_usecase_result holds the counts and the verdict only.
+    primary_key: [run_id]
+    indexes:
+      - [system_id, started_at]
+    columns:
+      run_id: string
+      system_id: string
+      status: string           # running | done | cancelled | failed
+      verdict: string          # safe | conditions | not_safe | not_tested | ''
+      started_by: string
+      started_at: timestamp
+      finished_at: timestamp?
+      config: json             # trials, langs, attacker kind and model id, seed, mock flags
+      summary: json            # integer aggregates, never floats
+      replays: json            # list of masked conversations
+      error: string?
+      evidence_hash: string?
+
+  # --- Guardian kit (GUARDIAN_KIT) the "Guardian-ready" code check -------------------------------
+  guardian_ready_check:
+    kind: state
+    description: >
+      GUARDIAN_KIT. One run of the Guardian-ready code check on the newest stored source of an AI
+      system (intake_attempt, ONBOARD_INTAKE). The check is deterministic (an AST scan, no model):
+      for each tool of the use case it looks for a Guardian line above the tool. status:
+      ready (every tool connected), partly_ready, not_ready, no_tools (the code has no tool). A row
+      is never updated; Check my code again writes a new check_id. The newest row by checked_at
+      is the status shown. detail_json holds, per tool, the name, the risk class, the state
+      (connected, missing, wrong_name, wrong_risk) and file:line, plus notes; no code text and no
+      value. Each check also goes on the chain as guardian_ready_check (ids, counts and hashes).
+    primary_key: [check_id]
+    indexes:
+      - [system_id]
+    columns:
+      check_id: string
+      system_id: string
+      node_id: string          # the source key the attempts are stored under (intake_attempt.node_id)
+      attempt_n: int           # intake_attempt.n the check read
+      status: string           # ready | partly_ready | not_ready | no_tools
+      tools_total: int
+      tools_ok: int
+      checked_by: string
+      checked_at: timestamp
+      detail_json: text        # JSON, ids and paths only

@@ -113,7 +113,7 @@ def test_request_then_approve_by_the_owner(sa: Console) -> None:
     assert r.status_code == 200 and "RUNNING requested" in r.text
     card = _card(r.text)  # the HTMX fragment is the agent card, no full page
     assert "<html" not in r.text and 'data-mode-pending="1"' in card
-    assert "RUNNING requested by reviewer.an" in card and "7 days clean" in card
+    assert "reviewer.an asked to move this agent to RUNNING" in card and "7 days clean" in card
     assert "/payments/running/approve" not in card  # the requester sees no approve button
     assert "different person" in card
     assert _state(sa) == "SHADOW"
@@ -200,6 +200,6 @@ def test_fragment_matches_the_page_card(sa: Console) -> None:
     sa.post("/console/agents/payments/running/request", {"reason": "go"})
     page = _card(sa.get("/console/agents/payments").text)
     tab = sa.get("/console/agents/payments/tab/overview", headers=HX).text
-    for needle in ('data-mode-pending="1"', "RUNNING requested by reviewer.an"):
+    for needle in ('data-mode-pending="1"', "reviewer.an asked to move this agent to RUNNING"):
         assert needle in page and needle in tab
     assert re.search(r'data-agent="payments" data-state="SHADOW"', tab)

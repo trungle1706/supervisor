@@ -44,8 +44,12 @@ RULES: tuple[str, ...] = (
 )
 
 
-def _result(key: str, arg: str = "", href: str = "") -> dict[str, str]:
-    return {"key": key, "arg": arg, "href": href}
+def _result(key: str, arg: str = "", href: str = "", code: str = "") -> dict[str, str]:
+    """``code`` (a task template id) lets the page translate the task title; absent when empty."""
+    out = {"key": key, "arg": arg, "href": href}
+    if code:
+        out["code"] = code
+    return out
 
 
 def tasks_tab(system_id: str) -> str:
@@ -85,7 +89,7 @@ def recommend(
     nxt = first_task_or_stage(sid, agents, tasks, waiting) if sid else None
     task_href = f"/console/systems/{sid}?tab=tasks" if workflow and system else "/console/tasks"
     if nxt and nxt["kind"] == "task" and nxt["overdue"]:
-        return _result("finish_task_overdue", nxt["text"], task_href)
+        return _result("finish_task_overdue", nxt["text"], task_href, nxt.get("code", ""))
     if system and can_decide and waiting.get(sid):
         return _result(
             "approve_stage", "", tasks_tab(sid) if workflow else f"/console/systems/{sid}"
@@ -99,7 +103,7 @@ def recommend(
     if open_cases:
         return _result("triage_case", str(open_cases), "/console/cases")
     if nxt and nxt["kind"] == "task":
-        return _result("finish_task", nxt["text"], task_href)
+        return _result("finish_task", nxt["text"], task_href, nxt.get("code", ""))
     return _result("none")
 
 

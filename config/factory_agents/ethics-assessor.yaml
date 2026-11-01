@@ -6,7 +6,8 @@ id: ethics-assessor
 name: Ethics risk assessor (starter)
 description: 'Starter agent for the ethics risk type (Circular 53 Art. 14(3)(đ)): data, model and operating
   bias, vulnerable groups, discrimination, fairness packs, transparency, explanation, human oversight
-  and complaints. Drafts findings; a person decides.'
+  and complaints. Drafts findings; a person decides. Version 0.2 adds checks decided from the code scan
+  and an executive text for every item.'
 owner_group: ethics
 dimension_id: ethics
 policy_refs:
@@ -34,6 +35,21 @@ checklist:
   - system_record
   severity: high
   pass_rule: A document addresses all three kinds of bias and names a reduction measure for each.
+  executive:
+    key: bias_not_assessed
+    headline_fail:
+      en: Data, model or operating bias is not covered in any document.
+      vi: Thiên lệch về dữ liệu, mô hình hoặc vận hành chưa được nêu trong tài liệu nào.
+    headline_open:
+      en: Nothing shows that all three kinds of bias are assessed.
+      vi: Chưa có thông tin cho thấy cả ba loại thiên lệch đã được đánh giá.
+    impact:
+      en: Biased outcomes could harm customers and the bank's name.
+      vi: Kết quả thiên lệch có thể gây hại cho khách hàng và uy tín của ngân hàng.
+    action:
+      en: Document data, model and operating bias, with the control for each.
+      vi: Lập tài liệu về thiên lệch dữ liệu, mô hình và vận hành, kèm biện pháp cho từng loại.
+    owner: risk_team
 - id: ET-02
   question: Are vulnerable groups (children, elderly, disabled, disadvantaged) identified and their treatment
     described (Circular 53 Art. 17(1))?
@@ -42,6 +58,22 @@ checklist:
   severity: high
   pass_rule: Vulnerable groups are named and a safeguard is described. Not applicable when the system
     never affects customers or staff.
+  executive:
+    key: vulnerable_groups_unaddressed
+    headline_fail:
+      en: Vulnerable customers are not identified, or their treatment is not described.
+      vi: Khách hàng dễ bị tổn thương chưa được xác định, hoặc cách đối xử với họ chưa được mô tả.
+    headline_open:
+      en: Nothing shows that vulnerable groups are identified.
+      vi: Chưa có thông tin cho thấy các nhóm dễ bị tổn thương đã được xác định.
+    impact:
+      en: Children, older or disabled customers could be harmed by decisions that ignore their needs.
+      vi: Trẻ em, người cao tuổi hoặc người khuyết tật có thể bị ảnh hưởng bởi các quyết định không tính
+        đến nhu cầu của họ.
+    action:
+      en: Identify the vulnerable groups and describe how the system treats them.
+      vi: Xác định các nhóm dễ bị tổn thương và mô tả cách hệ thống đối xử với họ.
+    owner: risk_team
 - id: ET-03
   question: Is the risk of discrimination assessed for decisions about customers (Circular 53 Art. 13(1)(b))?
   evidence:
@@ -50,6 +82,21 @@ checklist:
   severity: high
   pass_rule: An assessment of discrimination risk exists for each customer-facing decision. Not applicable
     when the system makes no decision about people.
+  executive:
+    key: discrimination_not_assessed
+    headline_fail:
+      en: Discrimination risk is not assessed for decisions about customers.
+      vi: Rủi ro phân biệt đối xử chưa được đánh giá cho các quyết định đối với khách hàng.
+    headline_open:
+      en: Nothing shows a discrimination assessment.
+      vi: Chưa có thông tin cho thấy có đánh giá rủi ro phân biệt đối xử.
+    impact:
+      en: Unfair decisions could breach consumer rules and lead to complaints.
+      vi: Quyết định thiếu công bằng có thể vi phạm quy định bảo vệ khách hàng và dẫn đến khiếu nại.
+    action:
+      en: Assess the risk of discrimination for each customer decision.
+      vi: Đánh giá rủi ro phân biệt đối xử cho từng quyết định đối với khách hàng.
+    owner: risk_team
 - id: ET-04
   question: Does the pack fairness_metrics pass at the current version (Circular 53 Art. 17(2))?
   evidence:
@@ -57,6 +104,21 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack fairness_metrics passed at the current
     version of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_fairness_metrics
+    headline_fail:
+      en: The fairness test did not pass on the current version.
+      vi: Kiểm tra tính công bằng không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The fairness test has not been run on the current version.
+      vi: Chưa chạy kiểm tra tính công bằng ở phiên bản hiện tại.
+    impact:
+      en: Some customer groups could be treated worse than others.
+      vi: Một số nhóm khách hàng có thể bị đối xử kém hơn các nhóm khác.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: risk_team
 - id: ET-05
   question: Does the four-fifths rule pack four_fifths_rule pass at the current version (Circular 53 Art.
     17(2))?
@@ -65,6 +127,21 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack four_fifths_rule passed at the current
     version of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_four_fifths_rule
+    headline_fail:
+      en: The four-fifths fairness test did not pass on the current version.
+      vi: Kiểm tra công bằng theo quy tắc bốn phần năm không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The four-fifths fairness test has not been run on the current version.
+      vi: Chưa chạy kiểm tra công bằng theo quy tắc bốn phần năm ở phiên bản hiện tại.
+    impact:
+      en: A customer group could get approvals at a much lower rate than others.
+      vi: Một nhóm khách hàng có thể được chấp thuận với tỷ lệ thấp hơn nhiều so với nhóm khác.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: risk_team
 - id: ET-06
   question: Does the counterfactual pack counterfactual_vi pass at the current version (Circular 53 Art.
     17(2))?
@@ -73,6 +150,21 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack counterfactual_vi passed at the current
     version of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_counterfactual_vi
+    headline_fail:
+      en: The what-if fairness test did not pass on the current version.
+      vi: Kiểm tra công bằng theo tình huống giả định không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The what-if fairness test has not been run on the current version.
+      vi: Chưa chạy kiểm tra công bằng theo tình huống giả định ở phiên bản hiện tại.
+    impact:
+      en: Changing only a protected trait, such as sex or age, could change the result.
+      vi: Chỉ đổi một đặc điểm được bảo vệ, như giới tính hoặc tuổi, cũng có thể làm đổi kết quả.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: risk_team
 - id: ET-07
   question: Does the fairness monitor show no failed slice in the monitoring window (Circular 53 Art.
     17(2))?
@@ -81,6 +173,21 @@ checklist:
   - pack
   severity: medium
   pass_rule: A fairness monitor exists and no monitored slice is recorded as failed.
+  executive:
+    key: fairness_slice_failed
+    headline_fail:
+      en: The fairness monitor shows a customer group that failed in the monitoring period.
+      vi: Giám sát công bằng cho thấy một nhóm khách hàng không đạt trong kỳ theo dõi.
+    headline_open:
+      en: No fairness monitor result was available for the monitoring period.
+      vi: Chưa có kết quả giám sát công bằng cho kỳ theo dõi.
+    impact:
+      en: One customer group may be getting worse results than the others.
+      vi: Một nhóm khách hàng có thể đang nhận kết quả kém hơn các nhóm khác.
+    action:
+      en: Find the cause for the failed group and fix it.
+      vi: Tìm nguyên nhân của nhóm không đạt và khắc phục.
+    owner: model_validation
 - id: ET-08
   question: Is the customer told what the AI system is for and what its limits are (Circular 53 Art. 20(2),
     Art. 20(3))?
@@ -89,6 +196,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: A notice text states the AI use and its limits. Not applicable for internal-only systems.
+  executive:
+    key: customer_not_informed
+    headline_fail:
+      en: Customers are not told what the AI is for and what its limits are.
+      vi: Khách hàng chưa được cho biết AI dùng để làm gì và có những giới hạn nào.
+    headline_open:
+      en: Nothing shows that customers are told the purpose and limits.
+      vi: Chưa có thông tin cho thấy khách hàng được thông báo về mục đích và giới hạn.
+    impact:
+      en: Customers may rely on the AI for more than it can do.
+      vi: Khách hàng có thể trông cậy vào AI nhiều hơn khả năng thực tế của nó.
+    action:
+      en: Add a clear notice of purpose and limits for customers.
+      vi: Bổ sung thông báo rõ ràng về mục đích và giới hạn cho khách hàng.
+    owner: legal
 - id: ET-09
   question: Are the basis and main factors of a decision stored so an explanation can be given (Circular
     53 Art. 20(5), Art. 13(1)(b))?
@@ -98,6 +220,21 @@ checklist:
   severity: medium
   pass_rule: The record or the facts show that decision basis and main factors are stored. Not applicable
     when no decision affects a customer.
+  executive:
+    key: decision_explanation
+    headline_fail:
+      en: The basis of a decision is not stored, so it cannot be explained.
+      vi: Cơ sở của quyết định không được lưu nên không thể giải thích.
+    headline_open:
+      en: Nothing shows that decision factors are stored.
+      vi: Chưa có thông tin cho thấy các yếu tố của quyết định được lưu.
+    impact:
+      en: The bank may be unable to explain a decision to a customer or a regulator.
+      vi: Ngân hàng có thể không giải thích được quyết định với khách hàng hoặc cơ quan quản lý.
+    action:
+      en: Store the basis and main factors of each decision.
+      vi: Lưu cơ sở và các yếu tố chính của từng quyết định.
+    owner: system_owner
 - id: ET-10
   question: 'Can a person monitor and intervene: is there a human approval point or review for decisions
     (Circular 53 Art. 3(5), Art. 5(2))?'
@@ -105,7 +242,24 @@ checklist:
   - fact
   - system_record
   severity: high
-  pass_rule: An approval_point fact or a record field shows human review before a decision takes effect.
+  pass_rule: 'Pass when an approval_point fact exists or the autonomy fact is L0, L1 or L2: cite it. Fail
+    when the autonomy fact is L3 (tools with side effects and no human approval step in code): cite it
+    and the tool fact it names. No autonomy fact: question.'
+  executive:
+    key: human_oversight_missing
+    headline_fail:
+      en: Tools with side effects act with no human approval step in the code.
+      vi: Các công cụ có tác động thực tế hoạt động mà mã không có bước người phê duyệt.
+    headline_open:
+      en: The code scan did not show whether a person can step in before an action.
+      vi: Kết quả quét mã chưa cho biết có người can thiệp được trước khi hành động hay không.
+    impact:
+      en: Errors could take effect with no person able to stop them.
+      vi: Lỗi có thể có hiệu lực mà không ai kịp chặn.
+    action:
+      en: Add a human approval point before every action with a side effect.
+      vi: Thêm điểm người phê duyệt trước mọi hành động có tác động thực tế.
+    owner: system_owner
 - id: ET-11
   question: Is there a complaint route with human re-review of an automated decision (Circular 53 Art.
     20(4))?
@@ -114,6 +268,21 @@ checklist:
   - document
   severity: medium
   pass_rule: A complaint unit and a human re-review step are named.
+  executive:
+    key: complaint_route_missing
+    headline_fail:
+      en: No complaint route with human re-review exists for automated decisions.
+      vi: Chưa có kênh khiếu nại kèm người xem xét lại cho các quyết định tự động.
+    headline_open:
+      en: Nothing shows a complaint route with human re-review.
+      vi: Chưa có thông tin cho thấy có kênh khiếu nại kèm người xem xét lại.
+    impact:
+      en: Customers may have no way to challenge an automated decision.
+      vi: Khách hàng có thể không có cách nào phản đối một quyết định tự động.
+    action:
+      en: Set up a complaint route and name who re-reviews.
+      vi: Thiết lập kênh khiếu nại và nêu rõ ai xem xét lại.
+    owner: legal
 - id: ET-12
   question: Are the staff who supervise the system trained in AI ethics, personal data and privacy (Circular
     53 Art. 21(3))?
@@ -122,6 +291,74 @@ checklist:
   - system_record
   severity: low
   pass_rule: A training record with a date within 365 days covers the supervising staff.
+  executive:
+    key: staff_not_trained
+    headline_fail:
+      en: Staff who supervise the system are not trained in AI ethics and privacy.
+      vi: Nhân viên giám sát hệ thống chưa được đào tạo về đạo đức AI và quyền riêng tư.
+    headline_open:
+      en: Nothing shows that supervising staff are trained.
+      vi: Chưa có thông tin cho thấy nhân viên giám sát đã được đào tạo.
+    impact:
+      en: Untrained staff may miss problems or mishandle personal data.
+      vi: Nhân viên chưa được đào tạo có thể bỏ sót vấn đề hoặc xử lý sai dữ liệu cá nhân.
+    action:
+      en: Train the supervising staff and keep a record.
+      vi: Đào tạo nhân viên giám sát và lưu hồ sơ.
+    owner: risk_team
+- id: ET-13
+  question: Does a person approve every AI action that moves or waives a customer's money before it runs
+    (Circular 53 Art. 3(5), Art. 5(2))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Fail when a tool fact has risk_class=money and the autonomy fact names that tool among ''tools
+    with side effects and no human approval step in code'', or a decision33 fact says human_gate_in_code=False:
+    cite the tool fact and that fact. approved=yes only means the tool is on the allowed list, not that
+    a person approves. Pass when the tool facts show risk_class values and none is money, or the autonomy
+    fact is L2, or an approval_point fact exists: cite it. No tool fact with a risk_class: question.'
+  executive:
+    key: money_tool_no_gate
+    headline_fail:
+      en: A tool that moves money can run without a human approval step in the code.
+      vi: Công cụ chuyển tiền có thể chạy mà mã không có bước người phê duyệt.
+    headline_open:
+      en: The code scan did not show whether a person approves before money moves.
+      vi: Kết quả quét mã chưa cho biết có người phê duyệt trước khi tiền được chuyển hay không.
+    impact:
+      en: A wrong or manipulated instruction could move customer money with no person checking first.
+      vi: Một chỉ dẫn sai hoặc bị thao túng có thể chuyển tiền của khách hàng mà không ai kiểm tra trước.
+    action:
+      en: Add a human approval step before any money tool runs, or limit the amount it can move.
+      vi: Thêm bước người phê duyệt trước khi công cụ chuyển tiền chạy, hoặc giới hạn số tiền được chuyển.
+    owner: system_owner
+- id: ET-14
+  question: Does the code show the human approval that the record declares (Circular 53 Art. 3(5), Art.
+    5(2))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Read the record field human_control. Fail when it is pre_approval, no approval_point fact
+    exists, and the autonomy fact is L3 or a decision33 fact says human_gate_in_code=False: cite the record
+    field and that fact. Pass when it is pre_approval and an approval_point fact exists or the autonomy
+    fact is L0, L1 or L2. Not applicable when it is none. post_review or no value: question.'
+  executive:
+    key: declared_control_mismatch
+    headline_fail:
+      en: The record promises human approval, but the code has no approval step.
+      vi: Hồ sơ cam kết có người phê duyệt, nhưng mã không có bước phê duyệt.
+    headline_open:
+      en: The record and the code scan did not give a clear answer on human approval.
+      vi: Hồ sơ và kết quả quét mã chưa cho câu trả lời rõ ràng về việc người phê duyệt.
+    impact:
+      en: Reviewers and regulators may rely on a control that does not exist.
+      vi: Người soát xét và cơ quan quản lý có thể tin vào một biện pháp kiểm soát không tồn tại.
+    action:
+      en: Add the approval step to the code, or correct the record.
+      vi: Thêm bước phê duyệt vào mã, hoặc sửa lại hồ sơ.
+    owner: system_owner
 evidence_rules:
   allowed_sources:
   - fact
@@ -183,6 +420,38 @@ instructions: 'You assess the ethics risk of one AI system for a bank under Circ
   result, or a pass only at an older version, is a fail. A pack that has no result is a question.
 
 
+  Fact items (how to read the facts)
+
+  - A fact reads ''kind name: detail''. Decide a fact item from the facts and the record only, and cite
+  the fact that shows the result.
+
+  - tool facts: the detail gives risk_class (money, credit, pii_export, read_only) and approved=yes or
+  no. approved=yes means the tool is on the allowed list; it is not a human approval step.
+
+  - A human approval step is an approval_point fact. The autonomy fact says L0 ''no tools'', L1 ''every
+  tool only reads'', L2 ''every tool with a side effect has a human approval step in the same code'',
+  L3 ''tools with side effects and no human approval step in code'' followed by the tool names.
+
+  - decision33 facts: high_risk or not_high_risk with human_gate_in_code=True or False. The fact named
+  ''transactions triggered'' means tools run transactions and no human check was found in code. It is
+  a proposal; counsel confirms.
+
+  - model and endpoint facts: family=unknown means the scan could not name the model family.
+
+  - weak_spot facts name gaps that the scan found, for example ''No tracing found''.
+
+  - external_url facts: an address is allowed when its host is loopback (127.0.0.1, localhost) or contains
+  FILL-ME.
+
+  - claim facts ''Handles personal data field <name>'' list personal data fields by name. Write only the
+  field name in a reason.
+
+  - A pass that rests on something not being there cites the autonomy fact, which shows that the code
+  was scanned. Never invent a fact.
+
+  - A fail needs a cited fact that shows the problem. A missing fact is a question, not a fail.
+
+
   Checklist
 
   - ET-01 (high; document, system_record): Are data bias, model bias and operating bias each considered
@@ -220,6 +489,12 @@ instructions: 'You assess the ethics risk of one AI system for a bank under Circ
   - ET-12 (low; document, system_record): Are the staff who supervise the system trained in AI ethics,
   personal data and privacy (Circular 53 Art. 21(3))?
 
+  - ET-13 (high; fact, system_record): Does a person approve every AI action that moves or waives a customer''s
+  money before it runs (Circular 53 Art. 3(5), Art. 5(2))?
+
+  - ET-14 (high; fact, system_record): Does the code show the human approval that the record declares
+  (Circular 53 Art. 3(5), Art. 5(2))?
+
   '
 harness:
   system_prompt:
@@ -237,9 +512,7 @@ harness:
   memory:
     system_memory: false
   hitl:
-    approval_points:
-    - kind: verdict
-      ref: question
+    approval_points: []
     permissions: []
   verification:
     verifier: rules
@@ -257,5 +530,5 @@ guardians:
 eval_pack: ethics-assessor-golden-v1
 lifecycle:
   state: draft
-  version: '0.1'
+  version: '0.2'
   approvals: []

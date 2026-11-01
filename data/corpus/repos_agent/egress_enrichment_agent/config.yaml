@@ -1,0 +1,7 @@
+vendor:
+  base_url: https://api.companyinfo.example.com/v2
+  webhook: https://hooks.partner.example.com/notify
+llm:
+  base_url: http://llm.nganhang.internal/v1
+  model: qwen2.5-32b-instruct
+max_steps: 5

@@ -414,7 +414,7 @@ def test_the_overview_page_survives_a_failing_kpi_function(
     monkeypatch.setattr(kpis, "compute", boom)
     r = rig.console.get("/console/governance?lang=en&scope=all", user="admin.chi")
     assert r.status_code == 200, r.text[:300]
-    assert 'data-section="kpis"' in r.text and "could not be computed" in r.text
+    assert 'data-section="kpis"' in r.text and "could not be calculated" in r.text
     assert "store exploded" not in r.text
     assert "the KPIs could not be computed" in caplog.text
     vi = rig.console.get("/console/governance?lang=vi&scope=all", user="admin.chi")

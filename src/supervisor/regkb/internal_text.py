@@ -66,14 +66,6 @@ def fold(text: str) -> str:
     return re.sub(r"\s+", " ", unicodedata.normalize("NFC", text)).strip()
 
 
-def parse_ref(ref: str) -> int:
-    """'S12' -> 12. Raises ValueError for anything else."""
-    m = re.fullmatch(r"S(\d{1,4})", ref or "")
-    if not m:
-        raise ValueError(f"not a section reference: {ref!r}")
-    return int(m.group(1))
-
-
 def _heading_label(line: str) -> str | None:
     for rx in (_LEGAL, _DOTTED, _SIMPLE):
         m = rx.match(line)

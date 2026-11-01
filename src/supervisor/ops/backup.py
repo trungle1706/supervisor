@@ -216,11 +216,6 @@ def _verify_chain(
         shutil.rmtree(work, ignore_errors=True)
 
 
-def verify_chain_of(settings: Settings, pubkey_pem: bytes | None = None) -> tuple[bool, list[str]]:
-    ok, lines, _ = _verify_chain(settings, pubkey_pem)
-    return ok, lines
-
-
 def _key_id_of_pem(pem: bytes) -> str:
     from supervisor.evidence.verify import _load_public_key
 

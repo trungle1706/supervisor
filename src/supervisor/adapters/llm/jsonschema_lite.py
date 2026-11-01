@@ -111,7 +111,9 @@ def strict_compatible(schema: Any) -> Any:
     """Deep copy of ``schema`` without the keywords in :data:`STRICT_UNSUPPORTED`.
 
     Only schema keywords are dropped: a property that is itself NAMED ``pattern`` or
-    ``minimum`` (a key under ``properties``) is kept."""
+    ``minimum`` (a key under ``properties``) is kept. An object with ``properties`` and no
+    ``additionalProperties`` gets ``additionalProperties: false``: strict endpoints (OpenAI,
+    the Anthropic OpenAI-compatible endpoint) refuse an object that leaves it out."""
     if isinstance(schema, Mapping):
         out: dict[str, Any] = {}
         for k, v in schema.items():
@@ -121,6 +123,8 @@ def strict_compatible(schema: Any) -> Any:
                 out[k] = {name: strict_compatible(sub) for name, sub in v.items()}
             else:
                 out[k] = strict_compatible(v)
+        if isinstance(out.get("properties"), Mapping) and "additionalProperties" not in out:
+            out["additionalProperties"] = False
         return out
     if isinstance(schema, list):
         return [strict_compatible(x) for x in schema]

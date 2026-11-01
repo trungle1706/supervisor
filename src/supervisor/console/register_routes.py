@@ -39,7 +39,10 @@ _EDIT = [Depends(needs("systems.edit"))]
 def _off(ctx: ConsoleContext) -> None:
     """HTTP 400 naming the flag unless the workflow and what it needs are on."""
     if not ctx.settings.console_register_v2:
-        raise ConsoleInputError("The register workflow is off (CONSOLE_REGISTER_V2=1 turns it on)")
+        raise ConsoleInputError(
+            "The register workflow is switched off. Ask an administrator to set "
+            "CONSOLE_REGISTER_V2=1."
+        )
     ensure_on(ctx.settings)
     from supervisor.governance.register_v3 import service as v3svc
 
@@ -50,14 +53,14 @@ def _off(ctx: ConsoleContext) -> None:
 
 def _person(me: AuthPrincipal) -> str:
     if me.kind != "user":
-        raise PermissionDenied("registering an AI system needs a signed-in person")
+        raise PermissionDenied("Sign in as a person to register an AI system.")
     return str(me.user_id)
 
 
 def _step_no(raw: str, ctx: ConsoleContext) -> int:
     n = rs.total_steps(ctx)
     if not (raw.isascii() and raw.isdigit()) or not 1 <= int(raw) <= n:
-        raise rm.RegisterError("step", f"must be 1 to {n}")
+        raise rm.RegisterError("step", f"Choose a step from 1 to {n}.")
     return int(raw)
 
 
@@ -188,6 +191,12 @@ async def register_list(
     )
 
 
+def _policy_agent_name(ctx: ConsoleContext, agent_id: str) -> str:
+    """The name of a policy-only agent from its manifest (UI-082); the id when it has none."""
+    manifest = rs.policy_agents(ctx).get(agent_id) if agent_id else None
+    return str(getattr(manifest, "name", "") or agent_id)
+
+
 @router.get("/new", response_class=HTMLResponse, dependencies=_EDIT)
 async def register_new_confirm(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
@@ -199,6 +208,8 @@ async def register_new_confirm(
     _person(me)
     q = request.query_params
     await _call(rs.start, ctx, me, q.get("from") or "", q.get("agent") or "", dry=True)
+    # UI-082: the scanned object is named, not shown as an id (the id stays in the form)
+    node = ctx.state.get("inventory_node", {"node_id": q.get("from")}) if q.get("from") else None
     return render(
         request,
         ctx,
@@ -206,7 +217,11 @@ async def register_new_confirm(
         "register_new.html",
         section="systems",
         src_from=q.get("from") or "",
+        src_from_name=str(
+            (node or {}).get("display_name") or (node or {}).get("name") or q.get("from") or ""
+        ),
         src_agent=q.get("agent") or "",
+        src_agent_name=_policy_agent_name(ctx, q.get("agent") or ""),
     )
 
 
@@ -226,7 +241,8 @@ async def register_new(
         await _call(rs.store_of(ctx).drop_empty, uid)
     draft = await _call(rs.start, ctx, me, node_id, agent_id)
     request.state.audit_detail = "register new"
-    return _go(request, plain, f"/console/register/{draft['draft_id']}/step/1")
+    at = int(draft.get("step") or 1)  # an open draft of the same object resumes where it stopped
+    return _go(request, plain, f"/console/register/{draft['draft_id']}/step/{at}")
 
 
 @router.get("/{draft_id}/step/{n}", response_class=HTMLResponse, dependencies=_EDIT)
@@ -257,7 +273,10 @@ async def register_save(
     store = rs.store_of(ctx)
     draft = await _call(store.get, draft_id, uid)
     if draft["status"] != "draft":
-        raise rm.RegisterError("draft_id", f"this draft is {draft['status']}")
+        raise rm.RegisterError(
+            "draft_id",
+            f"This draft is {draft['status']}, so it cannot be changed. Start a new one.",
+        )
     later = request.query_params.get("save") == "1"
     stay = later or bool(form.get("accept") or form.get("run"))
     try:
@@ -315,6 +334,8 @@ async def register_result(
     result = (draft["data"].get("result") or {}) if draft["status"] == "submitted" else {}
     sid = str(result.get("system_id") or "")
     if not sid:
-        raise rm.RegisterError("draft_id", "this draft was not submitted")
+        raise rm.RegisterError(
+            "draft_id", "This draft has not been submitted yet. Submit it first."
+        )
     d = await _call(rs.result_view, ctx, me, draft)
     return render(request, ctx, me, "register_result.html", section="systems", d=d)

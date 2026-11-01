@@ -4,8 +4,11 @@
    gear opens a drawer with :target, so it works without JS too. #}
 {% import "_icons.html" as ic %}
 {% set bar = nav_v3_bar() %}
+{% set gear = nav_v3_gear() %}
+{# UI-210: with one settings page (Health) the button opens it; no drawer with a single item #}
+{% set gear_one = gear[0] if gear|length == 1 else None %}
 {% macro item(r) %}
-    <li><a href="{{ r.href }}" class="{{ 'active' if r.active else '' }}" title="{{ t(r.label) }}"{% if r.active %} aria-current="page"{% endif %}><span class="ni3" aria-hidden="true">{{ ic.icon(r.icon) }}</span><span class="nl">{{ t(r.label) }}{% if r.n is not none %} <span class="k {{ 'hot' if r.hot else '' }}">{{ r.n }}</span>{% endif %}</span></a></li>
+    <li><a href="{{ r.href }}" class="{{ 'active' if r.active else '' }}" title="{{ t(r.label) }}"{% if r.active %} aria-current="page"{% endif %}><span class="ni3" aria-hidden="true">{{ ic.icon(r.icon) }}</span><span class="nl">{{ t(r.label) }}{% if r.n %} <span class="k {{ 'hot' if r.hot else '' }}">{{ r.n }}</span>{% endif %}</span></a></li>
 {% endmacro %}
 <aside class="side side-v3" id="sidebar" data-nav-v3 aria-label="{{ t('nav_label') }}">
   <div class="side-head">
@@ -26,9 +29,9 @@
     </details>
     {% endfor %}
   </nav>
-  <div class="side-foot"><span>v{{ version }} · {{ mode }}</span><a class="gear-btn" href="#nav-gear" title="{{ t('nv3_settings') }}" aria-controls="nav-gear">{{ ic.icon('gear') }}<span class="gear-l">{{ t('nv3_settings') }}</span></a></div>
+  <div class="side-foot"><span>v{{ version }} · {{ mode }}</span><a class="gear-btn" href="{{ gear_one.href if gear_one else '#nav-gear' }}" title="{{ t('nv3_settings') }}"{% if not gear_one %} aria-controls="nav-gear"{% endif %}>{{ ic.icon('gear') }}<span class="gear-l">{{ t('nv3_settings') }}</span></a></div>
 </aside>
-{% set gear = nav_v3_gear() %}
+{% if not gear_one %}
 <div class="gear-drawer" id="nav-gear" role="dialog" aria-modal="false" aria-labelledby="nav-gear-t">
   <div class="gear-hd"><b id="nav-gear-t">{{ t('nv3_settings') }}</b><a class="chipbtn" href="#" data-gear-close>{{ t('nv3_close') }}</a></div>
   {% if gear %}
@@ -41,3 +44,4 @@
   <p class="muted">{{ t('nv3_gear_none') }}</p>
   {% endif %}
 </div>
+{% endif %}

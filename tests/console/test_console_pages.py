@@ -21,7 +21,7 @@ def test_queue_lists_gate_cases_sorted_with_sbv_clock(console: Console) -> None:
     sev = [ranks.index(c["severity"]) for c in rows]
     assert sev == sorted(sev, reverse=True)
     assert "src-gate" in r.text and "left" in r.text  # source badge + SBV countdown
-    assert "Dev identity" in r.text
+    assert "Test sign-in" in r.text
     vi = console.get("/console/cases?lang=vi")
     assert "Vụ việc" in vi.text and vi.cookies.get("sv_lang") == "vi"
     rows_partial = console.get("/console/queue/rows?severity=high&status=all")
@@ -59,3 +59,5 @@ def test_agents_metrics_export_inbox_render(console: Console) -> None:
     for name in ("htmx.min.js", "console.css", "console.js"):
         assert console.get(f"/console/static/{name}").status_code == 200
     assert console.get("/console/static/../../config.py").status_code == 404
+    # no version in the links: the browser revalidates CSS and JS on every load
+    assert console.get("/console/static/console.css").headers["cache-control"] == "no-cache"

@@ -1,0 +1,16 @@
+{# The stored scrubbed file of the source analysis, one line marked. Variable: fv. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ fv.path }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('ca_title'), '/console/code-analysis/' ~ fv.node_id ~ '?lang=' ~ lang), (fv.path, None)]) }}
+{{ ui.pagehead(t('ca_open_file') ~ ': ' ~ fv.path) }}
+<p class="hint">{{ t('ca_file_hint') }} <a href="/console/code-analysis/{{ fv.node_id|urlencode }}?lang={{ lang }}">{{ t('ca_file_back') }}</a></p>
+<section class="card" data-section="code-file">
+<div class="tablewrap flat"><table class="queue" data-table="code-file"><tbody>
+{% for no, text in fv.rows %}
+<tr id="L{{ no }}"{% if no == fv.line %} class="row hit" data-hit="1" style="background:var(--warn-bg, #fff4d6)"{% endif %}><td class="mono" style="text-align:right;width:3.5em">{{ no }}</td><td class="mono wrap" style="white-space:pre-wrap">{{ text }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+</section>
+{% endblock %}

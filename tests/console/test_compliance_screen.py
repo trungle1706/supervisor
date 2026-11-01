@@ -61,7 +61,7 @@ def test_matrix_page_and_filters(on: Console) -> None:
     assert f'data-obligation="{GAP_ID}"' in inst.text
     assert 'data-obligation="VN-QD33-' not in inst.text
     vi = on.get("/console/compliance/payments?lang=vi")
-    assert "Cố vấn tuân thủ" in vi.text and "Thiếu" in vi.text
+    assert "Tuân thủ" in vi.text and "Thiếu" in vi.text
 
 
 def test_obligation_page_shows_vietnamese_text(on: Console) -> None:
@@ -129,5 +129,5 @@ def test_counts_card_says_what_it_counts_and_adds_up_to_the_table(on: Console) -
     html = on.get("/console/compliance/payments?lang=en").text
     assert f"Rows that apply ({yes}), by status" in html
     flat = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
-    assert f"{yes} apply + {na} need an answer = {total} rows in the table below" in flat
+    assert f"{yes} apply and {na} need an answer: {total} duties in the table below" in flat
     assert f"Showing {total} of {total} rows" in flat

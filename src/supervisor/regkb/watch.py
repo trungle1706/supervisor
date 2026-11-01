@@ -25,7 +25,6 @@ never imported or executed. Network access goes through the functions of ``tools
 
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import json
 import re
@@ -40,6 +39,7 @@ from typing import Any, Protocol
 import yaml
 
 from supervisor.config import REPO_ROOT
+from supervisor.core.canonical import sha256_bytes_hex as sha256_hex
 
 REPORT_FORMAT = "regwatch-report-1"
 TOOL = "supervisor.regkb.watch/1"
@@ -145,10 +145,6 @@ def words_of(text: str) -> list[str]:
         skip_title = False
         out.extend(line.split())
     return out
-
-
-def sha256_hex(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def utc_stamp(now: datetime) -> str:

@@ -1,0 +1,12 @@
+{# Guardian kit (GUARDIAN_KIT): the "Connect your app to Guardian" block. Include it where it belongs
+   with {% set gk_sid = <system id> %}{% set gk_src = <source key or ''> %} before the include. The block is
+   loaded by htmx when the page opens (GET /console/guardian-kit/{id}), so a page needs no view code.
+   With the setting off (gkit_on false) nothing renders. #}
+{% if gkit_on is defined and gkit_on and gk_sid %}
+<link rel="stylesheet" href="/console/static/gkit.css">
+<script src="/console/static/gkit.js" defer></script>
+<section id="gkit" class="card gk" data-section="guardian-kit" data-status="loading" hx-get="/console/guardian-kit/{{ gk_sid|urlencode }}?src={{ gk_src|urlencode }}&amp;lang={{ lang }}" hx-trigger="load" hx-swap="outerHTML">
+  <h3>{{ t('gk_title') }}</h3>
+  <p class="hint">{{ t('gk_loading') }}</p>
+</section>
+{% endif %}

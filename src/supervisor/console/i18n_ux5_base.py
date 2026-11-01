@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """UX5 overrides for the shell (CONSOLE_UX5): shorter text, same keys."""
 
 from __future__ import annotations
@@ -5,8 +6,8 @@ from __future__ import annotations
 UX5: dict[str, tuple[str, str]] = {
     # Shown as the tooltip of the "Dev identity" chip under the search bar.
     "dev_banner": (
-        "Dev identity (X-Dev-User): not a real identity. Laptop demo only.",
-        "Danh tính dev (X-Dev-User): không phải danh tính thật. Chỉ dùng demo.",
+        "Test sign-in (X-Dev-User). Not a real identity. For laptop demos only.",
+        "Đăng nhập thử nghiệm (X-Dev-User). Không phải danh tính thật. Chỉ dùng cho demo trên máy tính xách tay.",
     ),
     # G1-L025: the sidebar entry opens the Gate decisions page; use one name.
     "nv3_activity": ("Gate decisions", "Quyết định của cổng"),

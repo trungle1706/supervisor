@@ -348,7 +348,7 @@ def test_catalog_on_reason_field_pending_list_and_approve_buttons(pon: Console) 
     rid = pon.ctx.guardians.pending_off(sid)[0]["request_id"]
     mine = pon.get(f"/console/catalog?system={sid}&lang=en").text
     assert 'data-section="gb-pending"' in mine and rid in mine
-    assert "guardian-requests" not in mine and "You asked for this" in mine
+    assert "guardian-requests" not in mine and "You requested this" in mine
     other = pon.get(f"/console/catalog?system={sid}&lang=en", user=SECOND).text
     assert (
         f"/guardian-requests/{rid}/approve" in other and f"/guardian-requests/{rid}/reject" in other

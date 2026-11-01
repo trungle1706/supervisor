@@ -3,7 +3,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('rg2_title') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_title'), None)]) }}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('rg2_drafts'), None)]) }}
 {% if ux5 %}<link rel="stylesheet" href="/console/static/ux5_g2.css">{% endif %}
 {{ ui.pagehead(t('rg2_drafts')) }}
 {% if saved %}<div class="notice" role="status" data-register="saved"><span class="dot"></span>{{ t('rg2_saved') }}</div>{% endif %}

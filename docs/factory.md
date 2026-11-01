@@ -374,6 +374,18 @@ The trace holds integers and pointers only. The rationale is masked (`pii_mask`)
 characters; a document text never reaches the report. With `LLM_BASE_URL` empty the run raises
 `model_not_configured`. There is no mock model in the product path; tests pass a fake `ChatModel`.
 
+**Model errors (W1).** A model call that raises does not stop the run: the items of that group get `question` and the rationale `The AI model call failed (<reason>). A person decides this item.` where the reason is `HTTP <status>`, `timeout`, `invalid reply`, `reply cut off` or the error class. The error text, the key and the request are never kept. A caller that passes a dict as `inputs["diag"]` gets `model_calls`, `model_calls_failed`, `model_items_failed` and `model_error` (the first failure, at most 120 characters); the orchestrator puts them in the item note.
+
+**Parallel calls (W1).** Setting `FACTORY_PARALLEL_CALLS` (1..8, default 1 = one call after another, exactly as before) or the argument `parallel` of `run_agent`. With more than 1, the group calls of one pass run in threads. The prompts are built and each call is admitted against the run token budget in group order (an admitted call holds back its prompt and its reserve, so the budget is never exceeded); the answers are verified and stored in group order, so a deterministic model gives the same report as with 1. A tight budget can stop one group earlier than the sequential run, because admission counts the reserve, not the real use.
+
+**Items with nothing to read (W1).** Setting `FACTORY_SKIP_UNSOURCED` (default on). An item whose evidence kinds have a tool but no source to load (a test with no result, a document nobody supplied, no code-scan fact) is answered without a model call: verdict `question`, confidence `high`, a plain rationale by kind (for a pack: "No result for test <id> yet, so this cannot be decided. Run the test."; for a document: "No document was provided for this check. The system owner supplies it."). It counts as checked, not rejected, and the report has the same shape. The remaining items are grouped again, so a group with no sourced item makes no call. An item with no tool at all keeps the "No tool of this agent can read a source..." answer. Off: every item goes to the model. `inputs["diag"]["model_items_skipped"]` counts them.
+
+**Asking open items again (W1).** Setting `FACTORY_REASK_OPEN` (default on = the loop as before: every item still `question` is asked again in the next iteration). Off: in loop mode an item the model itself answered `question`, with no verifier reason, is not sent again, because its prompt would be the same. Items the verifier rejected (they get the reasons as feedback), items whose model call failed and items that got no answer are still asked again. When nothing is left to ask, the loop ends with `stopped_by: all_answered`. Single-pass agents are not affected.
+
+**Record fields that hold JSON (W1).** A field of the system record whose value is a JSON object (for example `tags`) stays one source, cut at 240 characters as before, and also gives one sub-source per key: `<system_id>.tags.ai_agentic`, `<system_id>.tags.autonomy_limits`, ... Each sub-source holds up to 600 characters, a nested JSON string is written compactly, and an agent may cite it like any record field. Existing source refs do not change.
+
+Draft agents (demo only): `ORCH_RUN_DRAFT_AGENTS` is described in `docs/orchestrator.md`. `FactoryStore.draft_agent_for(dimension)` returns the draft with the highest version.
+
 Inputs: `system` (record), `facts` (facts v1 export), `packs` (`[{ref, label, text}]`, else the pointers of
 the rule `proposal` of the orchestrator), `regkb` (`[{ref, text}]`), `documents`
 (`[{doc_id, sections: [{ref, text}]}]`), `system_id`, `report_id`, `now`, `budget {seconds, tokens}`,
@@ -500,6 +512,52 @@ agent saw are kept in the run directory, so the calibration can re-read them) an
 `review_report.json` (counts, marks with hashed notes). The permission is `factory.edit` plus the group of
 the agent; anyone who may read the factory reads the page. A simulation never promotes: its verdict stays
 `not_run`.
+
+## Inventory run (setting `FACTORY_INVENTORY_RUN`)
+
+A risk assessment agent can be run on the **whole AI inventory** at once, to show what it finds for
+the bank. It is a simulation: it never promotes a version, never writes a risk assessment and never
+changes a system. Off by default; it needs `AGENT_FACTORY`, `GOVERNANCE_ENABLED` and the gateway model
+(`LLM_BASE_URL`; a mock model is refused). With the setting off every route answers HTTP 400
+`factory_inventory_off` and nothing is read.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `FACTORY_INVENTORY_RUN` | off | switches the pages and the run on |
+| `FACTORY_INVENTORY_PARALLEL` | 4 | systems assessed at a time (1 to 16; other values are clamped) |
+| `FACTORY_INVENTORY_MAX` | 0 | at most this many systems per run, 0 = all (for a trial) |
+
+**Start.** The factory editor has the button *Run on the whole inventory* (only with the setting on).
+`/console/factory/{id}/inventory` lists the runs and has the start form: the version (draft or live;
+a draft is labelled *Draft agent, not tested*). Starting needs `factory.edit` and the group check of
+the editor. One run at a time per agent; **Cancel run** stops after the systems in progress.
+
+**Which systems.** Every AI system except status `archived` and lifecycle stage `retirement`, where
+the risk type of the agent applies. The rules are those of a real risk assessment
+(`orchestrator.plan`). A system with an applied classification uses its outcome. A system without one
+gets an outcome derived from its record: risk level `prohibited` -> prohibited (not assessed); `high`
+or Decision 33 class `high_risk` -> `high_self`; `medium` and `low` stay; nothing set -> `medium` (an
+unknown is never a reason to skip). Inputs per system are the ones the orchestrator builds: the system
+row, the code facts (`orchestrator.facts_for`), the rule proposal of the risk type, `prior` = `{}`.
+An error on one system is stored in its row and never stops the run.
+
+**Files.** `DATA_DIR/factory/<agent>/inventory/<run_id>/`: `run.json` (status, counts, tokens,
+seconds, model id, agent version, who started it), `rows.jsonl` (one summary line per system) and,
+per system, `systems/<system>/<type>.json` (the report, text masked), `<type>.evidence.json` (masked
+source snippets) and `<type>.exec.json` (the `executive_v1` document of `onboard.executive`; without
+that module the dashboard falls back to the failed and open checks). Only one `factory_agent_event`
+row is written outside the folder.
+
+**Pages.** `/console/factory/{id}/inventory/{run}`: a progress bar (polled every 2 s) while it runs,
+then the dashboard: tiles (systems in scope, assessed, needs action, open questions only, clear;
+model calls, tokens, time, version, model), *Top risks across the inventory* (executive keys counted
+per system, each opens the list of systems), results per check (one bar per result, not stacked),
+by owner team and by risk level, and a heat table (systems x checks, fails first) with search and
+filters (team, risk level, used by customers, result, risk). *Needs action* = the agent failed a
+check **or** an executive item of the code facts has status `fail`. A system opens
+`.../system/{system_id}` (executive findings, then the masked findings with evidence).
+`.../export.csv` downloads the per-system results (cells that start with `=`, `+`, `-` or `@` are
+neutralised). Routes: `systems.view` for reading, `factory.edit` for start and cancel.
 
 ## Promotion
 

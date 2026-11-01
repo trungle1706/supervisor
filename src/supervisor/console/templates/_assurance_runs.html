@@ -14,15 +14,15 @@
   {% for r in runs %}
     <tr class="row" data-run="{{ r.run_id }}">
       <td><a class="head mono" href="/console/assurance/{{ r.run_id }}?lang={{ lang }}">{{ r.run_id }}</a>
-        <div class="idline">{{ t('as_selector') }}: {{ r.selector or 'all' }}</div></td>
+        <div class="idline">{{ t('as_selector') }}: {{ r.selector or t('orch_as_all') }}</div></td>
       <td>{{ r.started_at|day }}</td>
       <td class="mono">{{ r.target_spec }}</td>
       <td>
-        {{ ui.pill('ok ' ~ r.ok, 'ok') }}
-        {% if r.warn %}{{ ui.pill('warn ' ~ r.warn, 'warn') }}{% endif %}
-        {% if r.fail %}{{ ui.pill('fail ' ~ r.fail, 'bad') }}{% endif %}
-        {% if r.error %}{{ ui.pill('error ' ~ r.error, 'bad') }}{% endif %}
-        {% if r.skip %}{{ ui.pill('skip ' ~ r.skip, 'neutral') }}{% endif %}
+        {{ ui.pill(t('orch_as_ok', n=r.ok), 'ok') }}
+        {% if r.warn %}{{ ui.pill(t('orch_as_warn', n=r.warn), 'warn') }}{% endif %}
+        {% if r.fail %}{{ ui.pill(t('orch_as_fail', n=r.fail), 'bad') }}{% endif %}
+        {% if r.error %}{{ ui.pill(t('orch_as_error', n=r.error), 'bad') }}{% endif %}
+        {% if r.skip %}{{ ui.pill(t('orch_as_skip', n=r.skip), 'neutral') }}{% endif %}
       </td>
       <td>{% if r.is_mock %}{{ ui.pill(t('mock'), 'neutral') }}{% else %}-{% endif %}</td>
     </tr>

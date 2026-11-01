@@ -549,7 +549,7 @@ def test_htmx_set_confirm_waive(rdon: Console) -> None:
     ):
         _result(rdon, AGENT, m.id, "ok", run=f"h{i}")
     page = _tab(rdon, sid).text
-    assert "Confirm proposal" in page
+    assert "Confirm suggestion" in page
     r = rdon.post(f"{base}/data_governance/confirm", {}, user=CREATOR)
     assert r.status_code == 200 and "Proposal confirmed." in r.text
     assert _rows(rdon, sid)["data_governance"]["status"] == "pass"

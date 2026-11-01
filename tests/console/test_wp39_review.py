@@ -291,7 +291,7 @@ def test_export_of_50000_rows_is_capped(v2console: Console) -> None:
         ],
     )
     r = _export(v2console)
-    assert r.status_code == 200 and "truncated: 5000 of " in r.text
+    assert r.status_code == 200 and "Only 5000 of " in r.text
     note = r.text.split('id="export-truncated">')[1].split("<")[0]
     assert note.isascii()
     rows = list(

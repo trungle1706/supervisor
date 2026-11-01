@@ -2,9 +2,12 @@
    links (needs page, sort_col, sort_dir, base_qs) and each row has a details button that
    opens the row drawer; the agent page Cases tab uses it plain. #}
 {% if ux5 %}
+{% set hide_agent = hide_agent|default(false) %}
 {% import "_ui.html" as ui with context %}
 {% import "_c_table.html" as tb with context %}
 <link rel="stylesheet" href="/console/static/ux5_g6.css">
+{# UI-180: the Report due column shows only when a row has a clock or a close date #}
+{% set ns = namespace(clk=false) %}{% for c in items %}{% if c.status == 'closed' or (c.clock and c.clock.text != '-') %}{% set ns.clk = true %}{% endif %}{% endfor %}
 <div class="tablewrap">
 <table class="queue cases-tbl g6-cases">
   <caption class="sr">{{ t('cases') }}</caption>
@@ -14,13 +17,13 @@
       {{ tb.th('severity', t('severity'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       {{ tb.th('agent_id', t('agent'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       <th scope="col">{{ t('what_happened') }}</th>
-      {{ tb.th('clock', t('report_due_col'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
+      {% if ns.clk %}{{ tb.th('clock', t('report_due_col'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}{% endif %}
       {{ tb.th('status', t('status'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       {{ tb.th('assignee', t('assignee'), sort_col, sort_dir, '/console/cases', '/console/queue/rows', base_qs, '#queue-rows') }}
       <th scope="col"><span class="sr">{{ t('details') }}</span></th>
       {% else %}
-      <th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('what_happened') }}</th>
-      <th scope="col">{{ t('report_due_col') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('assignee') }}</th>
+      <th scope="col">{{ t('severity') }}</th>{% if not hide_agent %}<th scope="col">{{ t('agent') }}</th>{% endif %}<th scope="col">{{ t('what_happened') }}</th>
+      {% if ns.clk %}<th scope="col">{{ t('report_due_col') }}</th>{% endif %}<th scope="col">{{ t('status') }}</th><th scope="col">{{ t('assignee') }}</th>
       {% endif %}
     </tr>
   </thead>
@@ -29,18 +32,18 @@
     {% set h = c.head %}
     <tr class="row" data-case="{{ c.case_id }}">
       <td>{{ ui.sev(c.severity) }}</td>
-      <td>{{ c.agent_id }}</td>
+      {% if not hide_agent %}<td>{{ label_for('agent', c.agent_id) }}</td>{% endif %}
       <td>
         <a class="head" title="{{ c.case_id }}" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary|replace('[demo:showcase] ', '')|replace(' (synthetic)', '')|truncate(120) }}{% endif %}</a>
-        <div class="idline">{% for s in c.sources %}{{ t('src_' ~ s) }}{% if not loop.last or h.rule_id or h.joined %} · {% endif %}{% endfor %}{% if h.rule_id %}{{ h.rule_id }}{% if h.joined %} · {% endif %}{% endif %}{% if h.joined %}{{ t('joined_n', n=h.joined) }}{% endif %}</div>
+        {% set srcs = c.sources|reject('equalto', 'manual')|list %}<div class="idline">{% for s in srcs %}{{ t('src_' ~ s) }}{% if not loop.last or h.rule_id or h.joined %} · {% endif %}{% endfor %}{% if h.rule_id %}{{ h.rule_id }}{% if h.joined %} · {% endif %}{% endif %}{% if h.joined %}{{ t('joined_n', n=h.joined) }}{% endif %}</div>
       </td>
-      <td>{% if c.status == 'closed' %}<span class="muted">{{ t('closed') }} {{ c.closed_at|day }}</span>{% else %}{{ ui.clock(c.clock) }}{% endif %}</td>
+      {% if ns.clk %}<td>{% if c.status == 'closed' %}<span class="muted">{{ t('closed') }} {{ c.closed_at|day }}</span>{% else %}{{ ui.clock(c.clock) }}{% endif %}</td>{% endif %}
       <td><span class="pill neutral" data-status="{{ c.status }}">{{ t(c.status) }}</span></td>
       <td>{{ c.assignee or t('u6_unassigned') }}</td>
       {% if sortable %}<td><a class="chipbtn" href="/console/cases?{{ (list_qs ~ '&') if list_qs else '' }}drawer={{ c.case_id }}&amp;lang={{ lang }}" hx-get="/console/cases/{{ c.case_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" aria-label="{{ t('details') }} {{ c.case_id }}">{{ t('details') }}</a></td>{% endif %}
     </tr>
   {% else %}
-    <tr><td colspan="{{ 7 if sortable else 6 }}" class="empty">{{ t('no_cases') }}</td></tr>
+    <tr><td colspan="{{ (7 if sortable else 6) - (0 if ns.clk else 1) - (1 if hide_agent else 0) }}" class="empty">{{ t('no_cases') }}</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -72,7 +75,7 @@
     {% set h = c.head %}
     <tr class="row" data-case="{{ c.case_id }}">
       <td>{{ ui.sev(c.severity) }}</td>
-      <td>{{ c.agent_id }}</td>
+      <td>{{ label_for('agent', c.agent_id) }}</td>
       <td>
         <a class="head" href="/console/cases/{{ c.case_id }}?lang={{ lang }}">{% if h.key %}{{ t(h.key, agent=h.params.agent, what=t(h.params.what, tool=h.params.tool)) }}{% else %}{{ c.summary[:160] }}{% endif %}</a>
         <div class="idline">{% if h.rule_id %}{{ h.rule_id }} · {% endif %}{% if h.joined %}{{ t('joined_n', n=h.joined) }} · {% endif %}{{ c.case_id }}</div>

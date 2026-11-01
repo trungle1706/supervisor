@@ -53,7 +53,7 @@ SECTIONS_V3: dict[str, Sec] = {
         "/console/systems",
         (
             Tab("systems", "nv3_systems", "/console/systems", "ux3:systems", "systems.view"),
-            Tab("onboard", "nav_onboard", "/console/onboard", perm="onboard.view"),
+            Tab("onboard", "nav_onboard", "/console/onboard", "onboard_on", "onboard.view"),
             Tab("integration", "nav_integration", "/console/integration", "integration"),
             Tab("transparency", "nav_transparency", "/console/transparency", "ux3:transparency"),
             Tab("tasks", "nav_tasks", "/console/tasks", "ux3:tasks"),
@@ -64,7 +64,7 @@ SECTIONS_V3: dict[str, Sec] = {
         "nv3_catalogues",
         "/console/catalogues",
         (
-            Tab("agents", "agents", "/console/agents"),
+            Tab("agents", "agents", "/console/agents", "agents_cat"),
             Tab("models", "nv3_t_models", "/console/catalogues?tab=models", "inventory"),
             Tab("tools", "nv3_t_tools", "/console/catalogues?tab=tools", "inventory"),
             Tab("datasets", "nv3_t_datasets", "/console/catalogues?tab=datasets", "inventory"),
@@ -92,6 +92,8 @@ SECTIONS_V3: dict[str, Sec] = {
             Tab("regkb_watch", "rw_nav", "/console/regkb/watch", "regkb_watch", "regkb.watch"),
             # WP-B1: the law changes page (REGKB_CHANGE_LOOP)
             Tab("regkb_changes", "rc_nav", "/console/regkb/changes", "regkb_changes", "regkb.view"),
+            # Regulation graph (KBGRAPH_ENABLED): instrument -> obligation -> AI system
+            Tab("regkb_graph", "kg_nav", "/console/regkb/graph", "regkb_graph", "regkb.view"),
         ),
     ),
     "activity": Sec(
@@ -110,9 +112,9 @@ SECTIONS_V3: dict[str, Sec] = {
         (
             Tab("library", "nv3_t_library", "/console/catalog", "ux3:catalog"),
             Tab("rules", "nv3_t_rules", "/console/policies", "ux3:policies"),
-            Tab("detectors", "nv3_t_detectors", "/console/guardians?tab=detectors"),
-            Tab("judges", "nv3_t_judges", "/console/guardians?tab=judges"),
-            Tab("monitors", "nv3_t_monitors", "/console/guardians?tab=monitors"),
+            Tab("detectors", "nv3_t_detectors", "/console/guardians?tab=detectors", "g_cat_tabs"),
+            Tab("judges", "nv3_t_judges", "/console/guardians?tab=judges", "g_cat_tabs"),
+            Tab("monitors", "nv3_t_monitors", "/console/guardians?tab=monitors", "g_cat_tabs"),
             Tab("packs", "nv3_t_packs", "/console/assurance", "assurance"),
         ),
     ),
@@ -171,6 +173,7 @@ PAGE_HOME: dict[str, tuple[str, str | None, str | None]] = {
     "regkb_internal": ("risks_controls", "risks_controls", "regkb_internal"),  # WP-C4
     "regkb_watch": ("risks_controls", "risks_controls", "regkb_watch"),  # WP-W1
     "regkb_changes": ("risks_controls", "risks_controls", "regkb_changes"),  # WP-B1
+    "regkb_graph": ("risks_controls", "risks_controls", "regkb_graph"),  # KBGRAPH_ENABLED
     "factory": ("factory", None, None),  # WP-C4 (AGENT_FACTORY)
     "guardian_factory": ("guardian_factory", None, None),  # WP-C4 (GUARDIAN_FACTORY)
     "decisions": ("activity", "activity", "decisions"),
@@ -317,6 +320,10 @@ def _on(need: str | None, sh: dict[str, Any], compliance: bool, integration: boo
         "regkb_internal": bool(sh.get("regkb_internal")),  # WP-C4
         "regkb_watch": bool(sh.get("regkb_watch")),  # WP-W1
         "regkb_changes": bool(sh.get("regkb_changes")),  # WP-B1
+        "regkb_graph": bool(sh.get("regkb_graph")),  # KBGRAPH_ENABLED
+        "onboard_on": bool(sh.get("onboard_on")),  # UI-080: CONSOLE_ONBOARD_ENABLED
+        "agents_cat": bool(sh.get("agents_cat", True)),  # UI-011: off when My agents is on
+        "g_cat_tabs": bool(sh.get("guardian_cat_tabs", True)),  # UI-160: off under UX5
     }[need]
 
 
@@ -349,10 +356,13 @@ def bar(
     ``{key, label, icon, href, n, hot, active}``."""
     roles = frozenset(roles)
 
-    def row(it: BarItem | None, n: int | None, hot: bool) -> dict[str, Any]:
-        key, label, icon, path = (
+    def row(
+        it: BarItem | None, n: int | None, hot: bool, path: str | None = None
+    ) -> dict[str, Any]:
+        key, label, icon, own = (
             (it.key, it.label, it.icon, it.path) if it else ("home", "nv3_my", "home", "/console/")
         )
+        path = path or own
         return {
             "key": key,
             "label": label,
@@ -367,18 +377,21 @@ def bar(
     for gkey, glabel, gkicker, items in BAR:
         rows = []
         for it in items:
+            first = None
             if it.sec is not None:
-                if not visible_tabs(
+                shown = visible_tabs(
                     it.sec, sh, roles, compliance=compliance, integration=integration
-                ):
+                )
+                if not shown:
                     continue
+                first = shown[0].path  # UI-310: the item opens the first tab's own URL
             elif not (_on(it.need, sh, compliance, integration) and _may(roles, it.perm)):
                 continue
             n, hot = None, False
             if it.key == "cases_alerts":  # badge: open cases plus open alerts
                 n = int(sh.get("cases_n") or 0) + int(sh.get("alerts_n") or 0)
                 hot = bool(sh.get("critical_n") or sh.get("alerts_n"))
-            rows.append(row(it, n, hot))
+            rows.append(row(it, n, hot, first))
         if rows:
             groups.append({"key": gkey, "label": glabel, "kicker": gkicker, "items": rows})
     return {"home": row(None, actions_n, bool(actions_n)), "groups": groups}

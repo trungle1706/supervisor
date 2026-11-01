@@ -78,7 +78,7 @@ def test_list_shows_waiting_cases_and_matches_the_badge(console: Console) -> Non
     assert r.status_code == 200 and _ids(r.text) == [case["case_id"]]
     assert 'data-missing="2"' in r.text and "0/2" in r.text
     side = r.text.split('<aside class="side"', 1)[1].split("</aside>", 1)[0]
-    assert re.search(r'Sign-off <span class="k[^"]*">1</span>', side)
+    assert re.search(r'Approvals <span class="k[^"]*">1</span>', side)
     assert 'aria-current="page"' in side
     _sign(console, case, "reviewer.an")
     r = console.get("/console/signoff")
@@ -135,6 +135,6 @@ def test_zero_signatures_is_labelled_of_two(console: Console) -> None:
     the column says so in words ("0/2 signatures")."""
     case = _triage(console)
     r = console.get("/console/signoff")
-    assert "Signatures (of 2)" in r.text and "0/2 signatures" in r.text
+    assert "Signatures (2 needed)" in r.text and "0/2 signatures" in r.text
     assert 'data-case="' + case["case_id"] + '"' in r.text
     assert "0/2 chữ ký" in console.get("/console/signoff?lang=vi").text

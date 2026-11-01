@@ -10,13 +10,17 @@
 {% macro every(sec) %}{% if sec is none %}-{% elif sec == 0 %}{{ t('u5g1_on_event') }}{% elif sec < 120 %}{{ t('u5g1_every_min') }}{% elif sec < 3600 %}{% if sec // 60 == 1 %}{{ t('u5g1_every_min') }}{% else %}{{ t('u5g1_every_min_n', n=sec // 60) }}{% endif %}{% elif sec < 86400 %}{% if sec // 3600 == 1 %}{{ t('u5g1_every_hour') }}{% else %}{{ t('u5g1_every_hour_n', n=sec // 3600) }}{% endif %}{% elif sec == 86400 %}{{ t('u5g1_daily') }}{% else %}{{ dur(sec) }}{% endif %}{% endmacro %}
 <link rel="stylesheet" href="/console/static/ux5_g1.css">
 <div class="g1">
-{{ u5.page_head(t('nv3_workflows'), t('nv3_wf_lede')) }}
+{{ u5.page_head(t('nv3_workflows'), t('nv3_wf_lede'), about=t('nv3_wf_note')) }}
 {% if d.rules_na %}<p class="g1-sub">{{ t('nv3_wf_rules_unreadable') }}</p>{% endif %}
 {% set jobs = d.rows|selectattr('kind', 'equalto', 'job')|list %}
 {% set alerts = d.rows|selectattr('kind', 'equalto', 'alert')|list %}
 {% set others = d.rows|rejectattr('kind', 'in', ['job', 'alert'])|list %}
 <section class="u5-panel" data-table="workflows">
 <h2 class="sec">{{ t('u5g1_wf_jobs') }}</h2>
+{% if jobs|length == 1 and jobs[0].name == 'scheduler' and not d.sched %}
+{# UI-140: the scheduler is not running here: one notice, not a table with one pseudo row #}
+<p class="g1-sub" data-wf-scheduler="off">{{ t('nv3_wf_scheduler') }} {% if jobs[0].detail %}{{ t(jobs[0].detail) }}{% endif %}</p>
+{% else %}
 <table class="list"><thead><tr><th scope="col">{{ t('nv3_c_workflow') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('nv3_c_every') }}</th><th scope="col">{{ t('nv3_c_last_run') }}</th></tr></thead><tbody>
 {% for r in jobs %}<tr>
   <td>{{ t('u5g1_job_' ~ r.name) }}{% if r.detail %} <span class="muted">{{ t(r.detail) }}</span>{% endif %}</td>
@@ -25,6 +29,7 @@
   <td>{% if r.last %}{{ r.last|day }}{% elif d.sched %}<span class="muted">{{ t('u5g1_never_run') }}</span>{% else %}<span class="muted">-</span>{% endif %}</td>
 </tr>{% endfor %}
 </tbody></table>
+{% endif %}
 </section>
 <section class="u5-panel">
 <h2 class="sec">{{ t('u5g1_wf_approvals') }}</h2>

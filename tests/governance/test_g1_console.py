@@ -64,9 +64,9 @@ def test_reviews_tab_lists_reviews_and_the_count(on: Console) -> None:
     assert "Completed" in en and "locked" in en and "2026-02-01" in en
     assert "Conformity" in en and rv["review_id"] in en
     vi = _tab(on, sid, "reviews", lang="vi").text
-    assert "Hoàn thành" in vi and "đã khóa" in vi and "Rà soát" in vi
+    assert "Hoàn tất" in vi and "đã khóa" in vi and "Rà soát" in vi
     on.ctx.reviews.reopen(sid, rv["review_id"], person("rev.an", "reviewer"), "More evidence")
-    assert "reopened 1x" in _tab(on, sid, "reviews").text
+    assert "reopened 1 times" in _tab(on, sid, "reviews").text
 
 
 def test_tasks_tab_shows_the_stage_and_the_approvals(on: Console) -> None:
@@ -94,7 +94,7 @@ def test_tasks_tab_with_the_task_list_off_and_on(on: Console) -> None:
     assert "CONTROLS_ENABLED" in _tab(on, sid, "tasks").text
     on.ctx.settings.controls_enabled = True
     try:
-        assert "No task list for this agent yet." in _tab(on, sid, "tasks").text
+        assert "No task list yet." in _tab(on, sid, "tasks").text
         on.ctx.systems.update_fields(sid, {"risk_level": "high"}, REVIEWER)
         on.ctx.tasks.generate("payments", SystemActor())
         html = _tab(on, sid, "tasks").text
@@ -116,7 +116,7 @@ def test_unspecified_level_says_initiation_only(on: Console) -> None:
     on.ctx.settings.controls_enabled = True
     try:
         on.ctx.tasks.generate("newbot", SystemActor())
-        assert "Only the initiation tasks are shown" in _tab(on, sid, "tasks").text
+        assert "Only initiation tasks show until someone sets it." in _tab(on, sid, "tasks").text
     finally:
         on.ctx.settings.controls_enabled = False
 

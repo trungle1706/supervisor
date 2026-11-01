@@ -6,6 +6,9 @@
 {% macro href(c, s) -%}/console/catalog?cat={{ c }}&amp;state={{ s }}{{ q|safe }}{%- endmacro %}
 {% set purpose = t('cat_purpose') %}
 {{ u5.page_head(t('cat_title'), purpose, about=t('cat_rule')) }}
+{# UI-161: the "ask the platform team" line once, not under each of the Off rows #}
+{% set offs = namespace(n=0) %}{% for g in groups %}{% for card in g.rows if not card.on %}{% set offs.n = offs.n + 1 %}{% endfor %}{% endfor %}
+{% if offs.n %}<p class="hint" data-off-hint>{{ t('cat_off_hint') }}</p>{% endif %}
 <div class="g5-filters">
   <div class="g5-seg" role="group" aria-label="{{ t('cat_filter_cat') }}">
     <a href="{{ href('', state) }}"{% if not cat %} class="on" aria-current="true"{% endif %}>{{ t('cat_all') }} {{ n_all }}</a>
@@ -18,13 +21,13 @@
     <a href="{{ href(cat, 'off') }}"{% if state == 'off' %} class="on" aria-current="true"{% endif %}>{{ t('cat_f_off') }} {{ n_all - n_on }}</a>
   </div>
   <span class="g5-grow"></span>
-  {{ u5.status_chip('ok', t('cat_n_on', n=n_on, total=n_all)) }}
+  {# UI-162: "n of m on" was also the On / Off filter chips #}
   {% if gb %}
-  <form class="g5-sys" method="get" action="/console/catalog">
+  <form class="g5-sys" method="get" action="/console/catalog" data-autosubmit>
     <input type="hidden" name="cat" value="{{ cat }}"><input type="hidden" name="state" value="{{ state }}"><input type="hidden" name="lang" value="{{ lang }}">
     <input id="gb-system" name="system_name" type="text" list="gb-systems" value="{{ gb.system.name if gb.system else '' }}" placeholder="{{ t('cat_sys_pick') }}" aria-label="{{ t('cat_sys_pick') }}" autocomplete="off" maxlength="200">
     <datalist id="gb-systems">{% for s in gb.systems %}<option value="{{ s.name }}">{% endfor %}</datalist>
-    <button class="btn" type="submit">{{ t('gb_show') }}</button>
+    <noscript><button class="btn" type="submit">{{ t('gb_show') }}</button></noscript>
   </form>
   {% endif %}
 </div>
@@ -59,7 +62,6 @@
     <div>
       <b>{{ t('cat_' ~ e.key) }}</b>
       <p>{{ t('cat_' ~ e.key ~ '_d') }}</p>
-      {% if not card.on %}<p class="g5-sub">{{ t('cat_off_hint') }}</p>{% endif %}
       {% if card.required or card.mrm %}<p class="g5-sub">{% if card.required %}{{ u5.status_chip('warn', t('cat_required')) }} {% endif %}{% if card.mrm %}{{ u5.status_chip('ok' if card.mrm == 'GO' else 'na', t('cat_mrm_go') if card.mrm == 'GO' else t('cat_mrm_nogo')) }}{% endif %}</p>{% endif %}
       {% if gb and gb.system %}
         {% if e.key in gb.never_cards %}<p class="g5-sub">{{ t('cat_sw_locked') }}</p>{% endif %}

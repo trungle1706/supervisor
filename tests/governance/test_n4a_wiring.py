@@ -241,7 +241,9 @@ def test_pending_resume_clears_after_two_approvals(v4: Console) -> None:
         return next(r for r in got if r["agent_id"] == "payments")
 
     assert len(row()["pending"]) == 1
-    assert "1 resume approval" in v4.get("/console/my/agents?scope=all&lang=en").text
+    assert (
+        "Waiting for 1 approval(s) to resume" in v4.get("/console/my/agents?scope=all&lang=en").text
+    )
     states.resume("payments", reviewer, "second")
     assert row()["pending"] == [] and row()["state"] != "PAUSED"
-    assert "resume approval" not in v4.get("/console/my/agents?scope=all&lang=en").text
+    assert "approval(s) to resume" not in v4.get("/console/my/agents?scope=all&lang=en").text

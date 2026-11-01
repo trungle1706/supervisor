@@ -36,7 +36,7 @@ def test_rules_tab_lists_assignments_with_rule_and_fields(on: Console) -> None:
     assert "dlp_vn" in html  # the guardian floor
     assert "/console/systems/" + sid + "/rules/run" in html  # the reviewer may run the rules
     vi = _page(on, sid, "rules", "vi").text
-    assert "Quy tắc" in vi and "Nghĩa vụ" in vi and "Mức sàn bảo vệ" in vi
+    assert "Quy tắc" in vi and "Nghĩa vụ" in vi and "Bộ bảo vệ bắt buộc" in vi
 
 
 def test_rules_tab_shows_switched_off_rows_as_history(on: Console) -> None:
@@ -62,13 +62,13 @@ def test_run_rules_from_the_console_is_audited(on: Console) -> None:
 def test_classification_tab_flow_draft_save_apply(on: Console) -> None:
     sid = _make(on, money_movement=True)["system_id"]
     html = _page(on, sid, "classification").text
-    assert "Not applied yet." in html and "There is no draft." in html
+    assert "Not applied yet." in html and "No draft yet. Create one from the rules." in html
     base = f"/console/systems/{sid}/classification"
     r = on.post(f"{base}/draft", {})
     assert r.status_code == 200 and r.headers["HX-Redirect"].endswith("?tab=classification")
     html = _page(on, sid, "classification").text
-    assert "Q-MONEY" in html and "from system fields" in html and "High risk" in html
-    assert "Illustrative, not legal advice" in html
+    assert "Q-MONEY" in html and "from AI system details" in html and "High risk" in html
+    assert "Illustrative. Not legal advice. Bank counsel confirms." in html
     # save: the person answers Q-OTHER; untouched rows keep their source
     form = {
         "a_Q-MONEY": "yes",

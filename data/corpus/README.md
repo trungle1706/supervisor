@@ -177,3 +177,15 @@ values must be clearly fake (`EXAMPLE`, repeated characters).
 
 `{file, line, lang, needle}`: one per planted injection sentence. `lang` is `en` or `vi`.
 `needle` is a distinctive substring (10 to 40 characters) of the sentence, copied exactly.
+
+## Additions for the source analysis agent
+
+| Path | What |
+|---|---|
+| `repos_agent/<name>/` | 6 more synthetic repos (3 tuned, 3 blind holdout): outside API with hosts in a config file, write-off and deletion with no approval and one approval in a helper file, personal data in a log through a helper, KYC vendor egress with an approval queue, a payout with `double_check` and a log helper, and planted text aimed at an analysis agent |
+| `labels_agent_repos.yaml` | old-schema labels (this README) of the 6 repos; run the eval with `--corpus data/corpus/repos_agent --labels data/corpus/labels_agent_repos.yaml` |
+| `labels_codeagent.yaml` | labels of the NEW fields for all 27 repos (effect, irreversible, approval, amount arguments, tool to sink flows, egress hosts, secret sources, guardrails, logging, PII per tool, entry points, pinned models), the tuned / holdout / exemplar split, and `agent_injections` (planted text that the regex does not catch) |
+| `reports/code_agent_*.json,md` | eval of the agent (rules only, rules plus agent; tuned and holdout) |
+
+Definitions of the new fields: `docs/onboarding/code-agent.md`, section 6. Evaluated with
+`python -m supervisor.onboard.codeagent eval`.

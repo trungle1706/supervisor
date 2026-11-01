@@ -7,20 +7,17 @@ as the EvidenceSink. The app builds it at startup (``install_runtime``); routes 
 it on first use if startup could not (for example the store was briefly unavailable).
 
 ``build_gateway(evidence=...)`` keeps the older path with a caller-supplied sink
-(tests and embedding). ``BufferedEvidenceSink`` remains for that path only.
+(tests and embedding).
 """
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import threading
-from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from supervisor.config import REPO_ROOT, Settings
-from supervisor.core.canonical import canonical_bytes
 from supervisor.core.ports import EvidenceSink
 from supervisor.gateway.engine import Gateway
 from supervisor.gateway.policy import StorePolicyProvider, deploy_with_retry, load_policy_dirs
@@ -31,26 +28,6 @@ if TYPE_CHECKING:
 log = logging.getLogger("supervisor.gateway")
 
 POLICY_DIR = REPO_ROOT / "policies"
-
-
-class BufferedEvidenceSink:
-    """In-memory sink for callers that pass no chain writer. Keeps the last N records."""
-
-    def __init__(self, keep: int = 10_000) -> None:
-        self.keep = keep
-        self.entries: list[tuple[str, str, dict[str, Any]]] = []
-        self._lock = threading.Lock()
-        self._warned = False
-
-    def record(self, record_type: str, record_ref: str, payload: Mapping[str, Any]) -> str:
-        data = canonical_bytes({"type": record_type, "ref": record_ref, "payload": payload})
-        with self._lock:
-            if not self._warned:
-                log.warning("gate evidence goes to an in-memory buffer, not the chain")
-                self._warned = True
-            self.entries.append((record_type, record_ref, dict(payload)))
-            del self.entries[: -self.keep]
-        return hashlib.sha256(data).hexdigest()
 
 
 _lock = threading.RLock()

@@ -460,6 +460,6 @@ def test_i18n_keys_exist_in_both_languages(gf: Any) -> None:
     assert len(keys) >= 40 and all(GF[k][0] and GF[k][1] for k in keys)
     make(gf)
     r = gf.get(f"/console/guardian-factory/{DEF}/benchmark?lang=vi", headers=HX)
-    assert "Tạo bộ mẫu" in r.text and "Chạy đánh giá" in r.text
+    assert "Tạo bộ ca thử mẫu" in r.text and "Chạy kiểm thử" in r.text
     r = gf.get(f"/console/guardian-factory/{DEF}/benchmark?lang=en", headers=HX)
-    assert "Generate starter pack" in r.text
+    assert "Create starter test pack" in r.text

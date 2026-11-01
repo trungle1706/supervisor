@@ -176,6 +176,42 @@ def test_prefill_from_facts_with_markers(v3: Console, monkeypatch: pytest.Monkey
     assert draft_of(v3, did)["data"]["v"]["model_family"] == "mine"
 
 
+def test_accept_all_beats_the_blank_fields_of_the_form(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The browser posts every field of step 3, the empty selects too: Accept all must still
+    take each suggestion (the posted blanks are applied first)."""
+    monkeypatch.setattr(v3.ctx.settings, "onboard_facts", True)
+    use_card(monkeypatch, FACT_ROWS)
+    did = new(v3)
+    assert step(v3, did, 1).status_code == 200
+    assert step(v3, did, 2).status_code == 200
+    sg = draft_of(v3, did)["data"]["sg"]
+    blank = {
+        f: ""
+        for f in (
+            "system_type",
+            "org_role",
+            "user_segment",
+            "personal_data",
+            "human_control",
+            "autonomy_level",
+            "data_sources",
+        )
+    }
+    form = {**S1, **blank, "flags_form": "1", "accept": "*"}
+    assert step(v3, did, 3, form).status_code == 200
+    vals = draft_of(v3, did)["data"]["v"]
+    for f in blank:
+        if f in sg:
+            assert vals[f] == sg[f]["value"], f
+    assert vals["autonomy_level"] == "l3_tool_using_supervised"
+    one = {**S1, **blank, "flags_form": "1", "accept": "personal_data"}  # one field: the rest stay
+    assert step(v3, did, 3, one).status_code == 200
+    vals = draft_of(v3, did)["data"]["v"]
+    assert vals["personal_data"] == "identifiable" and vals["autonomy_level"] == ""
+
+
 def test_prefill_needs_the_flag_and_a_card(v3: Console) -> None:
     did = new(v3)
     step(v3, did, 1)
@@ -630,7 +666,7 @@ def test_duties_prefill_from_the_orchestrator_file(
     assert got["VN-TT53-2026-A16.03-01"]["confirmed"] is False
     assert got["VN-TT53-2026-A16.03-01"]["ref"] == "report:model-1"
     html = v3.get(f"/console/register/{did}/step/6?lang=en", user=ME).text
-    assert "from assessment" in html and "proposal" in html
+    assert "from assessment" in html and "suggestion" in html
     # the flag off: the file is not read
     monkeypatch.setattr(v3.ctx.settings, "onboard_orchestrator", False)
     view = v3s.step_view(v3.ctx, _me(v3), draft_of(v3, did), "duties", {}, None)
@@ -734,7 +770,7 @@ def test_roles_and_other_people_drafts(v3: Console) -> None:
         assert v3.post(f"/console/register/{did}/step/{n}", {}, user=VIEWER).status_code == 403
     assert v3.post(f"/console/register/{did}/submit", {}, user=VIEWER).status_code == 403
     other = v3.get(f"/console/register/{did}/step/3", user="admin.chi")
-    assert other.status_code == 400 and "does not exist" in other.text
+    assert other.status_code == 400 and "was not found" in other.text
 
 
 def test_bad_step_numbers_are_400(v3: Console) -> None:

@@ -1,0 +1,7 @@
+{# The Red team tab of the system page (W7, REDTEAM_TAB). Loads the panel by htmx so it shows the live
+   state, the last result and the history. #}
+<div class="rt" data-tab="redteam">
+  <h3>{{ t('rt_title') }}</h3>
+  <p class="hint">{{ t('rt_tab_hint') }} {{ t('rt_tab_intro') }}</p>
+  {% with system_id=s.system_id, rt_where='tab' %}{% include "_redteam_step_panel.html" %}{% endwith %}
+</div>

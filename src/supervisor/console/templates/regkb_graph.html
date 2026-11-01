@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('kg_title') }}{% endblock %}
+{% block content %}
+{# Regulation graph (KBGRAPH_ENABLED). Variables: g (kbgraph.build_graph + hrefs), by_id, sel, view,
+   kg_* (filters, urls, what a person may open). All strings come from t(); the SVG is drawn here. #}
+<link rel="stylesheet" href="/console/static/kbgraph.css">
+{% if ux5 %}{% import "_ux5.html" as u5 with context %}
+{% set actions %}{{ u5.disclaimer(t('kg_banner'), t('b3_not_legal')) }}{% endset %}
+{{ u5.page_head(t('kg_title'), t('kg_purpose'), about=t('kg_about'), actions=actions) }}
+{% else %}
+{{ ui.crumbs([('Regulations', None), (t('kg_title'), None)]) }}
+{{ ui.pagehead(t('kg_title')) }}
+<div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('kg_banner') }}</b></div>
+<p class="hint">{{ t('kg_about') }}</p>
+{% endif %}
+{% set c = g.counts %}
+{% macro mark(state) -%}<i class="kg-mark {{ state }}" aria-hidden="true"></i>{%- endmacro %}
+{% macro chip(state) -%}<span class="kg-chip {{ state }}">{{ mark(state) }}{{ t('kg_s_' ~ state) }}</span>{%- endmacro %}
+{% macro sys_href(id) -%}/console/systems/{{ id|urlencode }}{% if kg_duties_tab %}?tab=duties&amp;lang={{ lang }}{% else %}?lang={{ lang }}{% endif %}{%- endmacro %}
+
+<section class="card kg" id="kbgraph" data-section="regkb-graph" data-view="{{ view }}" data-selected="{{ sel }}">
+  <form method="get" action="/console/regkb/graph" class="kg-filters" role="search" aria-label="{{ t('kg_filters') }}">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <input type="hidden" name="view" value="{{ view }}">
+    <label>{{ t('kg_f_instrument') }}
+      <select name="instrument" data-f="instrument">
+        <option value=""{% if not kg_p.instrument %} selected{% endif %}>{{ t('kg_f_auto') }}</option>
+        <option value="all"{% if kg_p.instrument == 'all' %} selected{% endif %}>{{ t('kg_f_all_instr') }}</option>
+        {% for o in g.options %}<option value="{{ o.id }}"{% if kg_p.instrument == o.id %} selected{% endif %} title="{{ o.title }}">{{ o.label }}</option>{% endfor %}
+      </select></label>
+    <label>{{ t('kg_f_risk') }}
+      <select name="risk" data-f="risk">
+        <option value="all">{{ t('kg_f_all') }}</option>
+        {% for r in kg_risks %}<option value="{{ r }}"{% if kg_p.risk == r %} selected{% endif %}>{{ t('kg_risk_' ~ r) }}</option>{% endfor %}
+      </select></label>
+    <label>{{ t('kg_f_cov') }}
+      <select name="coverage" data-f="coverage">
+        <option value="all">{{ t('kg_f_all') }}</option>
+        {% for s in kg_states %}<option value="{{ s }}"{% if kg_p.coverage == s %} selected{% endif %}>{{ t('kg_s_' ~ s) }}</option>{% endfor %}
+      </select></label>
+    <label>{{ t('kg_f_n') }}
+      <select name="n" data-f="n">
+        {% for n in kg_n_choices %}<option value="{{ n }}"{% if kg_p.n == n %} selected{% endif %}>{{ t('kg_f_n_opt', n=n) }}</option>{% endfor %}
+      </select></label>
+    <label class="kg-search">{{ t('kg_f_search') }}
+      <input type="search" name="q" value="{{ kg_q }}" maxlength="80" placeholder="{{ t('kg_f_search_ph') }}" data-f="q"></label>
+    <span class="kg-fbtn"><button class="btn primary" type="submit">{{ t('kg_f_apply') }}</button>
+      <a class="btn" href="/console/regkb/graph?lang={{ lang }}{% if view == 'list' %}&amp;view=list{% endif %}">{{ t('kg_f_reset') }}</a></span>
+  </form>
+
+  <div class="kg-bar">
+    <div class="kg-key" role="list" aria-label="{{ t('kg_f_cov') }}">
+      {% for s in kg_states %}<span role="listitem" title="{{ t('kg_s_' ~ s ~ '_d') }}">{{ mark(s) }}{{ t('kg_s_' ~ s) }} <b>{{ c.shown.by_state[s] }}</b></span>{% endfor %}
+    </div>
+    <nav class="kg-seg" aria-label="{{ t('kg_view') }}">
+      <a href="{{ kg_url_graph }}" data-view="graph"{% if view == 'graph' %} aria-current="true" class="on"{% endif %}>{{ t('kg_view_graph') }}</a>
+      <a href="{{ kg_url_list }}" data-view="list"{% if view == 'list' %} aria-current="true" class="on"{% endif %}>{{ t('kg_view_list') }}</a>
+    </nav>
+  </div>
+  <p class="kg-meta" data-kg="counts">
+    {{ t('kg_shown', systems=c.shown.systems, matching=c.matching_systems, obligations=c.shown.obligations, links=c.shown.links) }}
+    {% if g.focus.auto and not g.focus.all %}<span data-kg="auto">{{ t('kg_auto_note', name=g.focus.label) }}</span>{% endif %}
+    <span class="kg-total">{{ t('kg_total', systems=c.systems_linked, obligations=c.obligations, instruments=c.instruments, links=c.links) }}</span>
+    <a href="{{ kg_url_json }}" class="kg-json" data-kg="json">{{ t('kg_json') }}</a>
+  </p>
+  {% if c.hidden_systems %}<p class="hint" data-kg="hidden">{{ t('kg_hidden', n=c.hidden_systems) }}</p>{% endif %}
+  {% if c.hidden_obligations %}<p class="hint" data-kg="hidden-obl">{{ t('kg_hidden_obl', n=c.hidden_obligations) }}</p>{% endif %}
+
+  {% if g.empty %}
+  <div class="kg-empty" data-empty="regkb-graph">
+    <p><b>{{ t('kg_empty') if c.links else t('kg_no_duties') }}</b></p>
+    {% if c.links %}<p class="hint">{{ t('kg_empty_hint') }}</p>{% endif %}
+  </div>
+  {% elif view == 'list' %}
+  <div class="tablewrap flat"><table class="queue kg-table" data-table="kbgraph-list">
+    <caption class="sr">{{ t('kg_list_caption') }}</caption>
+    <thead><tr>
+      <th scope="col">{{ t('kg_col_instrument') }}</th><th scope="col">{{ t('kg_col_obligation') }}</th>
+      <th scope="col">{{ t('kg_list_article') }}</th><th scope="col">{{ t('kg_col_system') }}</th>
+      <th scope="col">{{ t('kg_f_risk') }}</th><th scope="col">{{ t('kg_list_state') }}</th>
+    </tr></thead>
+    <tbody>
+    {% for r in g.rows %}
+      <tr data-state="{{ r.state }}" data-system="{{ r.system_id }}" data-obligation="{{ r.obligation_id }}">
+        <td>{{ r.instrument }}</td>
+        <td class="mono">{{ r.obligation_id }}</td>
+        <td>{{ r.article }}</td>
+        <td>{% if kg_systems_on %}<a href="{{ sys_href(r.system_id) }}">{{ r.system }}</a>{% else %}{{ r.system }}{% endif %}</td>
+        <td>{{ t('kg_risk_' ~ r.risk) }}</td>
+        <td>{{ chip(r.state) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  {% set L = g.layout %}
+  {% set sel_node = by_id.get(sel) %}
+  <div class="kg-main">
+    <div class="kg-canvas">
+      <svg class="kg-svg{% if sel %} has-sel{% endif %}" viewBox="0 -22 {{ L.width }} {{ L.height + 22 }}" role="group" aria-label="{{ t('kg_svg_label') }}" data-kg="svg">
+        <g class="kg-heads" aria-hidden="true">
+          <text x="{{ L.columns.instrument }}" y="-8">{{ t('kg_col_instrument') }}</text>
+          <text x="{{ L.columns.obligation }}" y="-8">{{ t('kg_col_obligation') }}</text>
+          <text x="{{ L.columns.system }}" y="-8">{{ t('kg_col_system') }}</text>
+        </g>
+        <g class="kg-edges" aria-hidden="true">
+          {% for e in g.edges if e.kind == 'structure' %}<path class="kg-e structure{% if sel and (e.a == sel or e.b == sel) %} hl{% endif %}" d="{{ e.d }}" data-a="{{ e.a }}" data-b="{{ e.b }}"/>{% endfor %}
+          {% for e in g.edges if e.kind == 'duty' %}<path class="kg-e duty {{ e.state }}{% if sel and (e.a == sel or e.b == sel) %} hl{% endif %}" d="{{ e.d }}" data-a="{{ e.a }}" data-b="{{ e.b }}" data-state="{{ e.state }}"/>{% endfor %}
+        </g>
+        <g class="kg-nodes">
+          {% for n in g.nodes %}
+          {% set linked = sel_node and (n.id == sel or n.id in (sel_node.links|map(attribute='id')|list)) %}
+          <a class="kg-n {{ n.kind }}{% if n.id == sel %} sel{% endif %}{% if linked %} hl{% endif %}" href="{{ n.href }}" data-id="{{ n.id }}" data-idx="{{ n.idx }}" aria-label="{{ t('kg_node_aria', kind=t('kg_d_' ~ n.kind), label=(n.label if n.kind == 'obligation' else (n.title or n.label)), n=n.links|length) }}"{% if n.id == sel %} aria-current="true"{% endif %}>
+            <title>{{ n.title or n.label }}</title>
+            <rect x="{{ n.x }}" y="{{ n.y }}" width="{{ n.w }}" height="{{ n.h }}" rx="5"/>
+            <text class="lbl" x="{{ n.x + 9 }}" y="{{ n.y + n.h / 2 + 4 }}">{{ n.label }}</text>
+            {% if n.kind == 'system' %}<text class="aux" x="{{ n.x + n.w - 9 }}" y="{{ n.y + n.h / 2 + 4 }}" text-anchor="end">{{ t('kg_risk_' ~ n.risk) }}</text>
+            {% else %}<text class="aux" x="{{ n.x + n.w - 9 }}" y="{{ n.y + n.h / 2 + 4 }}" text-anchor="end">{{ n.badge }}</text>{% endif %}
+          </a>
+          {% endfor %}
+        </g>
+      </svg>
+      <p class="hint kg-help">{{ t('kg_help') }} {{ t('kg_risk_note') }}</p>
+    </div>
+
+    <aside class="kg-panel" aria-live="polite" aria-label="{{ t('kg_detail') }}" data-kg="panel">
+      <h3>{{ t('kg_detail') }}</h3>
+      <p class="hint kg-d-none"{% if sel %} hidden{% endif %}>{{ t('kg_detail_none') }}</p>
+      {% for n in g.nodes %}
+      <div class="kg-d" id="kgd-{{ n.idx }}" data-for="{{ n.id }}"{% if n.id != sel %} hidden{% endif %}>
+        <p class="kg-d-kind">{{ t('kg_d_' ~ n.kind) }}</p>
+        <h4>{{ n.title if n.kind == 'system' else n.label }}</h4>
+        <p class="mono kg-d-id">{{ n.key }}</p>
+        <div class="kg-counts">{% for s in kg_states if n.states[s] %}<span>{{ chip(s) }} <b>{{ n.states[s] }}</b></span>{% endfor %}</div>
+        {% if n.kind == 'system' %}
+          <dl class="kg-kv">
+            <dt>{{ t('kg_d_risk') }}</dt><dd>{{ t('kg_risk_' ~ n.risk) }}</dd>
+            {% if n.owner_team %}<dt>{{ t('kg_d_team') }}</dt><dd>{{ n.owner_team }}</dd>{% endif %}
+            {% if n.stage %}<dt>{{ t('kg_d_stage') }}</dt><dd>{{ n.stage }}</dd>{% endif %}
+          </dl>
+          {% if kg_systems_on %}<p><a class="btn" href="{{ sys_href(n.key) }}" data-act="open-system">{{ t('kg_d_open_duties' if kg_duties_tab else 'kg_d_open_system') }}</a></p>{% endif %}
+          <h5>{{ t('kg_d_has', n=n.totals.values()|sum, shown=n.links|length) }}</h5>
+        {% elif n.kind == 'obligation' %}
+          <dl class="kg-kv">
+            {% if n.article %}<dt>{{ t('kg_d_article') }}</dt><dd>{{ n.article }}</dd>{% endif %}
+            <dt>{{ t('kg_d_instrument') }}</dt><dd>{{ by_id['ins:' ~ n.instrument_id].label if ('ins:' ~ n.instrument_id) in by_id else n.instrument_id }}</dd>
+          </dl>
+          {% if n.title %}<p class="kg-sum"><b>{{ t('kg_d_summary') }}.</b> {{ n.title }}</p>{% endif %}
+          {% if n.controls %}<p class="kg-ctl"><b>{{ t('kg_d_controls') }}.</b> {% for ctl in n.controls %}<span class="mono">{{ ctl.id }}</span> ({{ ctl.coverage }}){{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+          {% if kg_drafts_on %}<p><a class="btn" href="/console/regkb/{{ n.instrument_id|urlencode }}/drafts?lang={{ lang }}" data-act="open-drafts">{{ t('kg_d_drafts') }}</a></p>{% endif %}
+          <h5>{{ t('kg_d_binds', n=n.totals.values()|sum, shown=n.links|length) }}</h5>
+        {% else %}
+          {% if n.title %}<p class="kg-sum">{{ n.title }}</p>{% endif %}
+          {% if kg_drafts_on %}<p><a class="btn" href="/console/regkb/{{ n.key|urlencode }}/drafts?lang={{ lang }}" data-act="open-drafts">{{ t('kg_d_drafts') }}</a></p>{% endif %}
+          <h5>{{ t('kg_d_obls') }} ({{ n.links|length }})</h5>
+        {% endif %}
+        <ul class="kg-list">
+          {% for nb in n.links %}{% set m = by_id[nb.id] %}
+          <li>{% if nb.state %}{{ chip(nb.state) }} {% endif %}<a href="{{ m.href }}" data-id="{{ m.id }}">{{ m.label }}</a>{% if m.kind == 'system' and kg_systems_on and n.kind == 'obligation' %} <a class="kg-ext" href="{{ sys_href(m.key) }}" aria-label="{{ t('kg_d_open_system') }}: {{ m.title }}" title="{{ t('kg_d_open_system') }}">&#8599;</a>{% endif %}</li>
+          {% endfor %}
+        </ul>
+        <p><a class="kg-clear" href="{{ kg_url_clear }}" data-act="clear">{{ t('kg_d_clear') }}</a></p>
+      </div>
+      {% endfor %}
+    </aside>
+  </div>
+  <script src="/console/static/kbgraph.js" defer></script>
+  {% endif %}
+</section>
+{% endblock %}

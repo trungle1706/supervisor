@@ -29,6 +29,7 @@ from typing import Any
 
 from supervisor.core.canonical import format_ts
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, SupervisorError
+from supervisor.core.flags import truthy as _on
 from supervisor.governance import event_sources as src
 from supervisor.governance.actions_model import (
     GovernanceEvent,
@@ -52,12 +53,6 @@ RE_EVAL_FROM = ("deployment", "operation")
 MAX_TRIES = 3  # runs for one action; then it is failed_final
 LEASE_S = 120  # a runner holds a started event for this long
 PENDING_CAP = 100  # started events taken up again in one run
-
-
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
 
 
 @dataclass
@@ -510,10 +505,11 @@ class ActionRunner:
             order_by=("-ts",),
             limit=200,
         )
+        payloads = src.chain_payloads(tables, rows)
         for r in rows:
-            for pl in tables.query("chain_payload", {"lane": r["lane"], "seq": r["seq"]}):
+            for pl_text in payloads.get((r["lane"], r["seq"]), []):
                 try:
-                    body = json.loads(pl["payload"])
+                    body = json.loads(pl_text)
                 except (TypeError, ValueError):
                     continue
                 if body.get("action") == "risk_raise" and body.get("event_key") == ev.key:

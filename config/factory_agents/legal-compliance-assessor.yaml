@@ -6,7 +6,8 @@ id: legal-compliance-assessor
 name: Legal compliance assessor (starter)
 description: 'Starter agent for the legal compliance risk type (Circular 53 Art. 14(3)(d)): legal basis,
   classification and its approval, inventory entry, impact assessment, customer notices, complaints, go-live
-  dossier and conformity duties. Drafts findings; counsel decides.'
+  dossier and conformity duties. Drafts findings; counsel decides. Version 0.2 adds checks decided from
+  the code scan and an executive text for every item.'
 owner_group: legal
 dimension_id: legal_compliance
 policy_refs:
@@ -44,6 +45,21 @@ checklist:
   - document
   severity: high
   pass_rule: A legal basis is named and at least one instrument id of RegKB is given.
+  executive:
+    key: legal_basis_missing
+    headline_fail:
+      en: The legal basis for the use case is missing or names no instrument.
+      vi: Cơ sở pháp lý của trường hợp sử dụng còn thiếu hoặc không nêu văn bản áp dụng.
+    headline_open:
+      en: Nothing shows a stated legal basis.
+      vi: Chưa có thông tin cho thấy đã nêu cơ sở pháp lý.
+    impact:
+      en: Using AI without a stated legal basis exposes the bank to a regulatory finding.
+      vi: Dùng AI mà không nêu cơ sở pháp lý khiến ngân hàng có thể bị cơ quan quản lý ghi nhận vi phạm.
+    action:
+      en: State the legal basis and list the instruments that apply.
+      vi: Nêu cơ sở pháp lý và liệt kê các văn bản áp dụng.
+    owner: legal
 - id: LC-02
   question: Is the risk classification recorded and approved by the competent level (Circular 53 Art.
     4(1), Art. 4(3))?
@@ -53,6 +69,21 @@ checklist:
   severity: high
   pass_rule: A risk level and an approval by the board, the legal representative or a person they authorised
     in writing are on file.
+  executive:
+    key: classification_not_approved
+    headline_fail:
+      en: The risk classification is not recorded, or not approved at the right level.
+      vi: Phân loại rủi ro chưa được ghi nhận, hoặc chưa được phê duyệt ở đúng cấp.
+    headline_open:
+      en: Nothing shows an approved risk classification.
+      vi: Chưa có thông tin cho thấy phân loại rủi ro đã được phê duyệt.
+    impact:
+      en: A wrong classification means the wrong controls apply.
+      vi: Phân loại sai nghĩa là áp dụng sai các biện pháp kiểm soát.
+    action:
+      en: Record the classification and get approval from the competent level.
+      vi: Ghi nhận phân loại và xin phê duyệt của cấp có thẩm quyền.
+    owner: risk_team
 - id: LC-03
   question: 'Is the inventory entry complete: name, risk level, purpose, provider, version and approval
     document (Circular 53 Art. 4(5))?'
@@ -60,6 +91,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: All six fields are filled in the record and the inventory was reviewed within 365 days.
+  executive:
+    key: inventory_incomplete
+    headline_fail:
+      en: The inventory entry is missing required fields.
+      vi: Mục trong danh mục hệ thống còn thiếu các trường bắt buộc.
+    headline_open:
+      en: Nothing shows that the inventory entry is complete.
+      vi: Chưa có thông tin cho thấy mục trong danh mục đã đầy đủ.
+    impact:
+      en: The bank cannot show a regulator a full list of its AI systems.
+      vi: Ngân hàng không thể trình cho cơ quan quản lý danh sách đầy đủ các hệ thống AI.
+    action:
+      en: Complete the inventory entry and review it every year.
+      vi: Hoàn thiện mục trong danh mục và rà soát hằng năm.
+    owner: system_owner
 - id: LC-04
   question: Where personal data is processed, is a personal-data impact assessment on file (Circular 53
     Art. 13(1)(c))?
@@ -69,6 +115,21 @@ checklist:
   severity: high
   pass_rule: A data protection impact assessment is referenced with a date. Not applicable when the record
     says no personal data is processed.
+  executive:
+    key: dpia_missing
+    headline_fail:
+      en: Personal data is processed but no impact assessment is on file.
+      vi: Hệ thống xử lý dữ liệu cá nhân nhưng chưa có đánh giá tác động trong hồ sơ.
+    headline_open:
+      en: Nothing shows a personal-data impact assessment.
+      vi: Chưa có thông tin cho thấy có đánh giá tác động xử lý dữ liệu cá nhân.
+    impact:
+      en: A missing assessment breaches Decree 13 and weakens the bank's position.
+      vi: Thiếu đánh giá là vi phạm Nghị định 13 và làm yếu vị thế của ngân hàng.
+    action:
+      en: Complete and file the personal-data impact assessment.
+      vi: Hoàn thành và lưu đánh giá tác động xử lý dữ liệu cá nhân.
+    owner: legal
 - id: LC-05
   question: 'For a high-risk system: is the impact assessment approved and updated when function, data
     scope or conditions change (Circular 53 Art. 13(2))?'
@@ -78,6 +139,21 @@ checklist:
   severity: medium
   pass_rule: The assessment is approved by the competent level and its date is not older than the latest
     significant change. Not applicable below high risk.
+  executive:
+    key: impact_assessment_stale
+    headline_fail:
+      en: The impact assessment of a high-risk system is not approved or is out of date.
+      vi: Đánh giá tác động của hệ thống rủi ro cao chưa được phê duyệt hoặc đã lỗi thời.
+    headline_open:
+      en: Nothing shows that the impact assessment is current.
+      vi: Chưa có thông tin cho thấy đánh giá tác động còn hiệu lực.
+    impact:
+      en: Decisions may rest on an assessment that no longer matches the system.
+      vi: Quyết định có thể dựa trên một đánh giá không còn khớp với hệ thống.
+    action:
+      en: Update and approve the impact assessment after every change.
+      vi: Cập nhật và phê duyệt đánh giá tác động sau mỗi thay đổi.
+    owner: risk_team
 - id: LC-06
   question: 'Where the system executes an AI-proposed decision by itself: does the activity legally need
     no human decision (Circular 53 Art. 5(1)(a))?'
@@ -87,6 +163,21 @@ checklist:
   severity: high
   pass_rule: A legal view states that the activity needs no human decision under the law. Not applicable
     when a person decides every action.
+  executive:
+    key: no_human_decision_basis
+    headline_fail:
+      en: The system acts on its own and no legal view allows it.
+      vi: Hệ thống tự hành động và chưa có ý kiến pháp lý cho phép điều đó.
+    headline_open:
+      en: Nothing shows a legal view on acting without a person.
+      vi: Chưa có thông tin cho thấy có ý kiến pháp lý về việc hành động không cần người.
+    impact:
+      en: An automated action without a legal basis could be challenged or voided.
+      vi: Hành động tự động không có cơ sở pháp lý có thể bị phản đối hoặc bị vô hiệu.
+    action:
+      en: Get a legal view, or add a human decision.
+      vi: Xin ý kiến pháp lý, hoặc bổ sung bước người quyết định.
+    owner: legal
 - id: LC-07
   question: If the system talks to customers in place of a person, is the customer told from the start
     that it is an AI (Circular 53 Art. 20(3))?
@@ -97,6 +188,21 @@ checklist:
   severity: medium
   pass_rule: A notice text or a configuration shows the AI disclosure at the start of the session. Not
     applicable when the system does not talk to customers.
+  executive:
+    key: ai_disclosure_missing
+    headline_fail:
+      en: Customers are not told from the start that they are talking to an AI.
+      vi: Khách hàng không được cho biết ngay từ đầu rằng họ đang trao đổi với AI.
+    headline_open:
+      en: Nothing shows that customers are told it is an AI.
+      vi: Chưa có thông tin cho thấy khách hàng được báo rằng đó là AI.
+    impact:
+      en: Customers who are misled about talking to a machine may complain to the regulator.
+      vi: Khách hàng bị nhầm lẫn rằng đang nói chuyện với người có thể khiếu nại lên cơ quan quản lý.
+    action:
+      en: Tell customers at the start of every conversation.
+      vi: Thông báo cho khách hàng ngay đầu mỗi cuộc trao đổi.
+    owner: legal
 - id: LC-08
   question: Does the customer receive usage guidance and the limits of the AI system before agreeing to
     the service (Circular 53 Art. 20(2))?
@@ -105,6 +211,21 @@ checklist:
   - system_record
   severity: low
   pass_rule: A guidance text with the stated limits is referenced. Not applicable for internal-only systems.
+  executive:
+    key: usage_guidance_missing
+    headline_fail:
+      en: Customers do not get usage guidance and limits before they agree to the service.
+      vi: Khách hàng không nhận được hướng dẫn sử dụng và giới hạn trước khi đồng ý dùng dịch vụ.
+    headline_open:
+      en: Nothing shows usage guidance given before agreement.
+      vi: Chưa có thông tin cho thấy khách hàng nhận hướng dẫn sử dụng trước khi đồng ý.
+    impact:
+      en: Customers may use the service without knowing its limits.
+      vi: Khách hàng có thể dùng dịch vụ mà không biết các giới hạn của nó.
+    action:
+      en: Give guidance and limits before the customer agrees.
+      vi: Cung cấp hướng dẫn và giới hạn trước khi khách hàng đồng ý.
+    owner: legal
 - id: LC-09
   question: Is there a unit and a process for complaints about AI use, with human re-review of a complained-about
     automated decision (Circular 53 Art. 20(4))?
@@ -113,6 +234,21 @@ checklist:
   - document
   severity: medium
   pass_rule: A complaint unit and a human re-review step are named.
+  executive:
+    key: complaint_unit_missing
+    headline_fail:
+      en: No unit or process handles complaints about the AI.
+      vi: Chưa có đơn vị hoặc quy trình xử lý khiếu nại về AI.
+    headline_open:
+      en: Nothing shows a complaint unit and process.
+      vi: Chưa có thông tin cho thấy có đơn vị và quy trình xử lý khiếu nại.
+    impact:
+      en: Customer complaints about AI decisions may go unanswered.
+      vi: Khiếu nại của khách hàng về quyết định của AI có thể không được trả lời.
+    action:
+      en: Name the unit and the process, with human re-review.
+      vi: Chỉ định đơn vị và quy trình, kèm bước người xem xét lại.
+    owner: legal
 - id: LC-10
   question: Are the basis and main factors of an automated decision kept so an explanation can be given
     to the customer (Circular 53 Art. 20(5))?
@@ -122,6 +258,21 @@ checklist:
   severity: medium
   pass_rule: The record or the facts show that decision basis and main factors are stored. Not applicable
     when no decision affects a customer.
+  executive:
+    key: decision_explanation
+    headline_fail:
+      en: The basis of an automated decision is not kept, so it cannot be explained to the customer.
+      vi: Cơ sở của quyết định tự động không được lưu nên không thể giải thích cho khách hàng.
+    headline_open:
+      en: Nothing shows that decision factors are kept.
+      vi: Chưa có thông tin cho thấy các yếu tố của quyết định được lưu giữ.
+    impact:
+      en: The bank may be unable to explain a decision to a customer or a regulator.
+      vi: Ngân hàng có thể không giải thích được quyết định với khách hàng hoặc cơ quan quản lý.
+    action:
+      en: Keep the basis and main factors of each automated decision.
+      vi: Lưu cơ sở và các yếu tố chính của từng quyết định tự động.
+    owner: legal
 - id: LC-11
   question: Is there a go-live dossier decided by the competent level, and for high risk the board approval
     of the deployment plan (Circular 53 Art. 22(1)-(2), Art. 12(3))?
@@ -131,6 +282,21 @@ checklist:
   severity: high
   pass_rule: A dossier with the decision of the competent level is on file; for high risk the senior board
     approval is also on file.
+  executive:
+    key: go_live_dossier_missing
+    headline_fail:
+      en: No go-live dossier decided by the competent level is on file.
+      vi: Chưa có hồ sơ đưa vào vận hành được cấp có thẩm quyền quyết định.
+    headline_open:
+      en: Nothing shows a go-live dossier and decision.
+      vi: Chưa có thông tin cho thấy có hồ sơ và quyết định đưa vào vận hành.
+    impact:
+      en: The system may go live without the approval the rules require.
+      vi: Hệ thống có thể đi vào vận hành mà không có phê duyệt theo quy định.
+    action:
+      en: Prepare the dossier and get the decision, with board approval for high risk.
+      vi: Lập hồ sơ và xin quyết định, kèm phê duyệt của Hội đồng quản trị nếu rủi ro cao.
+    owner: risk_team
 - id: LC-12
   question: 'For a medium or high-risk system: are the conformity assessment and the classification notice
     to the authority done (Decree 142/2026 Art. 13(1), Art. 14(1))?'
@@ -139,6 +305,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: A conformity result and a notice reference are on file. Not applicable for low-risk systems.
+  executive:
+    key: conformity_notice_missing
+    headline_fail:
+      en: The conformity assessment or the notice to the authority is not done.
+      vi: Chưa thực hiện đánh giá sự phù hợp hoặc chưa gửi thông báo cho cơ quan có thẩm quyền.
+    headline_open:
+      en: Nothing shows the assessment and the notice.
+      vi: Chưa có thông tin cho thấy đã đánh giá sự phù hợp và gửi thông báo.
+    impact:
+      en: The bank may miss a legal filing duty.
+      vi: Ngân hàng có thể bỏ lỡ nghĩa vụ nộp hồ sơ theo quy định.
+    action:
+      en: Complete the assessment and send the notice.
+      vi: Hoàn thành đánh giá và gửi thông báo.
+    owner: legal
 - id: LC-13
   question: Are the duties that apply to the system closed or owned, with none overdue (Circular 53 Art.
     14(3)(d))?
@@ -147,6 +328,128 @@ checklist:
   - regkb
   severity: medium
   pass_rule: No applicable duty is open past its due date and each open duty has an owner.
+  executive:
+    key: duties_overdue
+    headline_fail:
+      en: Some legal duties are open without an owner or are overdue.
+      vi: Một số nghĩa vụ pháp lý còn mở mà chưa có người phụ trách hoặc đã quá hạn.
+    headline_open:
+      en: Nothing shows that duties are owned and on time.
+      vi: Chưa có thông tin cho thấy các nghĩa vụ đều có người phụ trách và đúng hạn.
+    impact:
+      en: Overdue duties can lead to findings at inspection.
+      vi: Nghĩa vụ quá hạn có thể dẫn đến kết luận vi phạm khi thanh tra.
+    action:
+      en: Give every open duty an owner and close the overdue ones.
+      vi: Giao người phụ trách cho mọi nghĩa vụ còn mở và hoàn tất các nghĩa vụ quá hạn.
+    owner: risk_team
+- id: LC-14
+  question: Where a tool moves money by itself, does a person decide first, as the law needs (Circular
+    53 Art. 5(1)(a), Art. 5(2))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Fail when a decision33 fact named ''transactions triggered'' exists (tools run transactions
+    and no human check was found in code), or a tool fact has risk_class=money and the autonomy fact is
+    L3 naming it: cite those facts. Pass when a decision33 fact named ''transactions not triggered'' exists,
+    or the tool facts show risk_class values and none is money, or the autonomy fact is L2: cite it. No
+    such fact: question.'
+  executive:
+    key: money_tool_no_gate
+    headline_fail:
+      en: A tool that moves money can run without a human approval step in the code.
+      vi: Công cụ chuyển tiền có thể chạy mà mã không có bước người phê duyệt.
+    headline_open:
+      en: The code scan did not show whether a person approves before money moves.
+      vi: Kết quả quét mã chưa cho biết có người phê duyệt trước khi tiền được chuyển hay không.
+    impact:
+      en: A wrong or manipulated instruction could move customer money with no person checking first.
+      vi: Một chỉ dẫn sai hoặc bị thao túng có thể chuyển tiền của khách hàng mà không ai kiểm tra trước.
+    action:
+      en: Add a human approval step before any money tool runs, or limit the amount it can move.
+      vi: Thêm bước người phê duyệt trước khi công cụ chuyển tiền chạy, hoặc giới hạn số tiền được chuyển.
+    owner: system_owner
+- id: LC-15
+  question: Does the code show the human approval that the record declares (Circular 53 Art. 5(1)(a),
+    Art. 5(2))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Read the record field human_control. Fail when it is pre_approval, no approval_point fact
+    exists, and the autonomy fact is L3 or a decision33 fact says human_gate_in_code=False: cite the record
+    field and that fact. Pass when it is pre_approval and an approval_point fact exists or the autonomy
+    fact is L0, L1 or L2. Not applicable when it is none. post_review or no value: question.'
+  executive:
+    key: declared_control_mismatch
+    headline_fail:
+      en: The record promises human approval, but the code has no approval step.
+      vi: Hồ sơ cam kết có người phê duyệt, nhưng mã không có bước phê duyệt.
+    headline_open:
+      en: The record and the code scan did not give a clear answer on human approval.
+      vi: Hồ sơ và kết quả quét mã chưa cho câu trả lời rõ ràng về việc người phê duyệt.
+    impact:
+      en: Reviewers and regulators may rely on a control that does not exist.
+      vi: Người soát xét và cơ quan quản lý có thể tin vào một biện pháp kiểm soát không tồn tại.
+    action:
+      en: Add the approval step to the code, or correct the record.
+      vi: Thêm bước phê duyệt vào mã, hoặc sửa lại hồ sơ.
+    owner: system_owner
+- id: LC-16
+  question: Is the recorded risk level at least as high as the classification that the code scan proposes
+    (Circular 53 Art. 4(1), Art. 4(3))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Compare the decision33 fact named high_risk or not_high_risk (a proposal; counsel confirms)
+    with the record field risk_level. Fail when the fact is high_risk and risk_level is unspecified, low
+    or medium: cite both. Pass when risk_level is high or prohibited, or the fact is not_high_risk and
+    risk_level is set: cite both. No decision33 fact or no risk_level: question.'
+  executive:
+    key: risk_level_mismatch
+    headline_fail:
+      en: The code scan suggests high risk, but the record shows a lower risk level or none.
+      vi: Kết quả quét mã gợi ý rủi ro cao, nhưng hồ sơ ghi mức rủi ro thấp hơn hoặc chưa có.
+    headline_open:
+      en: The code scan did not give a clear risk classification.
+      vi: Kết quả quét mã chưa cho phân loại rủi ro rõ ràng.
+    impact:
+      en: A high-risk system recorded as lower risk would run with too few controls.
+      vi: Hệ thống rủi ro cao nhưng ghi mức thấp hơn sẽ vận hành với quá ít biện pháp kiểm soát.
+    action:
+      en: Compare with the scan result and have the competent level confirm the risk level.
+      vi: Đối chiếu với kết quả quét và để cấp có thẩm quyền xác nhận mức rủi ro.
+    owner: risk_team
+- id: LC-17
+  question: Does the personal-data answer in the record match the personal data fields that the code handles
+    (Circular 53 Art. 13(1)(c))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Compare the record field personal_data with the claim facts ''Handles personal data field
+    <name>'' (detail category=personal_data). Fail when personal_data is none and at least one such claim
+    fact exists: cite the record field and one claim fact (name only the field). Pass when personal_data
+    is identifiable, pseudonymised or special, or is none and no such claim fact exists: cite the record
+    field. No value: question.'
+  executive:
+    key: personal_data_mismatch
+    headline_fail:
+      en: The record says no personal data, but the code handles personal data fields.
+      vi: Hồ sơ ghi không có dữ liệu cá nhân, nhưng mã xử lý các trường dữ liệu cá nhân.
+    headline_open:
+      en: The record does not say whether personal data is processed.
+      vi: Hồ sơ không nêu rõ có xử lý dữ liệu cá nhân hay không.
+    impact:
+      en: Personal data may be used without the controls and the impact assessment that Decree 13 requires.
+      vi: Dữ liệu cá nhân có thể bị sử dụng mà không có các biện pháp kiểm soát và đánh giá tác động theo
+        Nghị định 13.
+    action:
+      en: Correct the record and start the personal-data impact assessment.
+      vi: Sửa lại hồ sơ và bắt đầu đánh giá tác động xử lý dữ liệu cá nhân.
+    owner: legal
 evidence_rules:
   allowed_sources:
   - fact
@@ -198,6 +501,38 @@ instructions: 'You assess the legal compliance risk of one AI system for a bank 
   - A fail on a high severity item always goes to a person.
 
 
+  Fact items (how to read the facts)
+
+  - A fact reads ''kind name: detail''. Decide a fact item from the facts and the record only, and cite
+  the fact that shows the result.
+
+  - tool facts: the detail gives risk_class (money, credit, pii_export, read_only) and approved=yes or
+  no. approved=yes means the tool is on the allowed list; it is not a human approval step.
+
+  - A human approval step is an approval_point fact. The autonomy fact says L0 ''no tools'', L1 ''every
+  tool only reads'', L2 ''every tool with a side effect has a human approval step in the same code'',
+  L3 ''tools with side effects and no human approval step in code'' followed by the tool names.
+
+  - decision33 facts: high_risk or not_high_risk with human_gate_in_code=True or False. The fact named
+  ''transactions triggered'' means tools run transactions and no human check was found in code. It is
+  a proposal; counsel confirms.
+
+  - model and endpoint facts: family=unknown means the scan could not name the model family.
+
+  - weak_spot facts name gaps that the scan found, for example ''No tracing found''.
+
+  - external_url facts: an address is allowed when its host is loopback (127.0.0.1, localhost) or contains
+  FILL-ME.
+
+  - claim facts ''Handles personal data field <name>'' list personal data fields by name. Write only the
+  field name in a reason.
+
+  - A pass that rests on something not being there cites the autonomy fact, which shows that the code
+  was scanned. Never invent a fact.
+
+  - A fail needs a cited fact that shows the problem. A missing fact is a question, not a fail.
+
+
   Checklist
 
   - LC-01 (high; system_record, regkb, document): Is the legal basis of the use case stated, with the
@@ -239,6 +574,18 @@ instructions: 'You assess the legal compliance risk of one AI system for a bank 
   - LC-13 (medium; system_record, regkb): Are the duties that apply to the system closed or owned, with
   none overdue (Circular 53 Art. 14(3)(d))?
 
+  - LC-14 (high; fact, system_record): Where a tool moves money by itself, does a person decide first,
+  as the law needs (Circular 53 Art. 5(1)(a), Art. 5(2))?
+
+  - LC-15 (high; fact, system_record): Does the code show the human approval that the record declares
+  (Circular 53 Art. 5(1)(a), Art. 5(2))?
+
+  - LC-16 (high; fact, system_record): Is the recorded risk level at least as high as the classification
+  that the code scan proposes (Circular 53 Art. 4(1), Art. 4(3))?
+
+  - LC-17 (high; fact, system_record): Does the personal-data answer in the record match the personal
+  data fields that the code handles (Circular 53 Art. 13(1)(c))?
+
   '
 harness:
   system_prompt:
@@ -255,9 +602,7 @@ harness:
   memory:
     system_memory: false
   hitl:
-    approval_points:
-    - kind: verdict
-      ref: question
+    approval_points: []
     permissions: []
   verification:
     verifier: rules
@@ -275,5 +620,5 @@ guardians:
 eval_pack: legal-compliance-assessor-golden-v1
 lifecycle:
   state: draft
-  version: '0.1'
+  version: '0.2'
   approvals: []

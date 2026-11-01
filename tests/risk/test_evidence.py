@@ -279,10 +279,18 @@ def test_one_pass_asks_the_same_control_question_once(env: _Env) -> None:
         seen.append(table)
         return real(table, *a, **k)
 
+    real_by = env.adapters.tables.query_by
+
+    def spy_by(table: str, *a: Any, **k: Any) -> Any:
+        seen.append(table)  # N12: the verdict read is one batch statement for all agents
+        return real_by(table, *a, **k)
+
     env.adapters.tables.query = spy  # type: ignore[method-assign]
+    env.adapters.tables.query_by = spy_by  # type: ignore[method-assign]
     try:
         out = env.svc.run_evidence()
     finally:
         env.adapters.tables.query = real  # type: ignore[method-assign]
+        env.adapters.tables.query_by = real_by  # type: ignore[method-assign]
     assert out["written"] == 2 and out["working"] == 2
     assert seen.count("verdict") == 1

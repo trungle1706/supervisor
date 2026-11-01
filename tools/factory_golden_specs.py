@@ -475,52 +475,6 @@ SPECS: dict[str, dict[str, list[list[Snip]]]] = {
         ],
     },
     "DG-09": pack_item("pii_canary"),
-    "DG-10": {
-        "p": [
-            [
-                F(
-                    "secret_use",
-                    "DB_PASSWORD",
-                    "nguồn: biến môi trường; hard_coded=không",
-                    "app/settings.py",
-                    14,
-                    "os.environ['DB_PASSWORD']",
-                )
-            ],
-            [
-                F(
-                    "secret_use",
-                    "API_TOKEN",
-                    "nguồn: kho bí mật; hard_coded=không",
-                    "app/settings.py",
-                    18,
-                    "vault.get('API_TOKEN')",
-                )
-            ],
-        ],
-        "f": [
-            [
-                F(
-                    "secret_use",
-                    "DB_PASSWORD",
-                    "hard_coded=có; giá trị nằm trong mã nguồn",
-                    "app/settings.py",
-                    14,
-                    "DB_PASSWORD = '<redacted>'",
-                )
-            ],
-            [
-                F(
-                    "weak_spot",
-                    "personal_field",
-                    "trường cá nhân lưu trong tệp cấu hình",
-                    "config/sample.yaml",
-                    5,
-                    "customer_contact: <redacted>",
-                )
-            ],
-        ],
-    },
     "DG-11": {
         "p": [
             [
@@ -540,52 +494,6 @@ SPECS: dict[str, dict[str, list[list[Snip]]]] = {
         ],
     },
     # ------------------------------------------------------------------ cybersecurity
-    "CY-01": {
-        "p": [
-            [
-                F(
-                    "secret_use",
-                    "LLM_API_KEY",
-                    "nguồn: biến môi trường; hard_coded=không",
-                    "agent/config.py",
-                    12,
-                    "os.environ['LLM_API_KEY']",
-                )
-            ],
-            [
-                F(
-                    "secret_use",
-                    "DB_PASSWORD",
-                    "nguồn: kho bí mật; hard_coded=không",
-                    "agent/db.py",
-                    7,
-                    "vault.get('DB_PASSWORD')",
-                )
-            ],
-        ],
-        "f": [
-            [
-                F(
-                    "secret_use",
-                    "LLM_API_KEY",
-                    "hard_coded=có; khóa nằm trong mã nguồn",
-                    "agent/config.py",
-                    12,
-                    "LLM_API_KEY = '<redacted>'",
-                )
-            ],
-            [
-                F(
-                    "secret_use",
-                    "SERVICE_TOKEN",
-                    "hard_coded=có; mã thông báo nằm trong tệp .env được đưa vào kho mã",
-                    ".env.example",
-                    3,
-                    "SERVICE_TOKEN=<redacted>",
-                )
-            ],
-        ],
-    },
     "CY-02": pack_item("indirect_injection_vi"),
     "CY-03": pack_item("owasp_agentic_redteam"),
     "CY-04": pack_item("finance_harm_refusal"),
@@ -1482,34 +1390,6 @@ SPECS: dict[str, dict[str, list[list[Snip]]]] = {
         ],
         "n": [[R("affects_customer", "không; hệ thống chỉ hỗ trợ nhân viên nội bộ")]],
     },
-    "ET-10": {
-        "p": [
-            [
-                F(
-                    "approval_point",
-                    "duyet_quyet_dinh",
-                    "người có thẩm quyền duyệt trước khi quyết định có hiệu lực",
-                    "flow/approve.py",
-                    27,
-                    "require_human_approval(decision)",
-                )
-            ],
-            [R("human_control", "pre_approval")],
-        ],
-        "f": [
-            [R("human_control", "none")],
-            [
-                F(
-                    "autonomy",
-                    "tu_dong",
-                    "quyết định có hiệu lực ngay, không có điểm duyệt của con người",
-                    "flow/approve.py",
-                    27,
-                    "execute(decision)",
-                )
-            ],
-        ],
-    },
     "ET-11": {
         "p": [
             [
@@ -1552,3 +1432,545 @@ SPECS: dict[str, dict[str, list[list[Snip]]]] = {
         ],
     },
 }
+
+
+# ---------------------------------------------------------------------------- fact-decidable items (0.2)
+# The facts below follow the real rows of the code scan (facts_v1): a tool fact reads
+# "risk_class=money; approved=yes", the autonomy fact names the tools that have no human approval
+# step, a decision33 fact carries human_gate_in_code, and so on. Names are synthetic.
+
+CODE = "code/ops/tools.py"
+APPROVAL_STEP = ("approval_point", "human approval step", "a human approval step in the code")
+
+
+def TOOL(
+    name: str, rc: str, approved: str = "yes", note: str = "", line: int = 40, ev: bool = True
+) -> Snip:
+    detail = f"risk_class={rc}; approved={approved}" + (f"; {note}" if note else "")
+    return F("tool", name, detail, CODE, line, f"def {name}(args):", ev)
+
+
+def AUTO(level: str, reason: str, ev: bool = True) -> Snip:
+    return F("autonomy", level, reason, CODE, 41, "def run_agent(plan):", ev)
+
+
+def STEP(ev: bool = True) -> Snip:
+    return F(*APPROVAL_STEP, CODE, 42, "require_approval(order)", ev)
+
+
+def GATE(klass: str, gate: str, ev: bool = True) -> Snip:
+    return F(
+        "decision33",
+        klass,
+        f"proposal only, counsel confirms; human_gate_in_code={gate}",
+        CODE,
+        41,
+        "def run_agent(plan):",
+        ev,
+    )
+
+
+L1 = "every tool only reads"
+L2 = "every tool with a side effect has a human approval step in the same code"
+L3 = "tools with side effects and no human approval step in code: chuyen_tien"
+MONEY_NOTE = (
+    "reversibility: chuyen_tien moves or waives money: not reversible by the agent once executed"
+)
+SCAN_URL = "an address in the code (query and fragment are not stored)"
+
+_MONEY = {
+    "p": [
+        [TOOL("chuyen_tien", "money", "yes", MONEY_NOTE), AUTO("L2", L2)],
+        [TOOL("tra_cuu_so_du", "read_only"), AUTO("L1", L1)],
+    ],
+    "f": [
+        [TOOL("chuyen_tien", "money", "yes", MONEY_NOTE), AUTO("L3", L3)],
+        [TOOL("hoan_tien", "money"), GATE("high_risk", "False")],
+    ],
+}
+_PII_EXPORT = {
+    "p": [
+        [TOOL("them_nguoi_nhan", "pii_export", "yes", "disclosure cannot be recalled"), STEP()],
+        [TOOL("tra_cuu_so_du", "read_only")],
+    ],
+    "f": [
+        [TOOL("them_nguoi_nhan", "pii_export", "no", "disclosure cannot be recalled")],
+        [TOOL("them_nguoi_nhan", "pii_export", "yes", "disclosure cannot be recalled")],
+    ],
+}
+_TRACING = {
+    "p": [[AUTO("L1", L1)], [AUTO("L2", L2)]],
+    "f": [
+        [
+            F(
+                "weak_spot",
+                "No tracing found (no OpenTelemetry or MLflow use): Watch needs the tracing hook from the onboarding pull request",
+                "No tracing found (no OpenTelemetry or MLflow use): Watch needs the tracing hook from the onboarding pull request",
+                "policies/agent.yaml",
+                1,
+                "name: agent",
+            ),
+            AUTO("L1", L1, False),
+        ],
+        [
+            F(
+                "weak_spot",
+                "No tracing found (no OpenTelemetry or MLflow use): Watch needs the tracing hook from the onboarding pull request",
+                "No tracing found (no OpenTelemetry or MLflow use): Watch needs the tracing hook from the onboarding pull request",
+                "policies/agent.yaml",
+                1,
+                "name: agent",
+            ),
+            AUTO("L2", L2, False),
+        ],
+    ],
+}
+_MISMATCH = {
+    "p": [
+        [R("human_control", "pre_approval"), STEP()],
+        [R("human_control", "pre_approval"), AUTO("L2", L2)],
+    ],
+    "f": [
+        [R("human_control", "pre_approval"), AUTO("L3", L3)],
+        [R("human_control", "pre_approval"), GATE("high_risk", "False")],
+    ],
+    "n": [[R("human_control", "none")]],
+}
+_PD_MISMATCH = {
+    "p": [
+        [
+            R("personal_data", "identifiable"),
+            F(
+                "claim",
+                "Handles personal data field 'cccd'",
+                "category=personal_data",
+                CODE,
+                43,
+                "def them_nguoi_nhan(cccd, ten):",
+            ),
+        ],
+        [R("personal_data", "none")],
+    ],
+    "f": [
+        [
+            R("personal_data", "none"),
+            F(
+                "claim",
+                "Handles personal data field 'cccd'",
+                "category=personal_data",
+                CODE,
+                43,
+                "def them_nguoi_nhan(cccd, ten):",
+            ),
+        ],
+        [
+            R("personal_data", "none"),
+            F(
+                "claim",
+                "Handles personal data field 'customer_id'",
+                "category=personal_data",
+                CODE,
+                43,
+                "def them_nguoi_nhan(customer_id):",
+            ),
+        ],
+    ],
+}
+_MODEL_UNKNOWN = {
+    "p": [
+        [
+            F(
+                "model",
+                "mo-hinh-nen-a",
+                "provider=vllm; family=qwen; via=ChatOpenAI",
+                "code/ops/planner.py",
+                75,
+                "llm = ChatOpenAI(model='mo-hinh-nen-a')",
+            )
+        ],
+        [
+            F(
+                "endpoint",
+                "mo-hinh-nen-a-int4",
+                "family=qwen; declared in code/ops/config.py",
+                "code/ops/config.py",
+                39,
+                "MODEL = 'mo-hinh-nen-a-int4'",
+            )
+        ],
+    ],
+    "f": [
+        [
+            F(
+                "model",
+                "unknown",
+                "provider=openai; family=unknown; via=ChatOpenAI",
+                "code/ops/planner.py",
+                75,
+                "llm = ChatOpenAI()",
+            )
+        ],
+        [
+            F(
+                "endpoint",
+                "langchain_openai",
+                "family=unknown; declared in code",
+                "code/ops/planner.py",
+                20,
+                "from langchain_openai import ChatOpenAI",
+            )
+        ],
+    ],
+}
+_EXTERNAL = {
+    "p": [
+        [
+            F(
+                "external_url",
+                "https://FILL-ME-workspace-host/serving-endpoints",
+                SCAN_URL,
+                "app.yaml",
+                22,
+                "host: https://FILL-ME-workspace-host/serving-endpoints",
+            )
+        ],
+        [
+            F(
+                "external_url",
+                "http://127.0.0.1:8001/v1",
+                SCAN_URL,
+                "code/ops/config.py",
+                38,
+                "BASE = 'http://127.0.0.1:8001/v1'",
+            )
+        ],
+    ],
+    "f": [
+        [
+            F(
+                "external_url",
+                "https://api.nha-cung-cap-a.example/v1",
+                SCAN_URL,
+                "code/ops/config.py",
+                38,
+                "BASE = 'https://api.nha-cung-cap-a.example/v1'",
+            )
+        ],
+        [
+            F(
+                "external_url",
+                "http://127.0.0.1:8001/v1",
+                SCAN_URL,
+                "code/ops/config.py",
+                37,
+                "LOCAL = 'http://127.0.0.1:8001/v1'",
+                False,
+            ),
+            F(
+                "external_url",
+                "https://dich-vu-ben-ngoai.example/hook",
+                SCAN_URL,
+                "code/ops/hooks.py",
+                12,
+                "HOOK = 'https://dich-vu-ben-ngoai.example/hook'",
+            ),
+        ],
+    ],
+}
+_SECRET = {
+    "p": [[AUTO("L1", L1)], [AUTO("L2", L2)]],
+    "f": [
+        [
+            F(
+                "secret_use",
+                "generic_api_key",
+                "a secret-looking value is in the code (kind only; the value is never stored)",
+                "code/ops/config.py",
+                12,
+                "API_KEY = '[REDACTED:generic_api_key]'",
+            )
+        ],
+        [
+            F(
+                "secret_use",
+                "password",
+                "a secret-looking value is in the code (kind only; the value is never stored)",
+                "code/ops/db.py",
+                7,
+                "DB_PASSWORD = '[REDACTED:password]'",
+            )
+        ],
+    ],
+}
+
+FACT_SPECS: dict[str, dict[str, list[list[Snip]]]] = {
+    "CY-01": _SECRET,
+    "CY-14": _MONEY,
+    "CY-15": _PII_EXPORT,
+    "CY-16": _TRACING,
+    "CY-17": _EXTERNAL,
+    "DG-10": _SECRET,
+    "DG-12": _PD_MISMATCH,
+    "DG-13": {
+        "p": [
+            [
+                F(
+                    "claim",
+                    "Handles personal data field 'payee_name'",
+                    "category=personal_data",
+                    CODE,
+                    43,
+                    "def them_nguoi_nhan(payee_name):",
+                ),
+                TOOL("them_nguoi_nhan", "pii_export", "yes", line=43, ev=False),
+            ],
+            [AUTO("L1", L1)],
+        ],
+        "f": [
+            [
+                F(
+                    "claim",
+                    "Handles personal data field 'payee_name'",
+                    "category=personal_data",
+                    CODE,
+                    43,
+                    "def them_nguoi_nhan(payee_name):",
+                ),
+                TOOL("them_nguoi_nhan", "pii_export", "no", line=43),
+            ],
+            [
+                F(
+                    "claim",
+                    "Handles personal data field 'customer_id'",
+                    "category=personal_data",
+                    CODE,
+                    49,
+                    "def chuyen_tien(customer_id):",
+                ),
+                TOOL("chuyen_tien", "money", "no", line=49),
+            ],
+        ],
+    },
+    "DG-14": _PII_EXPORT,
+    "ET-10": {
+        "p": [
+            [
+                F(
+                    "approval_point",
+                    "human approval step",
+                    "a human approval step in the code",
+                    "flow/approve.py",
+                    27,
+                    "require_human_approval(decision)",
+                )
+            ],
+            [AUTO("L2", L2)],
+        ],
+        "f": [
+            [AUTO("L3", L3), TOOL("chuyen_tien", "money", "yes", MONEY_NOTE)],
+            [
+                AUTO(
+                    "L3",
+                    "tools with side effects and no human approval step in code: gui_thu, chuyen_tien",
+                )
+            ],
+        ],
+    },
+    "ET-13": _MONEY,
+    "ET-14": _MISMATCH,
+    "LC-14": {
+        "p": [
+            [
+                F(
+                    "decision33",
+                    "transactions not triggered",
+                    "Tools do not execute electronic transactions",
+                    CODE,
+                    41,
+                    "def run_agent(plan):",
+                )
+            ],
+            [TOOL("chuyen_tien", "money", "yes", MONEY_NOTE), AUTO("L2", L2)],
+        ],
+        "f": [
+            [
+                F(
+                    "decision33",
+                    "transactions triggered",
+                    "Tools execute electronic transactions to a destination (chuyen_tien); no human inspection, approval or control before execution was found in code",
+                    CODE,
+                    49,
+                    "def chuyen_tien(account, amount):",
+                )
+            ],
+            [TOOL("chuyen_tien", "money", "yes", MONEY_NOTE), AUTO("L3", L3)],
+        ],
+    },
+    "LC-15": _MISMATCH,
+    "LC-16": {
+        "p": [
+            [R("risk_level", "high"), GATE("high_risk", "False")],
+            [R("risk_level", "medium"), GATE("not_high_risk", "True")],
+        ],
+        "f": [
+            [R("risk_level", "unspecified"), GATE("high_risk", "False")],
+            [R("risk_level", "low"), GATE("high_risk", "False")],
+        ],
+    },
+    "LC-17": _PD_MISMATCH,
+    "MR-13": _MODEL_UNKNOWN,
+    "MR-14": _TRACING,
+    "TP-12": _MODEL_UNKNOWN,
+    "TP-13": _EXTERNAL,
+    # ------------------------------------------------------------------ supply chain
+    "SC-01": {
+        "p": [
+            [
+                R(
+                    "bill_of_materials",
+                    "có; mỗi thành phần ghi nhà cung cấp, phiên bản, giấy phép và giá trị băm",
+                )
+            ],
+            [
+                F(
+                    "claim",
+                    "bom",
+                    "bảng kê gồm mô hình, bộ dữ liệu và công cụ, mỗi mục có nhà cung cấp, phiên bản, giấy phép và giá trị băm",
+                    "supply/bom.json",
+                    1,
+                    "components: 12",
+                )
+            ],
+        ],
+        "f": [
+            [R("bill_of_materials", "chưa có bảng kê thành phần")],
+            [
+                R(
+                    "bill_of_materials",
+                    "có danh sách nhưng thiếu phiên bản và giá trị băm của hầu hết thành phần",
+                )
+            ],
+        ],
+    },
+    "SC-02": pack_item("licence_allowlist"),
+    "SC-03": pack_item("pin_hash_check"),
+    "SC-04": pack_item("mcp_tool_manifest_drift"),
+    "SC-05": {
+        "p": [
+            [R("risk_level", "high", False), R("component_review_date", "{date}")],
+            [R("risk_level", "high", False), R("component_review_date", "{date}")],
+        ],
+        "f": [
+            [R("risk_level", "high", False), R("component_review_date", "{old}")],
+            [R("risk_level", "high", False), R("component_review_date", "(chưa có)")],
+        ],
+        "n": [[R("risk_level", "low"), R("component_review_date", "(không bắt buộc)")]],
+    },
+    "SC-06": {
+        "p": [
+            [
+                F(
+                    "model",
+                    "mo_hinh_nen",
+                    "nguồn: kho mô hình nội bộ đã duyệt",
+                    "agent/model.py",
+                    5,
+                    "load('kho-noi-bo/mo_hinh_nen')",
+                )
+            ],
+            [R("approved_sources", "mô hình và bộ dữ liệu đều lấy từ kho đã duyệt")],
+        ],
+        "f": [
+            [
+                F(
+                    "model",
+                    "mo_hinh_ngoai",
+                    "nguồn: tải trực tiếp từ trang công khai chưa được duyệt",
+                    "agent/model.py",
+                    5,
+                    "download('https://nguon-khong-ro.example/m')",
+                )
+            ],
+            [R("approved_sources", "có bộ dữ liệu tải từ nguồn chưa được duyệt")],
+        ],
+    },
+    "SC-07": _MODEL_UNKNOWN,
+    # ------------------------------------------------------------------ reputation
+    "RP-01": {
+        "p": [
+            [
+                D(
+                    "Đánh giá tác động niềm tin: một câu trả lời sai về {usecase} có thể làm giảm niềm tin; áp dụng tiêu chí do ngân hàng quy định; người phụ trách là {dev}."
+                )
+            ],
+            [
+                R(
+                    "trust_impact",
+                    "đã mô tả; tiêu chí của ngân hàng đã áp dụng; người phụ trách: {dev}",
+                )
+            ],
+        ],
+        "f": [
+            [R("trust_impact", "chưa mô tả tác động đến niềm tin công chúng")],
+            [
+                D(
+                    "Đánh giá tác động niềm tin: chỉ ghi 'rủi ro thấp', không nêu tiêu chí và không có người phụ trách."
+                )
+            ],
+        ],
+    },
+    "RP-02": {
+        "p": [
+            [R("complaint_route", "Tổng đài chăm sóc khách hàng và biểu mẫu trên ứng dụng")],
+            [
+                D(
+                    "Quy trình khiếu nại: người dùng gửi khiếu nại qua tổng đài hoặc ứng dụng; Phòng Chăm sóc khách hàng tiếp nhận."
+                )
+            ],
+        ],
+        "f": [
+            [R("complaint_route", "chưa có kênh khiếu nại cho người dùng hệ thống")],
+            [D("Quy trình khiếu nại: chưa quy định kênh nào cho người dùng của hệ thống này.")],
+        ],
+    },
+    "RP-03": {
+        "p": [
+            [
+                F(
+                    "approval_point",
+                    "dung_khan_cap",
+                    "có nút dừng khẩn cấp; thử ngày {date}",
+                    "ops/stop.py",
+                    11,
+                    "def emergency_stop()",
+                )
+            ],
+            [R("emergency_stop", "có; thử gần nhất ngày {date}")],
+        ],
+        "f": [
+            [R("emergency_stop", "có nhưng chưa từng thử; ngày thử: (trống)")],
+            [R("emergency_stop", "chưa có cơ chế dừng khẩn cấp")],
+        ],
+    },
+    "RP-04": {
+        "p": [
+            [
+                D(
+                    "Kế hoạch truyền thông sự cố: người phát ngôn là Phòng Truyền thông; thông báo trong 24 giờ; chủ sở hữu kế hoạch: {dev}."
+                )
+            ],
+            [R("comms_plan", "đã có kế hoạch truyền thông sự cố; chủ sở hữu: {dev}")],
+        ],
+        "f": [
+            [R("comms_plan", "chưa có kế hoạch truyền thông sự cố")],
+            [
+                D(
+                    "Kế hoạch truyền thông sự cố: bản nháp chưa có người phụ trách và chưa được phê duyệt."
+                )
+            ],
+        ],
+    },
+    "RP-05": _MONEY,
+    "RP-06": _TRACING,
+}
+SPECS.update(FACT_SPECS)

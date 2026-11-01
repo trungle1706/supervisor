@@ -40,7 +40,9 @@ import datetime as dt
 import hashlib
 import json
 import re
+import threading
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -63,7 +65,57 @@ def call_timeout() -> float:
     return timeout_setting("factory_call_timeout_s", CALL_TIMEOUT_S)
 
 
+def parallel_calls(inputs: Mapping[str, Any]) -> int:
+    """How many group calls of one pass may run at the same time (setting FACTORY_PARALLEL_CALLS,
+    1..8, default 1 = one after another). ``inputs["settings"]`` wins over the process settings."""
+    settings = inputs.get("settings")
+    try:
+        if settings is None:
+            from supervisor.config import get_settings
+
+            settings = get_settings()
+        return max(1, min(MAX_PARALLEL, int(getattr(settings, "factory_parallel_calls", 1))))
+    except Exception:  # noqa: BLE001 - a broken config keeps the one-after-another behaviour
+        return 1
+
+
+MAX_PARALLEL = 8
+ERROR_CHARS = 120
+_HTTP_STATUS = re.compile(r"\bHTTP (\d{3})\b")
+
+
+class ModelFailure(dict):  # type: ignore[type-arg]
+    """The answer of a failed model call: an empty reply that says why. ``code`` is a short
+    reason (``HTTP 400``, ``timeout``, ``invalid reply``, ``reply cut off`` or the error class)
+    and ``text`` is the error class with it, masked and at most 120 characters. The message of the
+    error, the key and the request are never kept."""
+
+    def __init__(self, code: str, text: str) -> None:
+        super().__init__()
+        self.code = code
+        self.text = text
+
+
+def describe_model_error(exc: BaseException) -> ModelFailure:
+    name = type(exc).__name__
+    text = str(exc)
+    status = _HTTP_STATUS.search(text)
+    if status:
+        code = f"HTTP {status.group(1)}"
+    elif name == "LLMTimeoutError" or isinstance(exc, TimeoutError):
+        code = "timeout"
+    elif name == "LLMOutputError":
+        code = "invalid reply"
+    elif name == "TruncatedError":
+        code = "reply cut off"
+    else:
+        code = name
+    return ModelFailure(clean(code, 40), clean(f"{name}: {code}", ERROR_CHARS))
+
+
 BODY_CHARS = 600  # a fact, pack, RegKB or record body is cut to this many characters
+FIELD_CHARS = 240  # a plain record field is cut to this many characters
+SUBFIELD_MAX = 40  # sub-sources taken from one JSON record field
 INDEX_MAX = 120  # names listed in the index of one call
 LABEL_CHARS = 80
 RESERVE_PER_ITEM = 220  # tokens kept for the answer of one item
@@ -218,6 +270,63 @@ def _scope_ok(scope: str | None, kind: str, ref: str) -> bool:
     return ref.startswith(value)
 
 
+def _json_object(value: Any) -> Mapping[str, Any] | None:
+    """``value`` as a JSON object: a dict, or a string that holds one; else ``None``."""
+    if isinstance(value, Mapping):
+        return value
+    if isinstance(value, str) and value.lstrip().startswith("{"):
+        try:
+            doc = json.loads(value)
+        except ValueError:
+            return None
+        return doc if isinstance(doc, Mapping) else None
+    return None
+
+
+def _compact(value: Any) -> str:
+    """One field value as text: a nested JSON object or list (also inside a string) is written
+    compactly, so no key is lost to the cut."""
+    if isinstance(value, str):
+        text = value.strip()
+        if text[:1] in ("{", "["):
+            try:
+                value = json.loads(text)
+            except ValueError:
+                return value
+        else:
+            return value
+    if isinstance(value, Mapping | list | tuple):
+        return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return str(value)
+
+
+def _record_sources(sid: str, key: str, value: Any) -> list[Source]:
+    """The sources of one field of the system record. A plain field is one source (cut at
+    ``FIELD_CHARS``, as before). A field that holds a JSON object (``tags``) keeps that source and
+    adds one sub-source per key (``<sid>.tags.autonomy_limits``), each with room for ``BODY_CHARS``,
+    so a long object does not lose its tail. Lists and empty values give nothing."""
+    if value is None or value == "" or isinstance(value, list | tuple | set):
+        return []
+    obj = _json_object(value)
+    if isinstance(value, Mapping):  # a real dict: no parent source, the keys are the sources
+        out: list[Source] = []
+    else:
+        out = [Source("system_record", f"{sid}.{key}", key, clean(f"{key} = {value}", FIELD_CHARS))]
+    if obj is None:
+        return out
+    for sub in sorted(obj)[:SUBFIELD_MAX]:
+        v = obj[sub]
+        if v is None or v == "":
+            continue
+        name = f"{key}.{sub}"
+        out.append(
+            Source(
+                "system_record", f"{sid}.{name}", name, clean(f"{name} = {_compact(v)}", BODY_CHARS)
+            )
+        )
+    return out
+
+
 def gather(inputs: Mapping[str, Any], defn: AgentDefinitionV1) -> dict[str, list[Source]]:
     """All sources of ``inputs`` by context source name (not yet limited by tools or budget)."""
     max_doc = defn.harness.context.max_document_chars
@@ -242,11 +351,7 @@ def gather(inputs: Mapping[str, Any], defn: AgentDefinitionV1) -> dict[str, list
             )
         )
     for key, value in sorted(system.items()):
-        if value is None or isinstance(value, (dict, list, tuple, set)) or value == "":
-            continue
-        out["system_record"].append(
-            Source("system_record", f"{sid}.{key}", str(key), clean(f"{key} = {value}", 240))
-        )
+        out["system_record"].extend(_record_sources(sid, str(key), value))
     packs = list(inputs.get("packs") or [])
     if not packs:  # the orchestrator hands the rule proposal; its checks are the pack results
         for c in (inputs.get("proposal") or {}).get("checks") or []:
@@ -477,6 +582,10 @@ class _Run:
         self.mem_writes = 0
         self.mem_rows = 0
         self.budget_hit = False
+        self.skipped = 0  # items answered without a call (nothing to read)
+        self.parallel: int | None = None  # set by run_agent
+        self.lock = threading.Lock()  # counters of the calls that run at the same time
+        self.failures: list[ModelFailure] = []
         self.memory_rows: list[dict[str, Any]] = []
         self.loaded_refs: dict[str, Source] = {}
         self.results: dict[str, dict[str, Any]] = {}
@@ -552,27 +661,46 @@ class _Run:
                 return messages, loaded
             loaded.pop(bodies.pop()["ref"], None)  # never over the budget: drop the last body
 
+    def admit(self, messages: list[dict[str, str]], reserve: int, held: int = 0) -> bool:
+        """True when the run may pay for this call. ``held`` is what calls that were admitted
+        before it (and have not finished) may still use."""
+        prompt = _tokens(messages)
+        return not (
+            self.model is None
+            or prompt > self.budget
+            or self.total_tokens + held + prompt + reserve > self.run_budget
+        )
+
+    def invoke(
+        self, messages: list[dict[str, str]], schema: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        """One model call, already admitted. A failed call does not stop the run: the answer is a
+        ``ModelFailure`` (empty, with the reason) and the failure is recorded. Safe to call from
+        several threads."""
+        assert self.model is not None  # noqa: S101 - admit() refuses a run without a model
+        prompt = _tokens(messages)
+        timeout = float((self.inputs.get("budget") or {}).get("seconds") or call_timeout())
+        reply: Any
+        try:
+            reply = self.model.complete_json(messages, schema, min(call_timeout(), timeout))
+        except Exception as exc:  # noqa: BLE001 - a failed call leaves the items as question
+            reply = describe_model_error(exc)
+        used = prompt + _tokens(json.dumps(reply, default=str) if reply else "")
+        with self.lock:
+            self.total_tokens += used
+            self.max_call_tokens = max(self.max_call_tokens, prompt)
+            self.calls += 1
+            if isinstance(reply, ModelFailure):
+                self.failures.append(reply)
+        return reply if isinstance(reply, Mapping) else {}
+
     def call(
         self, messages: list[dict[str, str]], schema: Mapping[str, Any], reserve: int
     ) -> Mapping[str, Any] | None:
         """One model call inside the budgets; ``None`` when the run budget cannot pay for it."""
-        prompt = _tokens(messages)
-        if (
-            self.model is None
-            or prompt > self.budget
-            or self.total_tokens + prompt + reserve > self.run_budget
-        ):
+        if not self.admit(messages, reserve):
             return None
-        timeout = float((self.inputs.get("budget") or {}).get("seconds") or call_timeout())
-        try:
-            reply = self.model.complete_json(messages, schema, min(call_timeout(), timeout))
-        except Exception:  # noqa: BLE001 - a failed call leaves the items as question
-            reply = {}
-        used = prompt + _tokens(json.dumps(reply, default=str) if reply else "")
-        self.total_tokens += used
-        self.max_call_tokens = max(self.max_call_tokens, prompt)
-        self.calls += 1
-        return reply if isinstance(reply, Mapping) else {}
+        return self.invoke(messages, schema)
 
 
 # ------------------------------------------------------------------------------ verification
@@ -690,8 +818,26 @@ def verify_finding(
 # ------------------------------------------------------------------------------ passes
 
 
-def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
-    """One structured call for ``items`` of ``group`` and the verification of the answers."""
+class _Call:
+    """One group call, prepared: the messages, the sources loaded into them and the items."""
+
+    def __init__(
+        self,
+        items: list[Any],
+        messages: list[dict[str, str]],
+        loaded: dict[str, Source],
+        reserve: int,
+    ) -> None:
+        self.items = items
+        self.messages = messages
+        self.loaded = loaded
+        self.reserve = reserve
+
+
+def _prepare_group(run: _Run, group: _Group, items: list[Any]) -> _Call | None:
+    """The prompt of one group call. ``None`` when no call is made (the fixed part alone does not
+    fit the context budget: the items are rejected). Changes no shared counter except
+    ``results`` of those rejected items."""
     extra: dict[str, Any] = {}
     h = run.defn.harness
     if run.memory is not None and h.memory.system_memory:
@@ -709,12 +855,29 @@ def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
             run.checked += 1
             run.rejected += 1
             run.results[it.id] = _reject(it, ["context_budget_too_small"])
-        return
-    reply = run.call(messages, RESPONSE_SCHEMA, RESERVE_PER_ITEM * len(items) + 100)
-    if reply is None:
-        run.budget_hit = True
-        return
-    run.loaded_refs.update(loaded)
+        return None
+    return _Call(items, messages, loaded, RESERVE_PER_ITEM * len(items) + 100)
+
+
+def _failed_item(failure: ModelFailure) -> dict[str, Any]:
+    """The result of an item whose model call failed: a question, with the reason in plain words."""
+    return {
+        "verdict": "question",
+        "evidence": [],
+        "confidence": "low",
+        "rationale": clean(
+            f"The AI model call failed ({failure.code}). A person decides this item.",
+            caps.RATIONALE_MAX,
+        ),
+        "rejected": [],
+        "model_failed": True,
+    }
+
+
+def _finish_group(run: _Run, call: _Call, reply: Mapping[str, Any]) -> None:
+    """Verify the answer of one group call and store the result of each of its items."""
+    items = call.items
+    run.loaded_refs.update(call.loaded)
     by_id: dict[str, Mapping[str, Any]] = {}
     for f in reply.get("findings") or []:
         if isinstance(f, Mapping) and f.get("checklist_id") in {i.id for i in items}:
@@ -722,7 +885,9 @@ def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
     for it in items:
         raw = by_id.get(it.id)
         run.checked += 1
-        if raw is None:
+        if isinstance(reply, ModelFailure):
+            res = _failed_item(reply)
+        elif raw is None:
             res = {
                 "verdict": "question",
                 "evidence": [],
@@ -731,7 +896,9 @@ def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
                 "rejected": [],
             }
         else:
-            res = verify_finding(run, it, raw, loaded)
+            res = verify_finding(run, it, raw, call.loaded)
+            if res["verdict"] == "question" and not res["rejected"]:
+                res["settled_open"] = True  # the model itself answered question; nothing to fix
         if res["rejected"]:
             run.rejected += 1
             run.feedback[it.id] = ", ".join(res["rejected"])
@@ -740,22 +907,159 @@ def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
         run.results[it.id] = res
 
 
+def _ask_group(run: _Run, group: _Group, items: list[Any]) -> None:
+    """One structured call for ``items`` of ``group`` and the verification of the answers."""
+    call = _prepare_group(run, group, items)
+    if call is None:
+        return
+    reply = run.call(call.messages, RESPONSE_SCHEMA, call.reserve)
+    if reply is None:
+        run.budget_hit = True
+        return
+    _finish_group(run, call, reply)
+
+
+def _blocked_group(run: _Run, group: _Group) -> None:
+    for it in group.items:  # no readable source for this item: no call, a person decides
+        run.blocked += 1
+        run.results[it.id] = {
+            "verdict": "question",
+            "evidence": [],
+            "confidence": "low",
+            "rationale": "No tool of this agent can read a source that decides this item.",
+            "rejected": [],
+        }
+
+
+def _pass_parallel(run: _Run, groups: list[_Group], workers: int) -> None:
+    """The same pass with the group calls in threads. The prompts are built, and the calls are
+    admitted against the run budget, one after another in group order (an admitted call holds back
+    its prompt and its reserve, so the budget is never exceeded whatever the answers use). The
+    calls run at the same time; the answers are verified and stored in group order. With a
+    deterministic model the report equals the one of the one-after-another run."""
+    plan: list[tuple[_Group, _Call | None]] = []
+    held = 0
+    for group in groups:
+        if not group.sources:
+            plan.append((group, None))
+            continue
+        call = _prepare_group(run, group, list(group.items))
+        if call is not None:
+            if not run.admit(call.messages, call.reserve, held):
+                run.budget_hit = True
+                break
+            held += _tokens(call.messages) + call.reserve
+        plan.append((group, call))
+    calls = [c for _, c in plan if c is not None]
+    replies: dict[int, Mapping[str, Any]] = {}
+    if calls:
+        with ThreadPoolExecutor(max_workers=min(workers, len(calls))) as pool:
+            futures = {id(c): pool.submit(run.invoke, c.messages, RESPONSE_SCHEMA) for c in calls}
+            for key, fut in futures.items():
+                replies[key] = fut.result()
+    for group, call in plan:
+        if not group.sources:
+            _blocked_group(run, group)
+        elif call is not None:
+            _finish_group(run, call, replies[id(call)])
+
+
+_PACK_ID = re.compile(r"\bpack\s+([a-z0-9]+(?:_[a-z0-9]+)+)", re.IGNORECASE)
+UNSOURCED_TEXT = {
+    "pack": "No result for test {pack} yet, so this cannot be decided. Run the test.",
+    "pack_any": "No test result is available yet, so this cannot be decided. Run the test.",
+    "document": "No document was provided for this check. The system owner supplies it.",
+    "regkb": "No legal text is available for this check, so it cannot be decided.",
+    "fact": "The code scan gave no fact for this check, so it cannot be decided.",
+    "system_record": "The system record has no field for this check, so it cannot be decided.",
+}
+
+
+def skip_unsourced(inputs: Mapping[str, Any]) -> bool:
+    """Setting FACTORY_SKIP_UNSOURCED (default on): an item with no source to read is answered
+    ``question`` without a model call. Off: every item goes to the model as before."""
+    settings = inputs.get("settings")
+    try:
+        if settings is None:
+            from supervisor.config import get_settings
+
+            settings = get_settings()
+        return bool(getattr(settings, "factory_skip_unsourced", True))
+    except Exception:  # noqa: BLE001 - a broken config keeps the default
+        return True
+
+
+def reask_open(inputs: Mapping[str, Any]) -> bool:
+    """Setting FACTORY_REASK_OPEN (default on = today's loop). Off: in loop mode an item that came
+    back ``question`` from the model with no verifier reason is not sent again."""
+    settings = inputs.get("settings")
+    try:
+        if settings is None:
+            from supervisor.config import get_settings
+
+            settings = get_settings()
+        return bool(getattr(settings, "factory_reask_open", True))
+    except Exception:  # noqa: BLE001 - a broken config keeps today's behaviour
+        return True
+
+
+def _has_sources(run: _Run, item: Any) -> bool:
+    """True when at least one source of a kind the item accepts can be loaded for it."""
+    wanted = {SOURCE_OF_KIND[k] for k in item.evidence} & run.loadable
+    for name in wanted:
+        for src in run.all_sources.get(name, []):
+            if src.text.strip() and any(
+                _scope_ok(sc, src.kind, src.ref) for sc in run.scopes.get(name) or [None]
+            ):
+                return True
+    return False
+
+
+def _unsourced_result(item: Any) -> dict[str, Any]:
+    kind = item.evidence[0] if item.evidence else "system_record"
+    if kind == "pack":
+        m = _PACK_ID.search(item.pass_rule or "") or _PACK_ID.search(item.question or "")
+        text = UNSOURCED_TEXT["pack"].format(pack=m.group(1)) if m else UNSOURCED_TEXT["pack_any"]
+    else:
+        text = UNSOURCED_TEXT.get(kind, UNSOURCED_TEXT["system_record"])
+    return {
+        "verdict": "question",
+        "evidence": [],
+        "confidence": "high",
+        "rationale": clean(text, caps.RATIONALE_MAX),
+        "rejected": [],
+        "unsourced": True,
+        "settled_open": True,
+    }
+
+
 def _pass(run: _Run, pending: list[Any]) -> None:
     stops = run.checklist_stops()
     live = [it for it in pending if it.id not in stops]
-    for group in _groups(live, run.loadable):
+    if skip_unsourced(run.inputs):
+        asked = []
+        for it in live:
+            # no tool at all for the item: the blocked-call path below keeps its own wording
+            readable = {SOURCE_OF_KIND[k] for k in it.evidence} & run.loadable
+            if readable and not _has_sources(run, it):
+                if not run.results.get(it.id, {}).get("unsourced"):
+                    run.checked += 1
+                    run.skipped += 1
+                run.results[it.id] = _unsourced_result(it)
+                run.feedback.pop(it.id, None)
+            else:
+                asked.append(it)
+        live = asked
+    groups = _groups(live, run.loadable)
+    workers = parallel_calls(run.inputs) if run.parallel is None else run.parallel
+    if workers > 1 and sum(1 for g in groups if g.sources) > 1:
+        _pass_parallel(run, groups, workers)
+        return
+    for group in groups:
         if run.budget_hit:
             return
         if not group.sources:
-            for it in group.items:  # no readable source for this item: no call, a person decides
-                run.blocked += 1
-                run.results[it.id] = {
-                    "verdict": "question",
-                    "evidence": [],
-                    "confidence": "low",
-                    "rationale": "No tool of this agent can read a source that decides this item.",
-                    "rejected": [],
-                }
+            _blocked_group(run, group)
             continue
         _ask_group(run, group, list(group.items))
 
@@ -943,12 +1247,18 @@ def run_agent(
     tools: registry.ToolRegistry | None = None,
     memory: MemoryStore | None = None,
     log: list[dict[str, Any]] | None = None,
+    parallel: int | None = None,
 ) -> dict[str, Any]:
     """Run the harness of ``definition`` on ``inputs``; returns an ``assessment_report_v1`` dict.
 
     ``inputs``: ``system`` (record), ``facts`` (facts v1 export), ``packs`` / ``regkb`` /
     ``documents`` (lists of ``{ref, text}`` and ``{doc_id, sections}``), ``system_id``,
     ``report_id``, ``now``, ``budget`` ``{seconds, tokens}`` and ``memory_dir`` (system memory).
+    ``parallel`` (default: setting FACTORY_PARALLEL_CALLS, 1 to 8) is how many group calls of one
+    pass run at the same time; the report does not depend on it. ``inputs["diag"]``, when it is a
+    dict, receives what the report has no field for: ``model_calls``, ``model_calls_failed``,
+    ``model_items_failed`` (items left to a person because their call failed) and
+    ``model_error`` (the first failure, a short masked text).
     Raises ``AgentRuntimeError`` (``model_not_configured``, ``invalid_definition``)."""
     try:
         defn = AgentDefinitionV1.model_validate(dict(definition))
@@ -967,6 +1277,8 @@ def run_agent(
     now = now.astimezone(dt.UTC)
     h = defn.harness
     run = _Run(defn, inputs, model, now, tools or registry.load_tools(), memory, log)
+    if parallel is not None:
+        run.parallel = max(1, min(MAX_PARALLEL, int(parallel)))
     if memory is None and h.memory.system_memory and inputs.get("memory_dir"):
         run.memory = FileMemory(Path(str(inputs["memory_dir"])), int(h.memory.retention_days or 1))
     if run.memory is not None and h.memory.system_memory:
@@ -1018,6 +1330,10 @@ def run_agent(
             stopped_by = "max_iterations"
             break
         pending = _unanswered(run)
+        if not reask_open(inputs):
+            # the prompt of an item the model answered "question" (no verifier reason) would be the
+            # same again: ask only the items that were rejected, failed or got no answer
+            pending = [it for it in pending if not run.results[it.id].get("settled_open")]
         if not pending:
             stopped_by = "all_answered"
             break
@@ -1044,6 +1360,17 @@ def run_agent(
             }
         )
     counts = {v: sum(1 for f in findings if f["verdict"] == v) for v in caps.VERDICTS}
+    diag = inputs.get("diag")
+    if isinstance(diag, dict):
+        diag.update(
+            {
+                "model_calls": run.calls,
+                "model_calls_failed": len(run.failures),
+                "model_items_skipped": run.skipped,
+                "model_items_failed": sum(1 for r in run.results.values() if r.get("model_failed")),
+                "model_error": run.failures[0].text if run.failures else "",
+            }
+        )
     if run.memory is not None and h.memory.system_memory:
         rows = _memory_rows(run)
         run.mem_rows = run.memory.write(run.sid, defn.id, rows, now)

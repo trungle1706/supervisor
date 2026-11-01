@@ -68,7 +68,7 @@ def test_sidebar_counts_match_shell(console: Console) -> None:
     assert re.search(rf"Agents <span class=\"k \">{sh['agents_n']}</span>", side)
     assert re.search(rf"Cases <span class=\"k hot\">{sh['cases_n']}</span>", side)  # critical case
     assert sh["critical_n"] >= 1
-    assert re.search(rf"Sign-off <span class=\"k[^\"]*\">{sh['signoff_n']}</span>", side)
+    assert re.search(rf"Approvals <span class=\"k[^\"]*\">{sh['signoff_n']}</span>", side)
     assert re.search(rf"Alerts <span class=\"k[^\"]*\">{sh['alerts_n']}</span>", side)
 
 
@@ -110,10 +110,10 @@ def test_placeholder_items_follow_their_flag(
     for page in nav.PLACEHOLDERS:
         assert any(h.startswith(f"/console/soon/{page}") for h in hrefs), page
         r = console.get(f"/console/soon/{page}?lang=en")
-        assert r.status_code == 200 and "coming in WP-UX3" in r.text
+        assert r.status_code == 200 and "coming soon" in r.text
         assert 'aria-current="page"' in _sidebar(r.text)
     vi = console.get("/console/soon/audit?lang=vi")
-    assert "WP-UX3" in vi.text and "Nhật ký kiểm toán" in vi.text
+    assert "Trang này sắp ra mắt" in vi.text and "Nhật ký kiểm toán" in vi.text
     assert console.get("/console/soon/nope").status_code == 400
 
 
@@ -200,7 +200,9 @@ def test_agents_list_filters_sorts_pages_and_drawer(console: Console) -> None:
     d = console.get("/console/agents/payments/drawer?tab=overview")
     assert d.status_code == 200 and 'id="drawer-title"' in d.text and "<html" not in d.text
     assert 'role="tablist"' in d.text and d.text.count('role="tab"') == 3
-    assert "Copy JSON" in d.text and 'id="drawer-json"' in d.text
+    assert "Copy JSON" not in d.text and 'id="drawer-json"' in d.text  # UI-331: admins only
+    admin = console.get("/console/agents/payments/drawer?tab=overview", user="admin.chi")
+    assert "Copy JSON" in admin.text
     pol = console.get("/console/agents/payments/drawer?tab=policy")
     assert "PAY-07" in pol.text
     cases = console.get("/console/agents/payments/drawer?tab=cases")

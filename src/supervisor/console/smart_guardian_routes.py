@@ -22,15 +22,14 @@ from supervisor.adapters.auth.authz import needs
 from supervisor.console import smart_guardian_view as view
 from supervisor.console import systems_views
 from supervisor.console.context import ConsoleContext, get_context
-from supervisor.console.i18n import translator
+from supervisor.console.htmx import append_message
 from supervisor.console.routes import (
     _call,
     _check_id,
-    _lang,
     audited,
     form_or_plain,
-    message_html,
     render,
+    request_translator,
 )
 from supervisor.console.systems_routes import _done, _off
 from supervisor.onboard import smart_guardian as sg
@@ -51,9 +50,7 @@ async def _panel(
     data = await _call(view.panel_data, ctx, me, system)
     resp = render(request, ctx, me, "_smart_guardian_panel.html", s=system, **data)
     if note:
-        msg = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(note)
-        resp.body = resp.body + message_html(msg, ok=True, oob=True).encode()
-        resp.headers["content-length"] = str(len(resp.body))
+        append_message(resp, request_translator(request, ctx)(note))
     return resp
 
 

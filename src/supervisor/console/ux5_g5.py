@@ -8,19 +8,13 @@ from __future__ import annotations
 import datetime as dt
 from typing import Any
 
+from supervisor.core.timeutil import parse_utc
+
 ICT = dt.timezone(dt.timedelta(hours=7))
 
 
 def _parse(value: Any) -> dt.datetime | None:
-    if value is None or value == "":
-        return None
-    if isinstance(value, dt.datetime):
-        return value if value.tzinfo else value.replace(tzinfo=dt.UTC)
-    try:
-        d = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return d if d.tzinfo else d.replace(tzinfo=dt.UTC)
+    return parse_utc(value if isinstance(value, dt.datetime) else str(value))
 
 
 def when(value: Any, short: bool = False) -> str:

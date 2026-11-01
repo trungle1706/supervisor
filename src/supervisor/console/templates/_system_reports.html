@@ -49,11 +49,11 @@
   <p class="hint"><a href="/console/evidence?lang={{ lang }}">{{ t('ux4b_audit_pack_open') }}</a></p>
 </section>
 {% endif %}
+{# UI-067: no second empty state under "no agent is linked"; no block for a feature that is off #}
+{% if rp_incidents or (rp_incidents is not none and rp_rows) %}
 <section class="card" data-section="system-reports-incidents">
   <h3>{{ t('ux4b_incidents') }}</h3>
-  {% if rp_incidents is none %}
-  {{ v3.na(rp_incidents_na) }}
-  {% elif rp_incidents %}
+  {% if rp_incidents %}
   <div class="tablewrap flat"><table data-table="system-incidents" id="system-incidents">
     <thead><tr><th scope="col">{{ t('time') }}</th><th scope="col">{{ t('inc_incident') }}</th><th scope="col">{{ t('severity') }}</th><th scope="col">{{ t('agent') }}</th><th scope="col">{{ t('status') }}</th></tr></thead>
     <tbody>
@@ -72,3 +72,4 @@
   <p class="hint">{{ t('inc_none') }}</p>
   {% endif %}
 </section>
+{% endif %}

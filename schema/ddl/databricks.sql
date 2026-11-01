@@ -1906,3 +1906,45 @@ CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`detector_override` (
 USING DELTA
 COMMENT 'WP-B1. One per-agent detector setting written by a person (the smart guardian Accept, or the override service), read by the detector loader on top of config/detectors.yaml and under the policy file: a key that agents.<id>.detectors.settings names wins over this row. agent_id ''*'' is a default for every agent. value is the JSON object {"v": <whole number, text, true/false or list of texts>}; no floats. source is smart_guardian or manual. Chain record detector_override: ids, a value hash and the actor ref; no value text.'
 TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- redteam_usecase_run (state): W7. One multi-turn red-team run against one AI system (its tools, risk classes and limits), started from the registration flow or the Red team tab. The sandbox agent is simulated, the gate and rules are real. summary holds integer counts and basis points only (no floats), the verdict and the per-style table; replays holds at most six conversations with masked text (long digit runs removed). No customer data, no secrets. The chain record redteam_usecase_result holds the counts and the verdict only.
+-- primary key (enforced by the app, not by Delta): run_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`redteam_usecase_run` (
+  run_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  status STRING NOT NULL,
+  verdict STRING NOT NULL,
+  started_by STRING NOT NULL,
+  started_at TIMESTAMP NOT NULL,
+  finished_at TIMESTAMP,
+  config STRING NOT NULL,
+  summary STRING NOT NULL,
+  replays STRING NOT NULL,
+  error STRING,
+  evidence_hash STRING,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'W7. One multi-turn red-team run against one AI system (its tools, risk classes and limits), started from the registration flow or the Red team tab. The sandbox agent is simulated, the gate and rules are real. summary holds integer counts and basis points only (no floats), the verdict and the per-style table; replays holds at most six conversations with masked text (long digit runs removed). No customer data, no secrets. The chain record redteam_usecase_result holds the counts and the verdict only.'
+TBLPROPERTIES ('supervisor.kind' = 'state');
+
+-- guardian_ready_check (state): GUARDIAN_KIT. One run of the Guardian-ready code check on the newest stored source of an AI system (intake_attempt, ONBOARD_INTAKE). The check is deterministic (an AST scan, no model): for each tool of the use case it looks for a Guardian line above the tool. status: ready (every tool connected), partly_ready, not_ready, no_tools (the code has no tool). A row is never updated; Check my code again writes a new check_id. The newest row by checked_at is the status shown. detail_json holds, per tool, the name, the risk class, the state (connected, missing, wrong_name, wrong_risk) and file:line, plus notes; no code text and no value. Each check also goes on the chain as guardian_ready_check (ids, counts and hashes).
+-- primary key (enforced by the app, not by Delta): check_id
+CREATE TABLE IF NOT EXISTS `${catalog}`.`${schema}`.`guardian_ready_check` (
+  check_id STRING NOT NULL,
+  system_id STRING NOT NULL,
+  node_id STRING NOT NULL,
+  attempt_n BIGINT NOT NULL,
+  status STRING NOT NULL,
+  tools_total BIGINT NOT NULL,
+  tools_ok BIGINT NOT NULL,
+  checked_by STRING NOT NULL,
+  checked_at TIMESTAMP NOT NULL,
+  detail_json STRING NOT NULL,
+  row_version BIGINT NOT NULL,
+  updated_at TIMESTAMP NOT NULL
+)
+USING DELTA
+COMMENT 'GUARDIAN_KIT. One run of the Guardian-ready code check on the newest stored source of an AI system (intake_attempt, ONBOARD_INTAKE). The check is deterministic (an AST scan, no model): for each tool of the use case it looks for a Guardian line above the tool. status: ready (every tool connected), partly_ready, not_ready, no_tools (the code has no tool). A row is never updated; Check my code again writes a new check_id. The newest row by checked_at is the status shown. detail_json holds, per tool, the name, the risk class, the state (connected, missing, wrong_name, wrong_risk) and file:line, plus notes; no code text and no value. Each check also goes on the chain as guardian_ready_check (ids, counts and hashes).'
+TBLPROPERTIES ('supervisor.kind' = 'state');

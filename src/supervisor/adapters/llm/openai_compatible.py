@@ -20,7 +20,6 @@ The API key is sent only in the ``Authorization`` header. It never appears in lo
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import logging
 import re
@@ -28,7 +27,6 @@ import time
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any
-from urllib.parse import urlparse
 
 import httpx
 
@@ -39,18 +37,9 @@ from supervisor.adapters.llm.errors import (
     LLMTimeoutError,
     TruncatedError,
 )
+from supervisor.config import is_loopback_url
 
 log = logging.getLogger(__name__)
-
-
-def _is_loopback(url: str) -> bool:
-    host = (urlparse(url).hostname or "").strip("[]").lower()
-    if host == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
 
 
 # Model-name prefix -> model family. First match wins; checked after vendor prefixes are cut.
@@ -166,7 +155,7 @@ class OpenAICompatibleChat:
         self.send_temperature = send_temperature
         self.__api_key = api_key or None
         # Loopback endpoints must not go through a corporate HTTP(S)_PROXY.
-        self._client = httpx.Client(transport=transport, trust_env=not _is_loopback(base_url))
+        self._client = httpx.Client(transport=transport, trust_env=not is_loopback_url(base_url))
 
     def __repr__(self) -> str:
         return (

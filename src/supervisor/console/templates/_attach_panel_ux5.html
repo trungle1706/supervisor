@@ -53,7 +53,9 @@
   </div>
   <p class="g4-note at-legend">{{ t('at_legend') }}</p>
 
-  {% call g4.fold_block(t('g4_guardian_list', n=m.counts.total)) %}
+  {# UI-350: the Guardians tab counts the guardian features (detectors, judges, monitors); this list adds the gate rules #}
+  {% set gate_n = namespace(v=0) %}{% for g in m.groups if g.key == 'gate' %}{% set gate_n.v = g["items"]|length %}{% endfor %}
+  {% call g4.fold_block(t('b1_attach_list', n=m.counts.total, f=m.counts.total - gate_n.v, g=gate_n.v)) %}
   {% for g in m.groups %}
   <h4 data-group-name="{{ g.key }}">{{ t('at_grp_' ~ g.key) }} <span class="k">{{ g["items"]|length }}</span></h4>
   <div class="tablewrap flat"><table class="queue" data-table="attach-{{ g.key }}">
@@ -73,7 +75,7 @@
   {% endcall %}
 
   {% if 'ingress_off' in at.how.notes %}<p class="g4-line" data-note="ingress_off"><span class="u5-chip warn"><span class="u5-dot" aria-hidden="true"></span>{{ t('g4_auth_off') }}</span></p>{% endif %}
-  <p><a href="/console/integrations?agent={{ at.node_id|urlencode }}&amp;lang={{ lang }}" data-section-name="how">{{ t('g4_dev_guide') }}</a></p>
+  {% if shell().pages.get('integrations') %}<p><a href="/console/integrations?agent={{ at.node_id|urlencode }}&amp;lang={{ lang }}" data-section-name="how">{{ t('g4_dev_guide') }}</a></p>{% endif %}
   {% if not at.can_edit %}<p class="g4-note">{{ t('at_view_only') }}</p>{% endif %}
   {% if me.has('admin') %}
   {% import "_ux5.html" as u5 with context %}

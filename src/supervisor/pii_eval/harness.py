@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
-import math
 import sys
 import time
 from collections import Counter, defaultdict
@@ -28,6 +27,7 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any, Protocol
 
+from supervisor.core.stats import wilson_bp
 from supervisor.pii_eval.generate import DATA_DIR, ENTITY_TYPES
 
 __all__ = ["evaluate", "load_items", "wilson_bp", "main"]
@@ -46,19 +46,6 @@ class _Masker(Protocol):
 
     @staticmethod
     def canonical(text: str) -> str: ...
-
-
-def wilson_bp(k: int, n: int, z: float = 1.96) -> tuple[int, int] | None:
-    """Wilson score interval for k successes in n trials, in basis points (low, high)."""
-    if n <= 0:
-        return None
-    p = k / n
-    denom = 1 + z * z / n
-    centre = (p + z * z / (2 * n)) / denom
-    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    return max(0, math.floor((centre - half) * 10000)), min(
-        10000, math.ceil((centre + half) * 10000)
-    )
 
 
 def _bp(k: int, n: int) -> int | None:

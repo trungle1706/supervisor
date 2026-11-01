@@ -208,17 +208,19 @@ def _typed(fact: str, key: str, raw: str) -> Any:
     if not text:
         return None
     if any(ord(c) < 32 for c in text) or len(text) > MAX_ANSWER_TEXT:
-        raise rm.RegisterError(key, "has control characters or is too long")
+        raise rm.RegisterError(
+            key, "Too long, or it contains characters that are not allowed. Shorten it."
+        )
     if f.type == "bool":
         low = text.lower()
         if low in ("yes", "true", "1"):
             return True
         if low in ("no", "false", "0"):
             return False
-        raise rm.RegisterError(key, "must be yes or no")
+        raise rm.RegisterError(key, "Answer Yes or No.")
     if f.type == "int":
         if not (text.isascii() and text.isdigit()):
-            raise rm.RegisterError(key, "must be a whole number of VND (digits only)")
+            raise rm.RegisterError(key, "Enter a whole number of VND, digits only.")
         return int(text)
     if f.type == "enum_list":
         if text.lower() in ("none", "[]"):
@@ -237,7 +239,9 @@ def answers_from(form: Mapping[str, str], current: Mapping[str, Any]) -> dict[st
             continue
         fact = key[2:]
         if fact not in ANSWERABLE:
-            raise rm.RegisterError(key, "is not a question of this step")
+            raise rm.RegisterError(
+                key, "This question does not belong to this step. Reload the page."
+            )
         val = _typed(fact, key, str(raw))
         if val is None:
             out.pop(key, None)
@@ -310,9 +314,9 @@ def view(
 ) -> dict[str, Any]:
     """Step view model: summary counts, a page of rows, the open questions, the banner."""
     if flt not in FILTERS:
-        raise rm.RegisterError("filter", f"must be one of {', '.join(FILTERS)}")
+        raise rm.RegisterError("filter", f"Choose one of: {', '.join(FILTERS)}.")
     if not isinstance(page, int) or page < 1:
-        raise rm.RegisterError("page", "must be 1 or more")
+        raise rm.RegisterError("page", "Enter a page number of 1 or more.")
     ready = bool(draft["data"]["v"].get("user_segment"))
     stored = dict(draft["data"].get("duties_answers") or {})
     base: dict[str, Any] = {

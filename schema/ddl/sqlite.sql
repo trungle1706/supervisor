@@ -2157,3 +2157,43 @@ CREATE TABLE IF NOT EXISTS detector_override (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (agent_id, slug, setting)
 );
+
+-- redteam_usecase_run (state): W7. One multi-turn red-team run against one AI system (its tools, risk classes and limits), started from the registration flow or the Red team tab. The sandbox agent is simulated, the gate and rules are real. summary holds integer counts and basis points only (no floats), the verdict and the per-style table; replays holds at most six conversations with masked text (long digit runs removed). No customer data, no secrets. The chain record redteam_usecase_result holds the counts and the verdict only.
+CREATE TABLE IF NOT EXISTS redteam_usecase_run (
+  run_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  verdict TEXT NOT NULL,
+  started_by TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  config TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  replays TEXT NOT NULL,
+  error TEXT,
+  evidence_hash TEXT,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_redteam_usecase_run_system_id_started_at ON redteam_usecase_run (system_id, started_at);
+
+-- guardian_ready_check (state): GUARDIAN_KIT. One run of the Guardian-ready code check on the newest stored source of an AI system (intake_attempt, ONBOARD_INTAKE). The check is deterministic (an AST scan, no model): for each tool of the use case it looks for a Guardian line above the tool. status: ready (every tool connected), partly_ready, not_ready, no_tools (the code has no tool). A row is never updated; Check my code again writes a new check_id. The newest row by checked_at is the status shown. detail_json holds, per tool, the name, the risk class, the state (connected, missing, wrong_name, wrong_risk) and file:line, plus notes; no code text and no value. Each check also goes on the chain as guardian_ready_check (ids, counts and hashes).
+CREATE TABLE IF NOT EXISTS guardian_ready_check (
+  check_id TEXT NOT NULL,
+  system_id TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  attempt_n INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  tools_total INTEGER NOT NULL,
+  tools_ok INTEGER NOT NULL,
+  checked_by TEXT NOT NULL,
+  checked_at TEXT NOT NULL,
+  detail_json TEXT NOT NULL,
+  row_version INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (check_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_guardian_ready_check_system_id ON guardian_ready_check (system_id);

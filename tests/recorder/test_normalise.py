@@ -20,9 +20,9 @@ from supervisor.recorder.normalise import (
     ns_to_datetime,
     span_from_readable,
     spans_from_otlp_json,
-    spans_to_otlp_json,
 )
 from tests.recorder.conftest import PII_ACCOUNT, PII_NAME, payments_spans
+from tests.recorder.otlp_helpers import spans_to_otlp_json
 
 MASKED = CapturePolicy({"payments": AgentCapture("masked")})
 

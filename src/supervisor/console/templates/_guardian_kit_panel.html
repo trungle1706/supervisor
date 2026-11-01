@@ -1,0 +1,132 @@
+{# Guardian kit block (GUARDIAN_KIT): status, tools, how-to, the code file. Variable: gk (see
+   guardian_kit_routes.panel_data). The Check button posts the form and replaces this section. #}
+{% import "_ui.html" as ui with context %}
+{% set g = gk %}
+{% set how = g.guide %}
+{% set pill_kind = {'ready': 'ok', 'partly_ready': 'warn', 'not_ready': 'warn', 'not_checked': 'neutral', 'no_tools': 'neutral'} %}
+{% set st_kind = {'connected': 'ok', 'missing': 'warn', 'wrong_name': 'warn', 'wrong_risk': 'warn', 'unknown': 'neutral'} %}
+{% set base = '/console/guardian-kit/' ~ (g.system_id|urlencode) %}
+{% set src_q = '?src=' ~ (g.src|urlencode) ~ '&lang=' ~ lang %}
+<section id="gkit" class="card gk" data-section="guardian-kit" data-status="{{ g.status }}">
+  <header class="gk-head">
+    <h3>{{ t('gk_title') }}</h3>
+    <p class="hint">{{ t('gk_hint') }}</p>
+  </header>
+
+  <div class="gk-status" data-gk="status">
+    <div class="gk-state">
+      <span class="gk-label">{{ t('gk_status') }}</span>
+      {% if g.status == 'partly_ready' %}{% set label = t('gk_st_partly_ready', ok=g.last.tools_ok, total=g.last.tools_total) %}{% else %}{% set label = t('gk_st_' ~ g.status) %}{% endif %}
+      <span class="pill {{ pill_kind[g.status] }} gk-pill" data-gk-pill="{{ g.status }}"><span class="dot"></span>{{ label }}</span>
+    </div>
+    <div class="gk-meta">
+      {% if g.last %}
+      <p data-gk="count">{{ t('gk_count', ok=g.last.tools_ok, total=g.last.tools_total) }}</p>
+      <p class="hint" data-gk="last">{{ t('gk_last', when=(g.last.checked_at|u5when), who=g.last.checked_by) }}
+        {% if g.checked_attempt %}{{ t('gk_source_line', n=g.checked_attempt.n, kind=t('gk_kind_' ~ g.checked_attempt.source_kind)) }}{% endif %}</p>
+      {% else %}
+      <p class="hint" data-gk="never">{{ t('gk_never') }}</p>
+      {% endif %}
+      {% if g.newer %}<p class="gk-newer" data-gk="newer">{{ t('gk_newer', n=g.newest.n) }}</p>{% endif %}
+    </div>
+    <div class="gk-tick" role="img" aria-label="{{ t('gk_count', ok=(g.rows|selectattr('state', 'equalto', 'connected')|list|length), total=g.rows|length) }}">
+      {% for r in g.rows[:40] %}<i class="{{ r.state }}" title="{{ r.name }}"></i>{% endfor %}
+    </div>
+  </div>
+
+  {% if not g.has_source %}
+  <p class="hint" data-gk="no-source">{{ t('gk_no_source') }}{% if g.src and g.on_intake %} <a href="/console/intake/{{ g.src|urlencode }}?lang={{ lang }}">{{ t('gk_btn_source') }}</a>{% endif %}</p>
+  {% elif g.can_edit %}
+  <form class="gk-actions btnrow" hx-post="{{ base }}/check" hx-target="#gkit" hx-swap="outerHTML" hx-disabled-elt="find button" data-gk="form">
+    <input type="hidden" name="src" value="{{ g.src }}">
+    <button type="submit" class="btn{% if g.status != 'ready' or g.newer %} primary{% endif %}" data-action="check">{{ t('gk_btn_check') if g.last else t('gk_btn_check_first') }}</button>
+    {% if g.can_git %}<button type="submit" class="btn" name="fetch" value="1" data-action="fetch-git">{{ t('gk_btn_git') }}</button>{% endif %}
+    {% if g.on_intake and g.src %}<a class="btn" href="/console/intake/{{ g.src|urlencode }}?lang={{ lang }}" data-link="source">{{ t('gk_btn_upload') }}</a>{% endif %}
+  </form>
+  {% else %}
+  <p class="hint" data-gk="view-only">{{ t('gk_view_only') }}</p>
+  {% endif %}
+
+  {% for n in g.notes %}<div class="notice" data-gk-note="{{ n }}"><span class="dot"></span>{{ t('gk_note_' ~ n) }}</div>{% endfor %}
+
+  {% if g.rows %}
+  <div class="tablewrap flat"><table class="queue gk-table" data-table="guardian-kit-tools">
+    <thead><tr><th scope="col">{{ t('gk_c_tool') }}</th><th scope="col">{{ t('gk_c_state') }}</th><th scope="col">{{ t('gk_c_where') }}</th></tr></thead>
+    <tbody>
+    {% for r in g.rows %}
+      <tr class="row" data-tool="{{ r.name }}" data-state="{{ r.state }}">
+        <td class="wrap"><b class="mono">{{ r.name }}</b><div class="hint">{{ t('gk_rc_' ~ r.risk) }}</div></td>
+        <td>{{ ui.pill(t('gk_ts_' ~ r.state), st_kind[r.state]) }}
+          {% if r.state == 'missing' %}<div class="hint">{{ t('gk_h_missing') }}</div>
+          {% elif r.state == 'wrong_name' %}<div class="hint">{{ t('gk_h_wrong_name', found=(r.found_name or '?'), name=r.name) }}</div>
+          {% elif r.state == 'wrong_risk' %}<div class="hint">{{ t('gk_h_wrong_risk', found=(r.found_risk or '?'), risk=r.risk) }}</div>{% endif %}</td>
+        <td class="mono wrap" data-where="1">{% if r.file %}{{ r.file }}{% if r.line %}:{{ r.line }}{% endif %}{% else %}-{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if g.extras %}<p class="hint" data-gk="extras">{{ t('gk_extras', names=g.extras|join(', ')) }}</p>{% endif %}
+  {% elif g.has_source %}
+  <p class="hint" data-gk="no-tools">{{ t('gk_no_tools') }}</p>
+  {% endif %}
+
+  <h4 class="gk-h">{{ t('gk_guide') }}</h4>
+  <p class="hint" data-gk="framework">{% if g.framework_label %}{{ t('gk_fw_line', framework=g.framework_label) }}{% else %}{{ t('gk_fw_custom') }}{% endif %}</p>
+  <ol class="gk-steps" data-gk="guide">
+    <li data-step="1">
+      <div class="gk-st"><b>{{ t('gk_s1_t') }}</b> <span class="gk-who">{{ t('gk_who_dev') }}</span></div>
+      <p>{{ t('gk_s1_d') }}{% if how.put_dir %} <span class="hint">{{ t('gk_s1_dir', dir=how.put_dir) }}</span>{% endif %}</p>
+      <p class="btnrow"><a class="btn" href="{{ base }}/guardian_client.py{{ src_q }}" download="guardian_client.py" data-action="download">{{ t('gk_download') }}</a></p>
+    </li>
+    <li data-step="2">
+      <div class="gk-st"><b>{{ t('gk_s2_t') }}</b> <span class="gk-who">{{ t('gk_who_dev') }}</span></div>
+      <p>{{ t('gk_s2_d') }} {{ t('gk_s2_' ~ how.placement) }}</p>
+      {% if how.example %}
+      <p class="hint">{{ t('gk_s2_example', tool=how.example.name) }}</p>
+      <div class="gk-snip" data-snippet="1">
+        {% for ln in how.snippet %}<div class="gk-line{% if ln.hot %} gk-hot{% endif %}"><code id="gk-sn-{{ loop.index }}">{{ ln.text or ' ' }}</code>{% if ln.hot %}<button type="button" class="chipbtn gk-copy" data-gk-copy="#gk-sn-{{ loop.index }}" data-done="{{ t('gk_copied') }}">{{ t('gk_copy') }}</button>{% endif %}</div>{% endfor %}
+      </div>
+      {% endif %}
+      {% if how.tool_lines|length > 1 %}
+      <p class="hint">{{ t('gk_s2_all') }}</p>
+      <div class="gk-snip" data-tool-lines="1">
+        {% for tl in how.tool_lines %}<div class="gk-line gk-hot"><code id="gk-tl-{{ loop.index }}">{{ tl.text }}</code><button type="button" class="chipbtn gk-copy" data-gk-copy="#gk-tl-{{ loop.index }}" data-done="{{ t('gk_copied') }}">{{ t('gk_copy') }}</button></div>{% endfor %}
+      </div>
+      {% endif %}
+    </li>
+    <li data-step="3">
+      <div class="gk-st"><b>{{ t('gk_s3_t') }}</b> <span class="gk-who">{{ t('gk_who_dev') }}</span></div>
+      <p>{{ t('gk_s3_d') }}</p>
+      <div class="gk-snip" data-env="1">
+        {% if how.credential == 'hmac' %}
+        {% for ln in how.env_lines %}<div class="gk-line gk-hot"><code id="gk-env-{{ loop.index }}">{{ ln }}</code><button type="button" class="chipbtn gk-copy" data-gk-copy="#gk-env-{{ loop.index }}" data-done="{{ t('gk_copied') }}">{{ t('gk_copy') }}</button></div>{% endfor %}
+        {% else %}
+        <div class="gk-line gk-hot"><pre class="gk-env" id="gk-env-block">{{ how.env_lines|join('\n') }}</pre><button type="button" class="chipbtn gk-copy" data-gk-copy="#gk-env-block" data-done="{{ t('gk_copied') }}">{{ t('gk_copy') }}</button></div>
+        {% endif %}
+      </div>
+    </li>
+    <li data-step="4">
+      <div class="gk-st"><b>{{ t('gk_s4_t') }}</b> <span class="gk-who">{{ t('gk_who_admin') }}</span></div>
+      <p>{{ t('gk_s4_hmac', agent=how.agent_id) if how.credential == 'hmac' else t('gk_s4_oauth', agent=how.agent_id) }}</p>
+    </li>
+    <li data-step="5">
+      <div class="gk-st"><b>{{ t('gk_s5_t') }}</b> <span class="gk-who">{{ t('gk_who_dev') }}</span></div>
+      <p>{{ t('gk_s5_d') }}</p>
+    </li>
+    <li data-step="6">
+      <div class="gk-st"><b>{{ t('gk_s6_t') }}</b></div>
+      <p>{{ t('gk_s6_d') }}</p>
+    </li>
+  </ol>
+
+  <h4 class="gk-h">{{ t('gk_file_t') }}</h4>
+  <p class="hint">{{ t('gk_file_d') }} {{ t('gk_file_safe') }}</p>
+  <p class="btnrow">
+    <a class="btn" href="{{ base }}/guardian_client.py{{ src_q }}" download="guardian_client.py" data-action="download-file">{{ t('gk_download') }}</a>
+    <button type="button" class="btn gk-copy" data-gk-copy="#gk-file" data-done="{{ t('gk_copied') }}" data-action="copy-file">{{ t('gk_copy_file') }}</button>
+  </p>
+  <details class="gk-file" data-section="guardian-kit-file">
+    <summary>{{ t('gk_show_file') }}</summary>
+    <pre id="gk-file" class="gk-pre" tabindex="0">{{ g.file_text }}</pre>
+  </details>
+</section>

@@ -52,7 +52,9 @@ MAX_TEXT = 1000
 FETCH_LIMIT = 2000
 _CTRL = re.compile(r"[\x00-\x1f\x7f]")
 _RULE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
-_ID = re.compile(r"^inc_[0-9a-f]{24}$")
+# Real incidents carry ``inc_`` + 24 hex digits. The showcase seed writes ``shw_inc_NNN``
+# (``demo/showcase_portfolio.py``); the list shows those rows, so ``get`` must accept them too.
+_ID = re.compile(r"^(?:inc_[0-9a-f]{24}|shw_inc_[0-9]{1,6})$")
 
 
 class IncidentError(GovernanceActionsError):

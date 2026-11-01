@@ -36,6 +36,8 @@ jobs:
         run: uv run --frozen python -m schema.generate --check
       - name: Databricks notebook is current
         run: uv run --frozen python -m supervisor.databricks.notebook --check
+      - name: Console link check (production flag set)
+        run: uv run --frozen python -m tools.check_ui_links
       - name: Full suite
         run: >-
           uv run --frozen python -m pytest tests -q -p no:cacheprovider -n auto

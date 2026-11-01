@@ -32,8 +32,12 @@ def test_translator_off_path_unchanged() -> None:
 def test_translator_on_applies_override_en_and_vi() -> None:
     over = i18n_ux5.load()
     assert over, "the base module overrides at least one key"
-    key = "dev_banner"
-    assert i18n.translator("en", ux5=True)(key) == over[key][0] != i18n.table()[key][0]
+    base = i18n.table()
+    # a key whose override differs from the base text in both languages
+    key = next(
+        k for k in over if k in base and over[k][0] != base[k][0] and over[k][1] != base[k][1]
+    )
+    assert i18n.translator("en", ux5=True)(key) == over[key][0] != base[key][0]
     assert i18n.translator("vi", ux5=True)(key) == over[key][1]
     # a key without override falls back to the normal table
     assert i18n.translator("en", ux5=True)("inbox") == i18n.table()["inbox"][0]
@@ -152,7 +156,7 @@ def test_off_path_page_has_no_ux5_markup(console: Console) -> None:
     assert "ux5" not in html and "u5-" not in html
     assert '<html lang="en">' in html
     assert '/console/static/console.css">\n<script src="/console/static/console.js">' in html
-    assert "Dev identity (users file, X-Dev-User)" in html
+    assert "Test sign-in (X-Dev-User)" in html
 
 
 def test_on_path_page_links_css_and_class(
@@ -163,9 +167,9 @@ def test_on_path_page_links_css_and_class(
     assert '<html lang="en" class="ux5">' in html
     css = html.index("/console/static/console.css")
     assert css < html.index("/console/static/ux5.css") < html.index("console.js")
-    assert "u5-chip" in html and "Dev identity (X-Dev-User)" in html  # chip + overridden tooltip
+    assert "u5-chip" in html and "Test sign-in (X-Dev-User)" in html  # chip + overridden tooltip
     vi = console.get("/console/cases?lang=vi").text
-    assert "Danh tính dev (X-Dev-User)" in vi
+    assert "Đăng nhập thử nghiệm (X-Dev-User)" in vi
     assert console.get("/console/static/ux5.css").status_code == 200
 
 

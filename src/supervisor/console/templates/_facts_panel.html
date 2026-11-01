@@ -3,7 +3,7 @@
 {% set card = fk.card %}
 {% set is_mock = card.summary and ('mock' in (card.summary.model_id or '')) %}
 <section class="card" id="facts-panel" data-section="facts" data-node="{{ fk.node_id }}">
-  <h3>{{ t('fk_title') }} <span class="k">{{ card.total or 0 }}</span></h3>
+  <h3>{{ t('fk_title') }}{% if card.total %} <span class="k">{{ card.total }}</span>{% endif %}</h3>
   <p class="hint">{{ t('fk_hint') }}</p>
   {% if card.attempt_n is none %}
   <p class="hint" data-empty="facts">{{ t('fk_none') }}</p>

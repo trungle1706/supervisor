@@ -112,7 +112,7 @@ def test_page_lists_the_demo_agents(mya: Console) -> None:
         "Kind",
         "Gate state",
         "Autonomy",
-        "risk",
+        "Risk",
         "Guardian tools",
         "Last activity",
     ):
@@ -223,7 +223,7 @@ def test_en_and_vi(mya: Console) -> None:
         for tab in ("register", "guardians"):
             r = mya.get(f"/console/agents/payments?tab={tab}&lang={lang}")
             assert r.status_code == 200
-    assert "Công cụ bảo vệ" in mya.get("/console/agents/payments?tab=guardians&lang=vi").text
+    assert "Bộ bảo vệ" in mya.get("/console/agents/payments?tab=guardians&lang=vi").text
 
 
 def test_keys_exist_in_both_languages() -> None:
@@ -320,7 +320,7 @@ def test_register_tab_registered_agent(mya_gov: Console) -> None:
     assert r.status_code == 200
     assert "Pay system" in r.text and sysrow["system_id"] in r.text
     assert "Answers staff questions about domestic transfers." in r.text  # the purpose
-    assert "Registry row" in r.text and "Assessment" in r.text
+    assert "Registry entry" in r.text and "Assessment" in r.text
     assert "Known to the gate, not registered" not in r.text
     part = c.get("/console/agents/payments/tab/register", headers=HX)
     assert part.status_code == 200 and "<html" not in part.text
@@ -416,7 +416,7 @@ def test_effective_state_equals_what_the_engines_resolve(
     html = c.get("/console/agents/payments?tab=guardians&lang=en").text
     after = _effective(html)
     assert after["injection_regex"] == "off" and after["dlp_vn"] == "on"
-    assert "binding off, set by" in html and OWNER in html
+    assert "switched off by" in html and OWNER in html
     # the engines: the detector gate with the real narrower
     gate = make_gate(VnRegexMasker(b"k", "t"))
     gate.narrow = GuardianNarrower(c.ctx.state, c.ctx.settings, ttl_s=0)

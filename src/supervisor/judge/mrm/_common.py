@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from supervisor.config import Settings
+from supervisor.core.timeutil import parse_utc_strict
 from supervisor.judge.masking import IdentityMasker, mask_version_of
 from supervisor.judge.mockjudge import MockJudgeChat
 from supervisor.judge.mrm.identity import JudgeIdentity, identity_from_router
@@ -19,8 +20,7 @@ def parse_now(text: str | None) -> datetime | None:
     """ISO timestamp (naive means UTC) for the hidden ``--now`` option."""
     if not text:
         return None
-    value = datetime.fromisoformat(text.strip().replace("Z", "+00:00"))
-    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+    return parse_utc_strict(text.strip())
 
 
 def utc_now(now: datetime | None) -> datetime:

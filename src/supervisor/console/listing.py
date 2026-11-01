@@ -72,6 +72,14 @@ def paginate(rows: Sequence[Any], page: int = 1, size: int = DEFAULT_SIZE) -> Pa
     return Page(list(rows[start : start + size]), page, pages, total, size)
 
 
+def paginate_query(
+    rows: Sequence[Any], params: Mapping[str, Any], size: int = DEFAULT_SIZE
+) -> Page:
+    """``paginate`` with the page number read from ``params["page"]`` (strict: a bad number or a
+    page out of range is a ListingError, HTTP 400)."""
+    return paginate(rows, parse_int(params.get("page"), "page", 1), size)
+
+
 def parse_sort(
     sort: str | None,
     direction: str | None,

@@ -1,20 +1,50 @@
-{# Run assessment panel, CONSOLE_UX5 (package G2): a slim run line. The eight results are rows of the
-   table on the Risk assessment tab. The plan hash, outcome and budget are admin details. Not legal advice. #}
+{# Run assessment panel, CONSOLE_UX5 (package G2): a slim run line and the live progress bar. The eight
+   results are rows of the table on the Risk assessment tab. A finished run reloads the rows once and
+   opens its brief report in place on a click. The plan hash, outcome and budget are admin details. Not legal advice. #}
 {% import "_ux5.html" as u5 with context %}
 {% set ob = '/console/systems/' ~ s.system_id %}
 {% set done_n = orch_run["items"]|selectattr('status', 'equalto', 'done')|list|length if orch_run else 0 %}
 {% set need_n = orch_run["items"]|selectattr('needs_person')|list|length if orch_run else 0 %}
-<div id="orch-panel" data-section="orch-panel"{% if orch_run and orch_run.running %} hx-get="{{ ob }}/orchestrate?lang={{ lang }}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+{% set pg = orch_progress if orch_progress is defined else none %}
+{% macro dim_label(d) %}{% set l = orch_labels.get(d) %}{% if l %}{{ l[1] if lang == 'vi' else l[0] }}{% else %}{{ d }}{% endif %}{% endmacro %}
+<div id="orch-panel" data-section="orch-panel"{% if orch_run and orch_run.running %} hx-get="{{ ob }}/orchestrate?lang={{ lang }}&amp;was=run" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
 <div class="g2-run" data-orch="panel">
   {% if orch_run %}
   {{ u5.status_chip('ok' if orch_run.status == 'done' else 'bad' if orch_run.status == 'failed' else 'warn', t('orch_run_' ~ orch_run.status)) }}
   <span data-orch="summary">{{ t('g2_rd_summary', done=done_n, n=orch_run["items"]|length, need=need_n) }}</span>
   <span class="muted" data-orch="attempt">{{ t('g2_rd_attempt', n=orch_run.attempt_n) }}</span>
   {% if orch_run.running %}<span class="muted" data-orch="running">{{ t('orch_running') }}</span>
-  {% else %}<button class="btn sm" type="button" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML" data-act="orch-reload">{{ t('g2_rd_update_rows') }}</button>{% endif %}
+  {% else %}<button class="btn sm" type="button" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-target="#tab-body" hx-select="#tab-body > *" hx-swap="innerHTML" data-act="orch-reload">{{ t('g2_rd_update_rows') }}</button>{% endif %}
   {% if 'admin' in me.roles %}{{ u5.technical([(t('orch_outcome'), orch_run.plan.outcome), (t('orch_plan_hash'), orch_run.plan_hash[:12]), (t('orch_budget'), (orch_run.budget.used_ms // 1000)|string ~ ' / ' ~ orch_run.budget.total_seconds|string ~ ' s; ' ~ orch_run.budget.used_tokens|string ~ ' / ' ~ orch_run.budget.total_tokens|string)]) }}{% endif %}
   {% else %}
-  <span class="muted" data-orch="none">{{ t('orch_none') }}</span>
+  {# UI-063: "No run yet" only when no type has a status; else say when the statuses were set #}
+  {% if orch_set_on %}<span class="muted" data-orch="none">{{ t('b1_orch_none_set', date=orch_set_on) }}</span>{% else %}<span class="muted" data-orch="none">{{ t('orch_none') }}</span>{% endif %}
   {% endif %}
 </div>
+{% if orch_run and pg %}
+<div class="g2-prog{% if orch_run.running %} live{% endif %}" data-orch="progress" data-pct="{{ pg.pct }}">
+  <div class="g2-prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ pg.n }}" aria-valuenow="{{ pg.done }}" aria-label="{{ t('g2_pg_label', done=pg.done, n=pg.n) }}">
+    {% for st in pg.steps %}<span class="g2-prog-seg {{ st.kind }}" data-orch-step="{{ st.dimension_id }}" data-status="{{ st.status }}" title="{{ dim_label(st.dimension_id) }}: {{ t('orch_it_' ~ st.status) }}"></span>{% endfor %}
+  </div>
+  <p class="g2-prog-line" aria-live="polite">
+    <b data-orch="pct">{{ pg.pct }}%</b>
+    {% if orch_run.running %}
+      {% if pg.current %}<span data-orch="current">{{ t('g2_pg_now', type=dim_label(pg.current)) }}</span>{% else %}<span>{{ t('g2_pg_wait') }}</span>{% endif %}
+      <span class="muted">{{ t('g2_pg_count', done=pg.done, n=pg.n) }}{% if pg.seconds is not none %} · {{ t('g2_pg_secs', s=pg.seconds) }}{% endif %}</span>
+    {% else %}
+      <span>{{ t('g2_pg_done', done=pg.done, n=pg.n, s=pg.seconds if pg.seconds is not none else 0) }}</span>{% if pg.not_applicable %}<span class="muted"> · {{ t('g2_pg_na', n=pg.not_applicable) }}</span>{% endif %}
+    {% endif %}
+  </p>
+  {% if not orch_run.running %}
+  <details class="g2-brief" data-orch="brief">
+    <summary class="btn sm primary" data-act="orch-brief">{{ t('g2_br_view') }}</summary>
+    <div class="g2-brief-body" hx-get="{{ ob }}/orchestrate/{{ orch_run.run_id }}/brief?lang={{ lang }}" hx-trigger="toggle once from:closest details" hx-swap="innerHTML"><p class="muted">{{ t('g2_br_loading') }}</p></div>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+{% if orch_run and not orch_run.running and orch_was_running is defined and orch_was_running %}
+{# the run just ended: refresh the rows of the table once (the new panel does not poll) #}
+<div hidden data-orch="auto-reload" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-trigger="load delay:300ms" hx-target="#tab-body" hx-select="#tab-body > *" hx-swap="innerHTML"></div>
+{% endif %}
 </div>

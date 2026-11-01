@@ -20,6 +20,7 @@ from pydantic import (
     StrictBool,
     StrictInt,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -56,12 +57,49 @@ class PolicyRef(_M):
     sections: list[str] = Field(default_factory=list, max_length=caps.SECTIONS_MAX)
 
 
+EXEC_OWNERS = ("system_owner", "risk_team", "security", "data_owner", "legal", "model_validation")
+EXEC_TEXT_MAX = 400
+EXEC_KEY_RE = r"^[a-z][a-z0-9_]{1,63}$"
+
+
+class Bilingual(_M):
+    """One manager-level sentence in English and Vietnamese (copy style: STYLE.md)."""
+
+    en: str = Field(min_length=1, max_length=EXEC_TEXT_MAX)
+    vi: str = Field(min_length=1, max_length=EXEC_TEXT_MAX)
+
+
+class ExecutiveText(_M):
+    """Optional executive wording of a checklist item (W2). ``key`` is a stable finding id shared
+    with the executive sidecar; the texts say what a failed or an open item means to a manager.
+    ``headline_open`` must not claim more than the source shows (a test not run is not a weak
+    control)."""
+
+    key: str = Field(pattern=EXEC_KEY_RE)
+    headline_fail: Bilingual
+    headline_open: Bilingual
+    impact: Bilingual
+    action: Bilingual
+    owner: Literal[
+        "system_owner", "risk_team", "security", "data_owner", "legal", "model_validation"
+    ]
+
+
 class ChecklistItem(_M):
     id: str = Field(pattern=caps.SLUG_RE.pattern)
     question: str = Field(min_length=1, max_length=caps.QUESTION_MAX)
     evidence: list[EvidenceKind] = Field(min_length=1)
     severity: Literal["low", "medium", "high"]
     pass_rule: str = Field(min_length=1, max_length=caps.PASS_RULE_MAX)
+    executive: ExecutiveText | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_executive(self, handler: Any) -> dict[str, Any]:
+        """An item without executive text dumps exactly as before (old rows stay byte-equal)."""
+        out = handler(self)
+        if out.get("executive") is None:
+            out.pop("executive", None)
+        return out
 
 
 class EvidenceRules(_M):

@@ -26,10 +26,10 @@ from supervisor.gateway.ingress_auth import IngressGuard, IngressVerifier
 from supervisor.gateway.ingress_sign import IngressCredential
 from supervisor.recorder import otlp_receiver
 from supervisor.recorder.capture import AgentCapture, CapturePolicy
-from supervisor.recorder.normalise import spans_to_otlp_json
 from supervisor.recorder.otlp_receiver import recorder_dep
 from supervisor.recorder.service import build_recorder
 from tests.recorder.conftest import payments_spans
+from tests.recorder.otlp_helpers import spans_to_otlp_json
 
 SECRET = "t" * 48
 

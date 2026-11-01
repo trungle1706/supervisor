@@ -123,6 +123,8 @@ def run_seed(env: Any = None) -> int:
     for agent_id in result["created"]:
         kind = "template" if agent_id in starters.TEMPLATE_IDS else "agent"
         _out(f"[OK] created {kind} {agent_id} (draft)")
+    for ref in result.get("added", []):
+        _out(f"[OK] added {ref} (draft, beside the older version)")
     for agent_id in result["skipped"]:
         _out(f"[SKIP] {agent_id} is already in the catalogue")
     return 0

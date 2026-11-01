@@ -6,16 +6,16 @@
 {% set inc = drawer.inc %}
 {% set pills %}{{ ui.sev(inc.severity) }} {{ ui.pill(t('inc_st_' ~ inc.status), {'open': 'warn', 'investigating': 'teal', 'resolved': 'ok', 'closed': 'neutral'}.get(inc.status, 'neutral'), True) }}{% endset %}
 {% call dr.drawer(inc.incident_id, pills, '', drawer.json_text) %}
-  <p style="margin:0 0 10px"><strong>{{ inc.title }}</strong></p>
+  <p style="margin:0 0 10px"><strong>{{ demo(inc.title) }}</strong></p>
   {{ ui.kv([
     (t('inc_kind'), t('inc_kind_' ~ inc.kind)),
-    (t('agent'), inc.agent_id),
-    (t('inc_system'), inc.system_id, True),
+    (t('agent'), label_for('agent', inc.agent_id)),
+    (t('inc_system'), label_for('system', inc.system_id) if inc.system_id else none),
     (t('inc_event_ref'), inc.event_ref, True),
     (t('time'), inc.opened_at|day),
     (t('case'), inc.case_id, True),
-    (t('inc_root_cause'), inc.root_cause),
-    (t('inc_affected'), inc.affected_scope),
+    (t('inc_root_cause'), demo(inc.root_cause) if inc.root_cause else none),
+    (t('inc_affected'), demo(inc.affected_scope) if inc.affected_scope else none),
     (t('inc_closed_by'), inc.closed_by),
   ]) }}
   <p class="btnrow">

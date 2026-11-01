@@ -14,6 +14,7 @@ MODULES: tuple[str, ...] = (
     "supervisor.console.i18n_ux5_g4",
     "supervisor.console.i18n_ux5_g5",
     "supervisor.console.i18n_ux5_g2",
+    "supervisor.console.i18n_ux5_b3",  # UI audit batch 3: last, so it wins
     # add one line per page package, e.g. "supervisor.console.i18n_ux5_duties",
 )
 

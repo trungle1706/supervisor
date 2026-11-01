@@ -42,7 +42,7 @@
       <input type="text" name="j_{{ a.id }}" value="{{ a.justification }}" maxlength="500" placeholder="{{ t('sy_cls_why_min', n=min_why or 20) }}" aria-label="{{ t('sy_cls_why') }}">
       {% else %}
       <div>{{ t('sy_cls_' ~ a.answer) if a.answer else t('sy_cls_open') }} <span class="muted">· {{ t('sy_cls_src_' ~ a.source) }}</span></div>
-      {% if a.justification %}<div class="muted">{{ a.justification }}</div>{% endif %}
+      {% if a.justification %}<div class="muted">{{ demo(a.justification) }}</div>{% endif %}
       {% endif %}
     </div>
   {% endfor %}

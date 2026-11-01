@@ -126,7 +126,7 @@ def test_fake_package_flag_off_then_on(env: Env, monkeypatch: pytest.MonkeyPatch
     assert internal["sections"]["controls"]["data"]["controls"][0]["owner"]
     assert cust["sections"]["controls"]["reason"] == "not_for_variant"
     text = render.plain_text(reg, "en")
-    assert "never read working" in text
+    assert "never show as working" in text
     assert "không bao giờ" in render.plain_text(reg, "vi")
 
 

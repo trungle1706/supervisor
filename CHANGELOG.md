@@ -1,6 +1,150 @@
 # Changelog
 
-## Unreleased
+## 0.11.2 (2026-11-01)
+
+- **Connect your app to Guardian** (`GUARDIAN_KIT`, off by default): on registration step 7 and the
+  system Guardians tab, a plain how-to for the developer, one standard-library file
+  `guardian_client.py` (decorator, fail-closed gate call, HMAC or Databricks service-principal token)
+  tailored to the use case's tools, and a Guardian-ready status (Not checked / Not ready / Partly
+  ready / Ready) from a fixed-rule code check of the newest source. New table `guardian_ready_check`;
+  one chain record per check.
+- **Red team before go-live** (`REDTEAM_TAB`, off by default; `REDTEAM_TAB_PACE_MS` demo pace): run the
+  multi-turn Vietnamese red team against one AI system's tools, risk classes and limits from step 7
+  or the Red team tab; live counters, then a plain report (verdict, what we tried, where it got
+  through and what to do, replay of one conversation). The sandbox agent is simulated (worst case);
+  the gate and rules are real. New table `redteam_usecase_run`.
+- **Stability after go-live** (`STABILITY_TAB`, off by default): moving charts of calls, stopped
+  share, amounts, tool mix, latency, judge scores and conversation alerts with the normal range from
+  the drift monitor; verdict Stable / Watch / Unstable; what changed. Read only. `DRIFT_SETTLE_S`
+  (default 600) and, only with `SHOWCASE_ENABLED=1`, a drift window down to 10 s for demos
+  (`python -m supervisor.demo.showcase drift prepare|baseline|shift`).
+- Register step 3 to 7: "Accept all suggestions" and "Use this" now work while required fields are
+  still empty (the browser check no longer blocks them).
+
+## Earlier unreleased work (also in 0.11.2)
+
+- **Run a risk assessment agent on the whole inventory** (`FACTORY_INVENTORY_RUN`, off by default;
+  `FACTORY_INVENTORY_PARALLEL` 1..16, `FACTORY_INVENTORY_MAX`): the factory editor has **Run on the
+  whole inventory**. The agent (draft or live) assesses every active AI system where its risk type
+  applies, with the gateway model, in the background (progress bar, cancel). The result is a
+  dashboard at `/console/factory/{id}/inventory/{run}`: tiles (in scope, assessed, needs action, open
+  questions only, clear, calls, tokens, time), top risks across the inventory, results per check,
+  by owner team and risk level, a heat table with filters and search, one page per system and a CSV
+  download. A simulation: it never promotes a version and never changes an assessment. English and
+  Vietnamese.
+- **Executive findings in the assessment summary** (default off, `ORCH_EXEC_FINDINGS=1`; optional
+  model rewording `ORCH_EXEC_LLM=1`). The summary starts with a **Bottom line** (the top three
+  findings over all risk types: severity, what it means for the bank, next step, who acts) and shows
+  **Key findings** per risk type; the raw checks stay under **All checks**. Rules combine the
+  report, the code-scan facts and the system record (for example: "The agent can send payments
+  (transfer) and the code has no approval step before it, although the registration says every
+  action is approved first."). A test that was not run is shown as "no evidence either way", never
+  as a weakness of the code. Stored as `<type>.exec.json` next to each report; the table column
+  Result shows the top headline; the agent kind shows as Rule check / Assessment agent / Draft
+  agent, not tested. The model layer adds no number, name or claim and never changes status,
+  severity or rating; the page labels the writer (rules, AI model, mock).
+- **Demo: synthetic code-scan facts for the showcase inventory**
+  (`python -m supervisor.demo.showcase_facts [--dry-run] [--reset] [--seed N] [--agents-only]`,
+  needs `SHOWCASE_ENABLED=1`). The 300 showcase systems had no code facts, so a risk assessment of
+  the whole inventory could only say "not known". The tool writes facts in the exact shape of the
+  real scanner (tools with risk class, autonomy, personal data field names, Decision 33, models and
+  endpoints, addresses, secret use, weak spots, summary) for 230 systems, with `facts_for()` and the
+  facts export reading them like real ones. Mismatches are planted at fixed rates from a hash rank
+  (money tool without approval, declared control missing in code, personal data against the record,
+  unknown model family, no tracing, hard-coded secret, external address, Decision 33 against the
+  risk level) and a table prints how many systems carry each finding key. Every row is marked
+  (`model_id` `synthetic`, summary text `SYNTHETIC DEMO FACTS`); same seed gives the same facts;
+  a second run adds nothing; `--reset` removes only its own rows and never the real demo use case.
+- **Real-model assessment runs (W1).** A failed model call is now visible: the items of that call
+  say "The AI model call failed (HTTP 400). A person decides this item." and the run item note says
+  how many calls failed and why (no key, no request text). Before, the failure became "The model
+  gave no answer". New settings: `FACTORY_PARALLEL_CALLS` (1..8, default 1) runs the group calls of
+  one agent pass at the same time with the same report; `ORCH_RUN_DRAFT_AGENTS` (default off, demo)
+  lets the run use the newest draft agent of a risk type that has no live one (`agent_kind` = `rule`,
+  `live` or `draft` on the plan and run items); `ORCH_AGENT_SECONDS` (120) and `ORCH_TOTAL_SECONDS`
+  (900) replace the time constants of live and draft agents. Record fields that hold JSON (`tags`
+  with `autonomy_limits`) give one source per key instead of one source cut at 240 characters. The
+  JSON route `POST /v1/systems/{id}/orchestrate` now uses the factory catalogue like the console, and
+  runs get the process settings (the model works from a job or the CLI).
+- **Fewer model calls for items with nothing to read (W1).** An assessment item whose test has no
+  result, whose document was not supplied or that has no code-scan fact is now answered "question"
+  (confidence high, plain reason) without a model call, and the other items are grouped again.
+  `FACTORY_SKIP_UNSOURCED=0` turns it off. For the starter cybersecurity agent on the demo system
+  this removes 6 of 17 items from every model call.
+- **Setting to stop asking the same question again (W1).** `FACTORY_REASK_OPEN` (default on, the loop
+  as before). Off: in loop mode an item the model answered "question" with no verifier reason is not
+  sent again in the next iteration; rejected items, failed calls and unanswered items still are.
+- **Fix: one open registration per candidate.** Starting a registration of a scanned object or
+  agent that already has an open draft resumes it (same person) or answers 400 with the owner and
+  step (another person). Before, the second draft failed at step 3 with "name is already used".
+- **Fix: Accept all at step 3 (register v3).** The blank fields of the posted form no longer
+  overwrite the accepted suggestions.
+- **Fix: detector setting for every agent (`*`)** is recorded in the root lane of the evidence
+  chain. Before, the record failed ("invalid lane name 'agent:*'") and only the row was stored.
+- **Plain business wording across the console**: about 1,240 labels (English and Vietnamese) were
+  rewritten for a business reader: action first, no system internals (row, payload, pointer,
+  proposal, lane), one glossary in both languages. Assessment findings, plan reasons and
+  registration errors written by the code now read as plain sentences (for example "Required test
+  truthfulqa_vi has not been run yet."; reason codes show as `orch_reason_<code>` labels). Setting
+  names, file names, test ids and regulation citations are unchanged; mock judges stay labelled
+  `mock`.
+- **Fix: CSS and JS are revalidated** (`Cache-Control: no-cache`): a phone no longer keeps an old
+  stylesheet after an update.
+- **Fix: no inline `onclick`** on the Facts / Code analysis tabs of the register wizard (the shared
+  tab script does it).
+- **Risk assessment: live progress and a brief report** (with `ONBOARD_ORCHESTRATOR` and
+  `CONSOLE_UX5`): the Run assessment panel shows a progress bar with one segment per applicable
+  risk type, the type that runs now, the count and the seconds; it updates every 2 s. When the run
+  ends the rows reload once and **View brief report** opens a summary in place: classification,
+  types with a report, types that need a person, pass / fail / open totals, the failed checks and
+  one block per risk type with its findings. Also a page,
+  `GET /console/systems/{id}/orchestrate/{run_id}/brief` (`systems.view`, `?dim=` opens one type);
+  **Open report** in the table goes there. Reads the stored reports only.
+- **Demo: a pace for the assessment run** (default `0`, `ORCH_DEMO_PACE_MS=1500`): a pause before
+  each risk type, so the progress bar can be seen when the rule runner answers at once.
+- **Fix: Update the rows from this run** put the whole system page inside the tab; it now takes
+  only the tab (`hx-select`).
+- **Demo: assess before the class approval** (default off, `ASSESS_PENDING_CLASS=1`): the
+  orchestrator and the smart guardian take the newest saved classification while its approval
+  waits. Off: an approved classification is needed (`plan_blocked`), as before.
+- **Regulation graph** (default off, `KBGRAPH_ENABLED=1`, needs `GOVERNANCE_ENABLED`): tab
+  "Regulation graph" under Risk & compliance (v3 nav, `regkb.view`), page `/console/regkb/graph` and
+  JSON `GET /v1/regkb/graph`. Instrument -> obligation -> AI system, one link per
+  `obligation_status` row, coloured like the Duties tick strip (gap, partial, bank process, met).
+  Inline SVG with a fixed layout, no library; filters (instrument, risk level, coverage, search,
+  top-N systems), a List view with the same data, a detail panel per node. Bounded: one instrument
+  and the 20 systems with most gaps by default, at most 40 obligations and 400 links. Two store reads
+  per page (`obligation_status`, `ai_system`). Off: HTTP 400 `kbgraph_off`, no tab.
+- **Source analysis agent** (default off, `CODE_AGENT_ENABLED=1`; needs `ONBOARD_INTAKE`). A bounded,
+  read-only tool loop (list, read, grep, outline, references) over the stored scrubbed tree, through the
+  existing `ChatModel` port (works with `LLM_API_SHAPE=chat` and `responses`). Typed, versioned
+  `CodeAnalysisReport`: tools with effect / irreversible / approval, data flows, hosts called, secret
+  handling, guardrails, approval points, logging, personal data per tool. Every claim is checked
+  (file, line, quote, code not prose, closed attribute lists); rule facts stay ground truth;
+  disagreements are listed; risk-lowering claims never replace a rule value. New: `onboard/codeagent/`,
+  tab **Source analysis** (agent page, candidate drawer, register step 2), `/v1/code-analysis/<id>`,
+  **Use in assessment** (writes `onboard_facts` model rows), eval CLI
+  `python -m supervisor.onboard.codeagent`, labels `data/corpus/labels_codeagent.yaml`, six new corpus
+  repos in `data/corpus/repos_agent/`. Docs: `docs/onboarding/code-analysis-review.md`,
+  `docs/onboarding/code-agent.md`.
+- **Starter assessment agents 0.2: questions the code scan can answer (W2).** The eight starters
+  asked register questions ("Is X documented?"); 39 of 82 items cited `document`, which is never
+  loaded, so they always ended as an open question. Version 0.2 adds 20 fact items (for example
+  tool that moves money with no approval step in code, record says pre-approval but the code has no
+  approval step, record says no personal data but the code handles personal fields, Decision 33
+  high risk against the recorded level, unknown model family, no tracing, hard-coded secret, fixed
+  outside address). Each names the exact scanner rows in its pass rule (`risk_class=money`,
+  `human_gate_in_code=False`, `family=unknown`, `Handles personal data field`, `secret_use`, ...), so
+  a model can decide pass or fail from the facts alone, and a fail must cite a fact. The old CY-01,
+  DG-10 and ET-10 rules now read the real fact rows. Every item (old and new) carries an optional
+  executive block `executive: {key, headline_fail, headline_open, impact, action, owner}` with
+  English and Vietnamese text in the console style; an item without it validates and dumps as
+  before. The approval point on the verdict "question" is gone (any open item used to stop the whole
+  type); a fail on a high item still goes to a person by the locked rule. Seeding
+  (`python -m supervisor.factory seed`, `FACTORY_SEED_STARTERS=1`) now adds `0.2` as a draft beside
+  an older `0.1` and leaves the `0.1` rows alone; a team version equal or newer is never replaced.
+  Supply chain and reputation now have golden sets (63 and 60 cases, 24 labels each); every starter
+  has at least 60 cases and 24 calibration labels. New fields: none in settings.
 
 ## v0.10.0 (Databricks showcase, backlog B1, faster tests and CI) - 2026-10-29
 

@@ -25,7 +25,7 @@
     <section class="card ov4-banner state-{{ d.banner.state }}" data-banner="{{ d.banner.state }}" aria-labelledby="ov4-bn">
       <h3 id="ov4-bn">{{ t('ov4_how') }}</h3>
       <div class="ov4-word">{{ t('ov4_state_' ~ d.banner.state) }}</div>
-      <p class="ov4-why">{{ t(d.banner.why, arg=d.banner.arg) }}</p>
+      <p class="ov4-why">{{ t(d.banner.why, arg=(label_text('task', d.banner.arg_task, d.banner.arg) if d.banner.get('arg_task') else d.banner.arg)) }}</p>
       <p class="sub">{{ t('ov4_open_items', n=d.banner.open_items) }}</p>
     </section>
     <section class="card ov4-pipe" aria-labelledby="ov4-pp">

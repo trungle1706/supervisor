@@ -19,5 +19,5 @@
 <p class="btnrow"><a class="btn" href="/console/compliance/{{ a.agent_id }}?lang={{ lang }}">{{ t('cp_open') }}</a></p>
 {% include "_compliance_note.html" %}
 {% else %}
-{{ ui.empty(t('cp_no_matrix'), t('cp_no_matrix_line'), '/console/compliance?lang=' ~ lang, t('nav_compliance')) }}
+{{ ui.empty(t('cp_no_matrix'), t('cp_no_matrix_line'), '/console/compliance?lang=' ~ lang, t('cp_open')) }}
 {% endif %}

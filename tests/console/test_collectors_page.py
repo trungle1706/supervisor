@@ -145,7 +145,9 @@ def test_drawer_tabs(col: Console) -> None:
     cred = col.get(
         f"/console/integrations/agent/{AGENT}/drawer?tab=credential", user="viewer.hoa"
     ).text
-    assert "k-" in cred and "ingress_auth rotate" in cred and "secret is never shown again" in cred
+    assert (
+        "k-" in cred and "ingress_auth rotate" in cred and "key itself is never shown again" in cred
+    )
     pol = col.get(f"/console/integrations/agent/{AGENT}/drawer?tab=policy", user="viewer.hoa").text
     assert "Policy mode" in pol and "enforce" in pol and "Rules in scope" in pol
     assert (

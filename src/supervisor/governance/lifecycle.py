@@ -22,6 +22,7 @@ from typing import Any
 from supervisor.controls.model import actor_ref
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, NotFoundError
+from supervisor.core.people import same_person
 from supervisor.governance import events
 from supervisor.governance.model import (
     LIFECYCLE_STAGES,
@@ -45,9 +46,7 @@ APPROVER_ROLE = "approver"
 MAX_APPROVALS = 200
 
 
-def same(a: str | None, b: str | None) -> bool:
-    """Two user ids name the same person (compared without letter case)."""
-    return bool(a) and bool(b) and str(a).strip().casefold() == str(b).strip().casefold()
+same = same_person  # public name kept; the one definition is core.people.same_person
 
 
 class LifecycleService:

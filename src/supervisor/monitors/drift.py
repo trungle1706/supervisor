@@ -94,6 +94,7 @@ class DriftConfig:
             k=int(getattr(settings, "drift_k", 3)),
             consecutive=int(getattr(settings, "drift_consecutive", 3)),
             min_n=int(getattr(settings, "drift_min_n", 20)),
+            settle_s=int(getattr(settings, "drift_settle_s", 600)),
         )
 
 

@@ -191,6 +191,7 @@ def editor_data(
         "model_ready": helpers.model_ready(ctx.settings),
         "lint": [i.as_dict() for i in linter.lint_definition(defn)],
         "events": list(reversed(st.events(agent_id, row["version"])))[:15],
+        "inventory_on": bool(getattr(ctx.settings, "factory_inventory_run", False)),  # W4 button
     }
     data.update(_step_extra(ctx, st, row, step, me))
     if ctx.settings.console_ux5:  # --- UX5 G6 ---
@@ -379,6 +380,8 @@ def apply_checklist(defn: dict[str, Any], f: Mapping[str, str]) -> dict[str, Any
     else:
         if existing is None:
             raise FactoryError("invalid_definition", f"checklist: no item {item_id}")
+        if items[existing].get("executive"):  # the form does not edit it; keep it
+            new["executive"] = items[existing]["executive"]
         items[existing] = new
     return defn
 

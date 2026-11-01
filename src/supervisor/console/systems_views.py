@@ -12,9 +12,10 @@ from typing import Any
 
 from supervisor.cases.service import PermissionDenied
 from supervisor.console import systems_duties, systems_riskdim, systems_tabs, systems_workflow, ux3
+from supervisor.console.authz import may
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -22,6 +23,7 @@ from supervisor.console.listing import (
 )
 from supervisor.core import rbac
 from supervisor.core.errors import NotFoundError
+from supervisor.core.flags import truthy
 from supervisor.governance import model as gm
 from supervisor.governance.systems import ALL
 
@@ -46,6 +48,8 @@ DETAIL_TABS_V3 = (
     "controls",
     "policies",
     "guardians",
+    "stability",  # W8: only with STABILITY_TAB (detail_tabs leaves it out otherwise)
+    "redteam",  # W7: only with REDTEAM_TAB (detail_tabs leaves it out otherwise)
     "tasks",
     "duties",  # WP-L3: only with RISK_DUTIES (detail_tabs leaves it out otherwise)
     "reviews",
@@ -107,7 +111,7 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
     everything = svc.list_systems(svc.scope_for(me), {})
     shown_all = _rows(ctx, me, p)
     shown, col, direction = _ordered(shown_all, p)
-    page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(shown, p, PAGE_SIZE)
     base = {k: p[k] for k in (*FILTERS, "outcome")}
     tiles = [
         {
@@ -190,8 +194,12 @@ def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
     WP-G5's Reports tab (incidents) with GOVERNANCE_ACTIONS_ENABLED."""
     duties = systems_duties.is_on(ctx)  # WP-L3: the Duties tab (RISK_DUTIES)
     riskdim = systems_riskdim.is_on(ctx)  # WP-C2: the Risk assessment tab (RISK_DIMENSIONS)
+    stability = bool(getattr(ctx.settings, "stability_tab", False)) and may(me, "systems.view")
+    redteam = bool(getattr(ctx.settings, "redteam_tab", False)) and may(me, "systems.view")
     if not ctx.settings.console_nav_v3:
         tabs = DETAIL_TABS
+        tabs = (*tabs, "stability") if stability else tabs
+        tabs = (*tabs, "redteam") if redteam else tabs
         if getattr(ctx.settings, "governance_actions_enabled", False) and "reports" not in tabs:
             tabs = (*tabs, "reports")
         tabs = (*tabs, "duties") if duties else tabs
@@ -201,7 +209,9 @@ def detail_tabs(ctx: Any, me: Any) -> tuple[str, ...]:
         for t in DETAIL_TABS_V3
         if (t != "duties" or duties)
         and (t != "riskdim" or riskdim)
-        and (t not in systems_tabs.TAB_PERM or systems_tabs.may(me, systems_tabs.TAB_PERM[t]))
+        and (t != "stability" or stability)
+        and (t != "redteam" or redteam)
+        and (t not in systems_tabs.TAB_PERM or may(me, systems_tabs.TAB_PERM[t]))
     )
 
 
@@ -211,7 +221,8 @@ def detail_view(
     tabs = detail_tabs(ctx, me)
     v3 = bool(ctx.settings.console_nav_v3)
     if tab not in tabs:
-        if tab in DETAIL_TABS_V3 and v3 and tab not in ("duties", "riskdim"):
+        optional = ("duties", "riskdim", "stability", "redteam")  # a tab a flag turns on
+        if tab in DETAIL_TABS_V3 and v3 and tab not in optional:
             raise PermissionDenied(f"your role may not open the {tab} tab")
         raise ListingError("unknown tab")
     system = _need_visible(ctx, me, system_id)
@@ -231,6 +242,10 @@ def detail_view(
         from supervisor.console import smart_guardian_view
 
         extra.update(smart_guardian_view.panel_data(ctx, me, system))
+    if tab == "stability":  # W8: the Stability tab (STABILITY_TAB), read only
+        from supervisor.console import stability_view
+
+        extra.update(stability_view.page_data(ctx, system, query or {}))
     if tab == "riskdim":  # WP-C2: the eight rows (made on the first read)
         extra.update(systems_riskdim.tab_data(ctx, me, system))
         counts["riskdim"] = systems_riskdim.open_count(extra["rd_counts"])
@@ -252,10 +267,15 @@ def detail_view(
             extra["rp_incidents"], extra["rp_incidents_na"] = found, ""  # the UX4b Reports tab
     elif tab == "reports":
         extra["rp_incidents"], extra["rp_incidents_na"] = None, "ux4b_na_incidents_flag"
+    # UI-061: a tab whose feature is off is not in the strip (a direct URL still opens it)
+    shown = tuple(t for t in tabs if t == tab or systems_tabs.feature_on(ctx, t)) if v3 else tabs
+    if v3 and tab != "reviews" and not counts.get("reviews"):
+        # UI-069: the Reviews tab is read only; with no review on the system it is a dead page
+        shown = tuple(t for t in shown if t != "reviews")
     out = {
         "s": system,
         "tab": tab,
-        "tabs": tabs,
+        "tabs": shown,
         "tab_counts": {
             "overview": len(system["team"]),
             "components": len(system["components"]),
@@ -377,7 +397,11 @@ def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, An
     # WP-G3 review M1: tasks opened on the system itself (agent_id = system id), for example
     # "Confirm context" on a draft made by the workspace scan.
     own = ctx.tasks.list_tasks({"agent": sid})
-    counts["tasks"] = len(agents) + (1 if own else 0)
+    # UI-062: the badge is the number of open tasks the tab lists (open or in progress; the DUTY-
+    # tasks belong to the Duties tab). The tab lists the tasks of the agents only with
+    # CONTROLS_ENABLED, so the badge adds them only then.
+    owners = [sid, *([] if not ctx.settings.controls_enabled else agents)]
+    counts["tasks"] = open_task_count(ctx, owners)
     if tab == "tasks":
         extra["lifecycle"] = ctx.lifecycle.status(sid)
         extra["task_n"] = len(agents) + (1 if own else 0)
@@ -396,6 +420,23 @@ def g1_tabs(ctx: Any, system: Mapping[str, Any], tab: str) -> tuple[dict[str, An
     return extra, counts
 
 
+def open_task_count(ctx: Any, owners: list[str]) -> int:
+    """Open tasks (open or in progress) of the owners, without the DUTY- tasks."""
+    n = 0
+    for owner in owners:
+        try:
+            rows = ctx.tasks.list_tasks({"agent": owner})
+        except Exception:  # noqa: BLE001 - an owner with no task list counts nothing
+            rows = []
+        n += sum(
+            1
+            for r in rows
+            if r["status"] in ("open", "in_progress")
+            and not str(r["template_id"]).startswith("DUTY-")
+        )
+    return n
+
+
 def agents_system_col(ctx: Any) -> bool:
     """WP-UX4b: the System column and the unlinked filter of Catalogues > Agents need both
     CONSOLE_NAV_V3 and GOVERNANCE_ENABLED (without them the page is the one it was)."""
@@ -411,7 +452,7 @@ def annotate_agents(ctx: Any, me: Any, cards: list[dict[str, Any]]) -> None:
     names = {r["system_id"]: str(r["name"]) for r in svc.state.query("ai_system")}
     linked: dict[str, list[str]] = {}
     for c in svc.state.query("system_component", {"ref_kind": "agent"}):
-        if str(c["active"]).strip().lower() in ("1", "true"):
+        if truthy(c["active"]):
             linked.setdefault(str(c["ref_id"]).lower(), []).append(str(c["system_id"]))
     for card in cards:
         ids = sorted(set(linked.get(str(card["agent_id"]).lower(), [])))

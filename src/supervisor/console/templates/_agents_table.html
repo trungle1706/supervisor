@@ -2,16 +2,16 @@
 {% for a in agents %}
 <article class="card agent{{ " g4" if ux5 else "" }}" data-agent="{{ a.agent_id }}" data-state="{{ a.state }}">
   <div>
-    <h4>{{ a.agent_id }}
+    {# UI-100: under UX5 the agent page header already shows the state, risk and Decision 33 chips; the card keeps only the cause of a pause or quarantine #}
+    {% if not ux5 or (a.cause and (a.cause.rule or a.cause.principal)) %}<h4>{% if not ux5 %}{{ a.agent_id }}{% endif %}
       {% if a.cause and a.cause.rule %}{{ ui.state_pill(a.state, t('by_rule', rule=a.cause.rule), ' ') }}
       {% elif a.cause and a.cause.principal %}{{ ui.state_pill(a.state, t('by_person', who=a.cause.principal), ' ') }}
       {% elif a.state == 'SHADOW' %}{{ ui.state_pill(a.state, t('shadow_word')) }}
       {% else %}{{ ui.state_pill(a.state, t('enforced_word') if a.state == 'RUNNING' else None) }}{% endif %}
-    </h4>
+    </h4>{% endif %}
 {% if ux5 %}
-    <div class="meta">{{ t('owner') }}: <b>{{ a.owner_team }}</b> · {{ t('risk') }}: <b>{{ t(a.risk_tier) }}</b> ·
-      {% if a.d33.cls == 'high_risk' %}{{ t('d33_high') }}{% elif a.d33.cls == 'not_high_risk' %}{{ t('d33_not_high') }}{% elif a.d33.cls %}{{ t('d33_label') }} {{ a.d33.cls }}{% else %}{{ t('d33_none') }}{% endif %}
-      {% if a.judge.mock %} · <span class="u5-chip na" tabindex="0" title="{{ t('g4_demo_judge_tip') }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('g4_demo_judge') }}</span>{% endif %}</div>
+    {% if a.owner_team %}<div class="meta">{{ t('owner') }}: <b>{{ a.owner_team }}</b>
+      {% if a.judge.mock %} · <span class="u5-chip na" tabindex="0" title="{{ t('g4_demo_judge_tip') }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('g4_demo_judge') }}</span>{% endif %}</div>{% endif %}
 {% else %}
     <div class="meta">{{ a.name }} · {{ t('owner') }} <b>{{ a.owner_team }}</b> · {{ t('risk') }} <b>{{ t(a.risk_tier) }}</b> ·
       {% if a.d33.cls == 'high_risk' %}{{ t('d33_high') }}{% elif a.d33.cls == 'not_high_risk' %}{{ t('d33_not_high') }}{% elif a.d33.cls %}{{ t('d33_label') }} {{ a.d33.cls }}{% else %}{{ t('d33_none') }}{% endif %}{% if a.d33.source == 'proposal' %} ({{ t('proposal') }}){% endif %} ·

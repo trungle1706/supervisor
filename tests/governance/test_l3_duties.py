@@ -254,7 +254,7 @@ def test_tab_groups_rows_and_filters(dty: Console) -> None:
     assert re.findall(r'data-status="(\w+)"', html) == ["open"] * 5
     for head in ("Obligation and article", "Duty", "Applies", "Coverage", "Owner", "Due"):
         assert f">{head}</th>" in html
-    assert "Closing control" in html
+    assert "Control that closes it" in html
     want = {"open": 5, "closed": 2, "waived": 1, "needs_answer": 2, "all": 10}
     for f, n in want.items():
         h = _tab(dty, sid, f"&f={f}").text

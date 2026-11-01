@@ -16,9 +16,7 @@ Extension points for later work packages (see docs/controls.md, "For other modul
 
 from __future__ import annotations
 
-import csv
 import datetime as dt
-import io
 import json
 import logging
 from collections.abc import Iterable, Mapping, Sequence
@@ -50,7 +48,9 @@ from supervisor.controls.model import (
 )
 from supervisor.controls.refs import ControlRefs, build_refs
 from supervisor.core.canonical import format_ts, sha256_hex
+from supervisor.core.csvsafe import csv_cell, write_csv
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, NotFoundError
+from supervisor.core.rows import rows_by
 from supervisor.risk import evidence as ev
 
 log = logging.getLogger("supervisor.controls")
@@ -73,12 +73,6 @@ CONTROL_CSV = (
     "sources_n",
 )
 MAP_CSV = ("control_id", "kind", "target")
-
-
-def csv_cell(value: Any) -> str:
-    """A CSV cell safe to open in a spreadsheet (no formula injection)."""
-    text = "" if value is None else str(value)
-    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
 def _on(value: Any) -> bool:
@@ -505,22 +499,35 @@ class ControlService:
         bases = self.bases()
         out = {"agents": 0, "controls": 0, "written": 0, "repeat": 0}
         out.update({s: 0 for s in EVIDENCE_STATUSES})
+        plan = []
         for agent in sorted(self.agent_rows().values(), key=lambda r: str(r["agent_id"])):
             aid = str(agent["agent_id"])
             scope = self.controls_for(aid, controls)
-            if not scope:
-                continue
+            if scope:
+                plan.append((aid, scope))
+        # One read for all agents: every status row of the window (the status id and the
+        # reopen rows both carry the window), instead of two reads per agent and control.
+        window_rows = rows_by(
+            self.tables,
+            "control_status",
+            "agent_id",
+            [aid for aid, _ in plan],
+            columns=["agent_id", "control_id", "status_id", "status", "digest", "reason", "ts"],
+            where={"window_end": w.end},
+            order_by=("ts",),
+        )
+        for aid, scope in plan:
             out["agents"] += 1
             new_rows: list[dict[str, Any]] = []
             tally = dict.fromkeys(EVIDENCE_STATUSES, 0)
             digests: list[str] = []
+            rows_now = window_rows.get(aid, [])
             held = {  # WP-G5: a reopen row of this window holds until the next window
-                str(r["control_id"]): r
-                for r in self.tables.query(
-                    "control_status", {"agent_id": aid, "reason": REOPEN_REASON}, limit=5000
-                )
-                if ev._ts(r["window_end"]) == w.end  # noqa: SLF001 - one parser for stored times
+                str(r["control_id"]): r for r in rows_now if r["reason"] == REOPEN_REASON
             }
+            by_status_id: dict[str, dict[str, Any]] = {}
+            for r in rows_now:
+                by_status_id.setdefault(str(r["status_id"]), r)
             for c in scope:
                 out["controls"] += 1
                 if c["control_id"] in held:
@@ -529,11 +536,11 @@ class ControlService:
                     digests.append(str(held[c["control_id"]]["digest"]))
                     continue
                 sid = cev.status_id(c["control_id"], aid, w, bases[c["control_id"]])
-                done = self.tables.query("control_status", {"status_id": sid}, limit=1)
-                if done:
+                done = by_status_id.get(sid)
+                if done is not None:
                     out["repeat"] += 1
-                    tally[done[0]["status"]] += 1
-                    digests.append(str(done[0]["digest"]))
+                    tally[done["status"]] += 1
+                    digests.append(str(done["digest"]))
                     continue
                 res = cev.evaluate(
                     col, aid, pairs[c["control_id"]], w, bank=c["implemented_by"] == "bank"
@@ -1009,24 +1016,17 @@ class ControlService:
     def export_csv(self) -> tuple[str, str]:
         """(controls.csv, control_maps.csv)."""
         controls = self.list_controls()
-        cb = io.StringIO()
-        w = csv.writer(cb, lineterminator="\n")
-        w.writerow(CONTROL_CSV)
-        for c in controls:
-            w.writerow(
-                [
-                    csv_cell("|".join(c["agents"]) if k == "agents" else c.get(k))
-                    for k in CONTROL_CSV
-                ]
-            )
-        mb = io.StringIO()
-        w = csv.writer(mb, lineterminator="\n")
-        w.writerow(MAP_CSV)
-        for c in controls:
-            for kind, targets in self.maps(c["control_id"]).items():
-                for t in targets:
-                    w.writerow([csv_cell(c["control_id"]), csv_cell(kind), csv_cell(t)])
-        return cb.getvalue(), mb.getvalue()
+        ctrl_rows = [
+            ["|".join(c["agents"]) if k == "agents" else c.get(k) for k in CONTROL_CSV]
+            for c in controls
+        ]
+        map_rows = [
+            [c["control_id"], kind, t]
+            for c in controls
+            for kind, targets in self.maps(c["control_id"]).items()
+            for t in targets
+        ]
+        return write_csv(CONTROL_CSV, ctrl_rows), write_csv(MAP_CSV, map_rows)
 
     def write_exports(self, out_dir: Path, fmt: str = "both") -> list[Path]:
         out_dir.mkdir(parents=True, exist_ok=True)

@@ -75,9 +75,7 @@ def _components_sha(deps: DepSet) -> str:
     )
 
 
-def select_deps(
-    pack: EvalPack, ctx: RunContext, *, need_lock: bool = False
-) -> Selected | RunnerOutput:
+def select_deps(pack: EvalPack, ctx: RunContext) -> Selected | RunnerOutput:
     """Pick the dependency set for a pack, or return a skip."""
     target = ctx.target
     if ctx.data_mode == "vendored":
@@ -183,29 +181,6 @@ def build_sbom(
         },
         "components": uniq,
     }
-
-
-def validate_sbom(doc: Mapping[str, Any]) -> list[str]:
-    """Structural check of the keys CycloneDX 1.5 requires; returns problems."""
-    bad: list[str] = []
-    if doc.get("bomFormat") != "CycloneDX":
-        bad.append("bomFormat")
-    if doc.get("specVersion") != "1.5":
-        bad.append("specVersion")
-    if not re.fullmatch(
-        r"urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-        str(doc.get("serialNumber", "")),
-    ):
-        bad.append("serialNumber")
-    if not isinstance(doc.get("version"), int) or doc["version"] < 1:
-        bad.append("version")
-    for i, c in enumerate(doc.get("components", [])):
-        if c.get("type") not in {"library", "application", "framework"} or not c.get("name"):
-            bad.append(f"components[{i}]")
-        for h in c.get("hashes", []):
-            if h.get("alg") != "SHA-256" or not re.fullmatch(r"[0-9a-f]{64}", h.get("content", "")):
-                bad.append(f"components[{i}].hashes")
-    return bad
 
 
 class SbomRunner:

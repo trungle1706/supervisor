@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from supervisor.core import rbac
+from supervisor.console.authz import may_system, person
 from supervisor.onboard import smart_guardian as sg
 
 GROUP_TITLES = {
@@ -34,10 +34,7 @@ def _vtext(ln: Mapping[str, Any]) -> str:
 
 
 def may_edit(me: Any, system: Mapping[str, Any]) -> bool:
-    user = getattr(me, "kind", "") == "user"
-    return bool(
-        user and rbac.allowed(me.roles, "systems.edit") and system.get("status") != "archived"
-    )
+    return may_system(me, system, "systems.edit")
 
 
 def panel_data(ctx: Any, me: Any, system: Mapping[str, Any]) -> dict[str, Any]:
@@ -106,8 +103,4 @@ def do_reject(
 
 
 def _person(me: Any) -> str:
-    from supervisor.cases.service import PermissionDenied
-
-    if getattr(me, "kind", "") != "user":
-        raise PermissionDenied("this action needs a signed-in person")
-    return str(me.user_id)
+    return person(me)

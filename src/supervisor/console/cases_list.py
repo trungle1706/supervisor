@@ -12,7 +12,12 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.cases.service import SEVERITIES
-from supervisor.console.listing import paginate, parse_int, parse_sort, query_string, sort_rows
+from supervisor.console.listing import (
+    paginate_query,
+    parse_sort,
+    query_string,
+    sort_rows,
+)
 
 COLUMNS = ("severity", "agent_id", "clock", "status", "assignee")
 SIGNOFF_COLUMNS = ("severity", "agent_id", "clock", "missing")
@@ -35,7 +40,7 @@ def list_view(
     """Sorted, paged rows plus the strings the table macros need."""
     col, direction = parse_sort(query.get("sort"), query.get("dir"), columns, "severity", "desc")
     rows = sort_rows(items, col, direction, _KEYS)
-    page = paginate(rows, parse_int(query.get("page"), "page", 1), PAGE_SIZE)
+    page = paginate_query(rows, query, PAGE_SIZE)
     base = {k: v for k, v in filters.items() if v}
     return {
         "page": page,

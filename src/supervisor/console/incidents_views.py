@@ -10,10 +10,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from supervisor.cases.service import SEVERITIES
-from supervisor.console import ux3
+from supervisor.console import labels, ux3
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -73,7 +73,7 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
         counts[str(r["status"])] += 1
     col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "opened_at", "desc")
     rows = sort_rows(rows, col, direction, _KEYS)  # type: ignore[assignment]
-    page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(rows, p, PAGE_SIZE)
     base = {k: p[k] for k in FILTERS}
     tiles = [
         {
@@ -101,7 +101,7 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "inc_counts": counts,
         "severity_opts": [(s, s) for s in reversed(SEVERITIES)],
         "kind_opts": [(k, f"inc_kind_{k}") for k in TITLES],
-        "agent_opts": [(a, a) for a in sorted({str(r["agent_id"]) for r in everything} - {"-"})],
+        "agent_opts": labels.agent_opts(ctx, {str(r["agent_id"]) for r in everything} - {"-"}),
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),
         "can_move": getattr(me, "kind", "") == "user"

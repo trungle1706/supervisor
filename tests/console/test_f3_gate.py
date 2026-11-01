@@ -236,8 +236,8 @@ def test_golden_step_takes_gate_cases_and_labels(on: Console) -> None:
     assert r2.status_code == 200 and "21 case(s) stored, 1 refused" in r2.text
     assert len(golden.load_labels(shim.data_dir, "mr-agent")) == 21
     frag = on.get("/console/factory/mr-agent/step/gate", headers=HX).text
-    assert "50 cases (needs 50): met" in frag
-    assert "21 calibration labels (needs 20): met" in frag and " of 50 cases" not in frag
+    assert "50 cases (50 needed): met" in frag
+    assert "21 reviewer labels (20 needed): met" in frag and " of 50 cases" not in frag
     # the old flat case format still works
     legacy = json.dumps(
         [

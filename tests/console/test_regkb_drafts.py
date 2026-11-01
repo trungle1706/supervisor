@@ -3,6 +3,8 @@ Confirm and Drop (htmx), two audit rows per POST, the person recorded, permissio
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from supervisor.core import rbac
@@ -76,7 +78,9 @@ def test_on_lists_drafts_by_article_with_banner_and_marked_quote(on: Console) ->
         assert "<mark>" + row["text_vi"][:30] in r.text.replace("&#39;", "'")
     assert "risk_classification" in r.text and "fake-law-model-1" in r.text
     assert "MOCK MODEL" not in r.text
-    assert "Run the agent" not in r.text and 'data-act="run"' not in r.text
+    # no "Run the agent" button: the page only tells how to run it from the command line
+    assert not re.search(r"<(button|a)\b[^>]*>\s*Run the agent", r.text)
+    assert 'data-act="run"' not in r.text and "lawagent --instrument" in r.text
     # the filters
     assert "Summary 5" not in on.get(URL + "?status=confirmed").text
     assert "Summary 5" in on.get(URL + "?status=all").text
@@ -201,6 +205,7 @@ def test_permissions_in_the_matrix() -> None:
         and "/internal" not in p
         and "/console/regkb/watch" not in p  # WP-W1
         and "/console/regkb/changes" not in p  # WP-W2
+        and "/console/regkb/graph" not in p  # KBGRAPH (tests/console/test_kbgraph.py)
     }
     assert found == {
         ("GET", "/console/regkb/{instrument_id}/drafts"): "regkb.view",

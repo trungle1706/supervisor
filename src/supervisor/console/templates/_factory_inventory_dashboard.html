@@ -1,0 +1,160 @@
+{# The dashboard of a finished inventory run (W4). Variables: agent, run, agg, rows, checklist, filters. #}
+{% import "_ui.html" as ui with context %}
+{% macro risk_text(r) -%}
+{#- a finding that fails: fixed plain sentence for the code-fact keys, else the headline of the item -#}
+{%- if r.key in key_labels -%}{{ plural('finv_key_' ~ r.key, r.n) }}
+{%- elif r.text and (r.text[lang] or r.text['en']) -%}{{ plural('finv_headline_sentence', r.n, text=(r.text[lang] or r.text['en'])) }}
+{%- elif r.item -%}{{ plural('finv_item_sentence', r.n, item=(checklist|selectattr('id', 'equalto', r.item)|map(attribute='question')|first) or r.item) }}
+{%- else -%}{{ plural('finv_headline_sentence', r.n, text=((r.headline[lang] or r.headline['en']) if r.headline else '') or r.key) }}
+{%- endif -%}
+{%- endmacro %}
+{% macro gap_text(g) -%}
+{%- if g.kind == 'pack' -%}{{ plural('finv_gap_pack', g.n, m=g['items']) }}
+{%- elif g.key in key_labels -%}{{ plural('finv_open_sentence', g.n, name=t('finv_keyname_' ~ g.key)) }}
+{%- elif g.text and (g.text[lang] or g.text['en']) -%}{{ plural('finv_headline_sentence', g.n, text=(g.text[lang] or g.text['en'])) }}
+{%- elif g.item -%}{{ plural('finv_open_sentence', g.n, name=(checklist|selectattr('id', 'equalto', g.item)|map(attribute='question')|first) or g.item) }}
+{%- else -%}{{ plural('finv_headline_sentence', g.n, text=((g.headline[lang] or g.headline['en']) if g.headline else '') or g.key) }}
+{%- endif -%}
+{%- endmacro %}
+{% macro team_rows(rows_, kind, mx) -%}
+{% for r in rows_ %}
+  <tr data-{{ kind }}="{{ r.name }}">
+    <td>{% if kind == 'level' %}{{ t('finv_level_' ~ r.name) }}{% else %}<a href="?team={{ r.name|urlencode }}#finv-systems">{{ r.name or '-' }}</a>{% endif %}</td>
+    <td class="n">{{ r.systems }}</td>
+    <td><span class="finv-bcell"><i style="width:{{ (r.needs_action * 60 // mx) if mx else 0 }}px"></i><b>{{ r.needs_action }}</b></span></td>
+    <td class="n">{{ r['open'] }}</td><td class="n">{{ r['clear'] }}</td>
+  </tr>
+{% endfor %}
+{%- endmacro %}
+{% macro team_head(kind) -%}
+<thead><tr><th scope="col">{{ t('finv_c_' ~ kind) }}</th><th class="n" scope="col">{{ t('finv_c_systems') }}</th><th scope="col">{{ t('finv_t_fail') }}</th><th class="n" scope="col">{{ t('finv_c_open') }}</th><th class="n" scope="col">{{ t('finv_c_clear') }}</th></tr></thead>
+{%- endmacro %}
+{% set base = '/console/factory/' ~ agent.id ~ '/inventory/' ~ run.run_id %}
+{% set tl = agg.tiles %}
+
+{% if run.status == 'failed' %}<p class="notice" data-run-failed="1"><span class="dot"></span>{{ t('finv_failed') }} <span class="mono">{{ run.error }}</span></p>{% endif %}
+{% if run.status == 'cancelled' %}<p class="notice" data-run-cancelled="1"><span class="dot"></span>{{ t('finv_cancelled', done=run.done, total=run.total) }}</p>{% endif %}
+{% if run.cut_n %}<p class="hint" data-cut="1">{{ t('finv_cut', n=run.cut_n, max=run.max) }}</p>{% endif %}
+
+<div class="finv-tiles" data-tiles="1">
+  <div class="finv-tile plain" data-tile="scope"><b>{{ run.total }}</b><span>{{ t('finv_t_scope') }}</span><small>{{ t('finv_t_scope_sub', n=skipped_n, inv=run.inventory_n) }}</small></div>
+  <div class="finv-tile plain" data-tile="assessed"><b>{{ agg.assessed }}</b><span>{{ t('finv_t_assessed') }}</span>{% if tl.errors %}<small><a href="?bucket=errors#finv-systems">{{ t('finv_t_errors', n=tl.errors) }}</a></small>{% endif %}</div>
+  <a class="finv-tile fail" data-tile="needs_action" href="?bucket=needs_action#finv-systems"><b>{{ tl.needs_action }}</b><span>{{ t('finv_t_fail') }}</span></a>
+  <a class="finv-tile open" data-tile="open" href="?bucket=open#finv-systems"><b>{{ tl.open }}</b><span>{{ t('finv_t_open') }}</span></a>
+  <a class="finv-tile clear" data-tile="clear" href="?bucket=clear#finv-systems"><b>{{ tl['clear'] }}</b><span>{{ t('finv_t_clear') }}</span></a>
+</div>
+<p class="hint" data-tiles-hint="1">{{ t('finv_tiles_hint') }}</p>
+<div class="finv-tiles small" data-tiles="cost">
+  <div class="finv-tile"><b>{{ run.model_calls }}</b><span>{{ t('finv_t_calls') }}</span></div>
+  <div class="finv-tile"><b>{{ '{:,}'.format(run.tokens) }}</b><span>{{ t('finv_t_tokens') }}</span></div>
+  <div class="finv-tile"><b>{{ (run.seconds ~ ' s') if run.seconds < 60 else dur(run.seconds) }}</b><span>{{ t('finv_t_time') }}</span></div>
+  <div class="finv-tile" data-tile="agent"><b>v{{ run.agent_version }}</b><span>{% if run.draft %}{{ t('finv_draft_label') }}{% else %}{{ t('finv_state_' ~ run.agent_state) }}{% endif %}</span></div>
+  <div class="finv-tile model" data-tile="model"><b>{{ run.model_id or '-' }}</b><span>{{ t('finv_t_model') }}</span></div>
+</div>
+
+<section class="card" data-section="risks" id="finv-risks">
+  <h2>{{ t('finv_found_h') }}</h2>
+  <p class="hint">{{ t('finv_found_hint') }}</p>
+  <ol class="finv-risks" data-list="risks">
+  {% for r in agg.risks[:risk_limit] %}
+    <li data-risk="{{ r.key }}" data-severity="{{ r.severity }}" data-n="{{ r.n }}">
+      <span class="finv-sev {{ r.severity }}">{{ t('finv_sev_' ~ r.severity) }}</span>
+      <b>{{ risk_text(r)|trim }}</b>
+      <a href="?key={{ r.key|urlencode }}&amp;kstatus=fail#finv-systems" data-act="show-systems">{{ t('finv_show') }}</a>
+    </li>
+  {% else %}<li class="hint" data-empty="1">{{ t('finv_found_none') }}</li>{% endfor %}
+  </ol>
+  {% if agg.risks|length > risk_limit %}<p><a href="?risks=all#finv-risks">{{ t('finv_risks_all', n=agg.risks|length) }}</a></p>{% endif %}
+</section>
+
+<section class="card" data-section="gaps" id="finv-gaps">
+  <h2>{{ t('finv_gaps_h') }}</h2>
+  <p class="hint">{{ t('finv_gaps_hint') }}</p>
+  <ul class="finv-gaps" data-list="gaps">
+  {% for g in agg.gaps[:gap_limit] %}
+    <li data-gap="{{ g.key }}" data-n="{{ g.n }}"><span>{{ gap_text(g)|trim }}</span> <a href="?key={{ g.key|urlencode }}{{ '' if g.kind == 'pack' else '&amp;kstatus=open' }}#finv-systems" data-act="show-systems">{{ t('finv_show') }}</a></li>
+  {% else %}<li class="hint" data-empty="1">{{ t('finv_gaps_none') }}</li>{% endfor %}
+  </ul>
+  {% if agg.gaps|length > gap_limit %}<p><a href="?gaps=all#finv-gaps" data-act="all-gaps">{{ t('finv_gaps_all', n=agg.gaps|length) }}</a></p>{% endif %}
+</section>
+
+<section class="card" data-section="mix">
+  <h2>{{ t('finv_mix_h') }}</h2>
+  <p class="hint">{{ t('finv_mix_hint') }}</p>
+  <div class="finv-mix" data-list="mix">
+  {% for m in agg.mix %}
+    <div class="finv-mixrow" data-item="{{ m.id }}">
+      <div class="finv-mixname" title="{{ m.text }}"><span class="mono">{{ m.id }}</span> {{ (m.label[lang] or m.label['en']) if m.label else m.text }}</div>
+      <div class="finv-mixcells">
+      {% for v in ('fail', 'question', 'pass', 'not_applicable') %}
+        <span class="finv-mixcell {{ v }}" data-verdict="{{ v }}" data-n="{{ m[v] }}"><i style="width:{{ (m[v] * 100 // agg.assessed) if agg.assessed else 0 }}%"></i><b>{{ m[v] }}</b><em>{{ t('finv_v_' ~ v) }}</em></span>
+      {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+
+<div class="finv-cols">
+  {% for title, rows_, kind in ((t('finv_team_h'), agg.by_team, 'team'), (t('finv_level_h'), agg.by_level, 'level')) %}
+  {% set mx = (rows_|map(attribute='needs_action')|max) if rows_ else 0 %}
+  {% set cut = top_teams if kind == 'team' else 99 %}
+  <section class="card" data-section="by-{{ kind }}">
+    <h2>{{ title }}</h2>
+    <div class="finv-scroll"><table data-table="by-{{ kind }}">
+      {{ team_head(kind) }}
+      <tbody>{{ team_rows(rows_[:cut], kind, mx) }}</tbody>
+    </table></div>
+    {% if rows_|length > cut %}<details class="finv-more" data-more="{{ kind }}"><summary>{{ t('finv_teams_all', n=rows_|length) }}</summary>
+      <div class="finv-scroll"><table data-table="by-{{ kind }}-rest">{{ team_head(kind) }}<tbody>{{ team_rows(rows_[cut:], kind, mx) }}</tbody></table></div>
+    </details>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+
+<section class="card" data-section="systems" id="finv-systems">
+  <h2>{{ t('finv_heat_h') }}</h2>
+  <form class="finv-filters" method="get" action="{{ base }}#finv-systems" role="search">
+    <label>{{ t('finv_f_search') }}<input type="search" name="q" value="{{ filters.q }}" maxlength="80" data-field="q" placeholder="{{ t('finv_f_search_ph') }}"></label>
+    <label>{{ t('finv_c_team') }}<select name="team" data-field="team"><option value="">{{ t('finv_f_all') }}</option>{% for tm in agg.teams %}<option value="{{ tm }}" {{ 'selected' if tm == filters.team }}>{{ tm }}</option>{% endfor %}</select></label>
+    <label>{{ t('finv_c_level') }}<select name="level" data-field="level"><option value="">{{ t('finv_f_all') }}</option>{% for lv in levels %}<option value="{{ lv }}" {{ 'selected' if lv == filters.level }}>{{ t('finv_level_' ~ lv) }}</option>{% endfor %}</select></label>
+    <label>{{ t('finv_f_customer') }}<select name="customer" data-field="customer"><option value="">{{ t('finv_f_all') }}</option><option value="yes" {{ 'selected' if filters.customer == 'yes' }}>{{ t('finv_f_yes') }}</option><option value="no" {{ 'selected' if filters.customer == 'no' }}>{{ t('finv_f_no') }}</option></select></label>
+    <label>{{ t('finv_c_result') }}<select name="bucket" data-field="bucket"><option value="">{{ t('finv_f_all') }}</option>{% for b in bucket_names %}<option value="{{ b }}" {{ 'selected' if b == filters.bucket }}>{{ t('finv_b_' ~ b) }}</option>{% endfor %}</select></label>
+    {% if filters.key %}<input type="hidden" name="key" value="{{ filters.key }}"><input type="hidden" name="kstatus" value="{{ filters.kstatus }}"><span class="finv-chipfilter" data-key-filter="{{ filters.key }}">{{ t('finv_f_risk') }}: {{ filters.key }}</span>{% endif %}
+    <button class="btn" data-act="apply-filter">{{ t('finv_f_apply') }}</button>
+    <a class="btn" href="{{ base }}#finv-systems" data-act="reset-filter">{{ t('finv_f_reset') }}</a>
+    <a class="btn" href="{{ base }}/export.csv" data-act="export-csv">{{ t('finv_export') }}</a>
+  </form>
+  <p class="hint" data-shown="{{ shown_n }}">{{ t('finv_shown_of', shown=rows|length, total=shown_n) }}</p>
+  <div class="finv-scroll" tabindex="0" role="region" aria-label="{{ t('finv_heat_h') }}">
+    <table class="finv-heat" data-table="heat">
+      <thead><tr>
+        <th class="sys" scope="col">{{ t('finv_c_system') }}</th>
+        {% for c in checklist %}<th class="item" scope="col" title="{{ c.question }}"><span class="mono">{{ c.id }}</span></th>{% endfor %}
+        <th scope="col">{{ t('finv_c_found') }}</th><th scope="col">{{ t('finv_c_level') }}</th><th scope="col">{{ t('finv_c_team') }}</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr data-system="{{ r.system_id }}" data-result="{{ r.worst or 'error' }}">
+          <td class="sys"><a href="{{ base }}/system/{{ r.system_id|urlencode }}" title="{{ r.name }}">{{ r.name }}</a><small class="mono">{{ r.system_id }}{% if r.customer_facing %} &middot; {{ t('finv_customer_short') }}{% endif %}</small></td>
+          {% for cell in r.cells %}{% set cid = checklist[loop.index0].id %}
+          <td class="finv-cell {{ cell }}" data-item="{{ cid }}" data-verdict="{{ cell }}" title="{{ cid }}: {{ t('finv_v_' ~ cell) }}"><span aria-hidden="true">{{ glyph[cell] }}</span><span class="sr">{{ t('finv_v_' ~ cell) }}</span></td>
+          {% endfor %}
+          <td class="n" data-found="{{ r.exec_fail or 0 }}">{% if r.exec_fail %}<span class="finv-v fail"><span aria-hidden="true">{{ glyph.fail }}</span> {{ r.exec_fail }}</span>{% else %}<span class="muted">0</span>{% endif %}</td>
+          <td class="nw"><span class="finv-lvl {{ r.level }}">{{ t('finv_level_' ~ r.level) }}</span></td>
+          <td class="team" title="{{ r.owner_team }}">{{ r.owner_team or '-' }}</td>
+        </tr>
+      {% else %}<tr><td class="hint" colspan="{{ checklist|length + 4 }}" data-empty="1">{{ t('finv_none_match') }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="finv-legend" data-legend="1">
+    <span><b class="fail">{{ glyph.fail }}</b> {{ t('finv_v_fail') }}</span><span><b class="question">{{ glyph.question }}</b> {{ t('finv_v_question') }}</span><span><b class="pass">{{ glyph.pass }}</b> {{ t('finv_v_pass') }}</span><span><b>{{ glyph.not_applicable }}</b> {{ t('finv_v_not_applicable') }}</span><span><b>{{ glyph.error }}</b> {{ t('finv_v_error') }}</span>
+  </p>
+  {% if pages > 1 %}
+  <nav class="finv-pager" aria-label="{{ t('finv_page_of', page=page, pages=pages) }}"><span>{{ t('finv_page_of', page=page, pages=pages) }}</span>
+    {% if page > 1 %}<a href="?{{ query }}&amp;page={{ page - 1 }}#finv-systems" rel="prev">{{ t('finv_prev', n=page_size) }}</a>{% endif %}
+    {% if page < pages %}<a href="?{{ query }}&amp;page={{ page + 1 }}#finv-systems" rel="next">{{ t('finv_next', n=page_size) }}</a>{% endif %}
+  </nav>
+  {% endif %}
+</section>

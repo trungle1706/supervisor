@@ -1,0 +1,10 @@
+{# Source analysis panel as a full page, the no-JS link of the candidate drawer. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('ca_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('ca_title'), None), (ca.node_name, None)]) }}
+{{ ui.pagehead(t('ca_title') ~ ': ' ~ ca.node_name) }}
+{% if ca.node_name != ca.node_id %}<p class="idline" title="{{ ca.node_id }}">{{ ca.node_id }}</p>{% endif %}
+{% include "_code_agent_panel.html" %}
+{% endblock %}

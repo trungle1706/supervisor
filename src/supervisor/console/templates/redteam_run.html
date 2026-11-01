@@ -1,0 +1,15 @@
+{# One red team run while it goes (W7, REDTEAM_TAB). The live panel; at the end the browser goes to the report. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('rt_title') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/rteam.css">
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (rt.system.name, '/console/systems/' ~ rt.system_id ~ '?tab=redteam&lang=' ~ lang), (t('rt_title'), None)]) }}
+<div class="rt" data-page="redteam-run">
+  <header class="rt-head">
+    <h1>{{ rt.system.name }}: {{ t('rt_run_page_h') }}</h1>
+  </header>
+  <p class="hint">{{ t('rt_intro') }}</p>
+  {% include "_redteam_progress.html" %}
+</div>
+{% endblock %}

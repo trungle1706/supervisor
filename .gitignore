@@ -22,3 +22,5 @@ regulations/sources/*/incoming/
 # WP-T1: pytest-testmon database and the junit report
 .testmondata*
 reports/
+# the corpus eval reports are evidence: keep them in git
+!data/corpus/reports/

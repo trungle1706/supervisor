@@ -14,7 +14,7 @@ from typing import Any
 from supervisor.console import readmodels
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -103,7 +103,7 @@ def list_view(
     """Data for ``agents.html`` / ``_agents_list.html``."""
     p = parse_params(query, with_system)
     rows, col, direction = ordered(cards, p)
-    page = paginate(rows, parse_int(p["page"], "page", 1), size)
+    page = paginate_query(rows, p, size)
     counts = {s: sum(1 for a in cards if a["state"] == s) for s in STATES}
     base = {k: v for k, v in p.items() if k in ("q", "state", "risk", "system")}
     tiles = [{"label": "all", "n": len(cards), "on": not p["state"], "qs": _qs(p, state="")}]

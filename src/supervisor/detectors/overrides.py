@@ -163,6 +163,8 @@ class DetectorOverrideService:
             "actor_ref": actor_ref(self.settings, actor, "system"),
             "ts": format_ts(now),
         }
+        if key["agent_id"] == WILDCARD:  # a row for every agent: the root lane (no agent:* lane)
+            payload["agents"] = payload.pop("agent_id")
         try:
             self.evidence_sink.record(RECORD_TYPE, f"agent:{key['agent_id']}", payload)
         except Exception:  # noqa: BLE001 - the row is stored; go on

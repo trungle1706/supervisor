@@ -8,6 +8,10 @@
 {% set qs = cand_base_qs ~ ('&' if cand_base_qs else '') ~ ('src=top' if cand_src else '') %}
 {% set lqs = cand_list_qs ~ ('&src=top' if cand_src else '') %}
 {% if cand_page.total %}
+{# UI-020: a signal that every row of the page carries is shown once above the table, per row only the exceptions #}
+{% set common = namespace(s=[]) %}
+{% if cand_page.items|length > 1 %}{% set common.s = cand_page.items[0].signals|select('in', cand_page.items[1].signals)|list %}{% for r in cand_page.items[2:] %}{% set common.s = common.s|select('in', r.signals)|list %}{% endfor %}{% endif %}
+{% if common.s %}<p class="hint cand-common" data-common-signals>{{ t('all') }} · {{ t('tri_c_signals') }}: {% for s in common.s %}<span class="pill {{ 'warn' if s in ('money_tool', 'customer_table') else 'neutral' }}">{{ t('tri_sig_' ~ s) }}</span> {% endfor %}</p>{% endif %}
 <div class="tablewrap"><table class="list cand-tbl g2-cand" data-table="candidates">
   <caption class="sr">{{ t('tri_title') }}</caption>
   <thead><tr>
@@ -23,10 +27,10 @@
   <tr class="row" data-candidate="{{ r.node_id }}">
     <td><a class="head" href="/console/candidates?drawer={{ r.node_id }}&amp;lang={{ lang }}" hx-get="/console/candidates/{{ r.node_id }}/drawer?lang={{ lang }}" hx-target="#drawer" hx-push-url="false" title="{{ ov.cand_desc(r)|striptags }}">{{ r.name }}</a></td>
     <td>{{ t('tri_kind_' ~ r.kind) }}</td>
-    <td class="cand-sig">{% for s in r.signals %}<span class="pill {{ 'warn' if s in ('money_tool', 'customer_table') else 'neutral' }}">{{ t('tri_sig_' ~ s) }}</span> {% endfor %}</td>
+    <td class="cand-sig">{% for s in r.signals if s not in common.s %}<span class="pill {{ 'warn' if s in ('money_tool', 'customer_table') else 'neutral' }}">{{ t('tri_sig_' ~ s) }}</span> {% endfor %}</td>
     <td>{{ t('sy_autonomy_level_' ~ r.autonomy) }}</td>
     <td class="n" title="{{ t('tri_c_impact') }} {{ r.impact }}">{{ ov.score_pill(r) }}</td>
-    <td>{% if cand_register %}<a class="btn sm" href="{{ cand_reg_base }}?from={{ r.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') if r.recommended_action == 'register_now' else t('tri_act_' ~ r.recommended_action) }}</a>{% endif %}</td>
+    <td>{% if cand_register %}<a class="btn sm" title="{{ t('tri_act_' ~ r.recommended_action) }}" href="{{ cand_reg_base }}?from={{ r.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

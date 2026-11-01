@@ -1,7 +1,7 @@
 {# Source panel (WP-O1, ONBOARD_INTAKE): upload form, attempts list, Re-upload. Variable: ik. #}
 {% import "_ui.html" as ui with context %}
 <section class="card" id="intake-panel" data-section="intake" data-node="{{ ik.node_id }}">
-  <h3>{{ t('ik_title') }} <span class="k">{{ ik.attempts|length }}</span></h3>
+  <h3>{{ t('ik_title') }}{% if ik.attempts %} <span class="k">{{ ik.attempts|length }}</span>{% endif %}</h3>
   <p class="hint">{{ t('ik_hint', mb=ik.max_mb) }}</p>
   {% if ik.attempts %}
   <div class="tablewrap flat"><table class="queue" data-table="intake-attempts">
@@ -24,17 +24,18 @@
   <p class="hint" data-empty="intake">{{ t('ik_none') }}</p>
   {% endif %}
   {% if ik.can_edit %}
-  <details {% if not ik.attempts %}open{% endif %} class="intake-form">
-    <summary class="btn{% if not ik.attempts %} primary{% endif %}" data-action="reupload">{{ t('ik_reupload') if ik.attempts else t('ik_upload') }}</summary>
+  {# UI-104: with no attempt there is one button (the form's submit), not a second "Upload" summary button #}
+  <{{ 'details' if ik.attempts else 'div' }} class="intake-form">
+    {% if ik.attempts %}<summary class="btn" data-action="reupload">{{ t('ik_reupload') }}</summary>{% endif %}
     <form hx-post="/console/intake/{{ ik.node_id }}" hx-encoding="multipart/form-data" hx-target="#intake-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
       <label>{{ t('ik_file') }} <input type="file" name="file" accept=".zip,application/zip" aria-label="{{ t('ik_file') }}"></label>
       {% if ik.git_hosts %}
       <label>{{ t('ik_git') }} <input type="text" name="git_url" placeholder="{{ ik.git_hosts[0] }}/org/repo" size="40" aria-label="{{ t('ik_git') }}"></label>
       {% endif %}
-      <button type="submit" class="btn primary">{{ t('ik_send') }}</button>
+      <button type="submit" class="btn primary">{{ t('ik_send') if ik.attempts else t('ik_upload') }}</button>
     </form>
     <p class="hint">{{ t('ik_files_hint') }}</p>
-  </details>
+  </{{ 'details' if ik.attempts else 'div' }}>
   {% else %}
   <p class="hint">{{ t('ik_view_only') }}</p>
   {% endif %}

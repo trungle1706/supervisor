@@ -33,6 +33,8 @@ from typing import Any
 
 from supervisor.advisory.compliance import deadlines
 from supervisor.core.errors import ConcurrencyError, SupervisorError
+from supervisor.core.flags import truthy as _on
+from supervisor.core.people import is_system_owner
 from supervisor.governance.register_v2 import duties as dut
 from supervisor.governance.register_v2 import model as rm
 
@@ -83,10 +85,6 @@ def ensure_on(ctx: Any) -> None:
 
 
 # ------------------------------------------------------------------------------ small helpers
-
-
-def _on(value: Any) -> bool:
-    return str(value).strip().lower() in ("1", "true")
 
 
 def as_date(value: Any) -> dt.date | None:
@@ -351,15 +349,7 @@ def _close_group_tasks(ctx: Any, system: Mapping[str, Any], targets: list[dict[s
 
 
 def _is_owner(system: Mapping[str, Any], user: str) -> bool:
-    from supervisor.governance.lifecycle import same
-
-    if same(str(system.get("owner_user") or ""), user):
-        return True
-    return any(
-        same(str(m.get("user_id") or ""), user) and m.get("team_role") == "system_owner"
-        for m in system.get("team") or []
-        if m.get("active", True)
-    )
+    return is_system_owner(system, system.get("team") or [], user)
 
 
 def waive(

@@ -33,6 +33,7 @@ from supervisor.cases.service import PermissionDenied
 from supervisor.console import factory_gate_view as fgv
 from supervisor.console import factory_view as fv
 from supervisor.console.context import ConsoleContext, get_context
+from supervisor.console.htmx import append_message
 from supervisor.console.intake_routes import _same_site, parse_multipart
 from supervisor.console.routes import (
     _call,
@@ -40,7 +41,6 @@ from supervisor.console.routes import (
     _version,
     audited,
     form,
-    message_html,
     render,
 )
 from supervisor.factory import gate, golden, helpers, linter
@@ -51,12 +51,6 @@ api_router = APIRouter(prefix="/v1", tags=["console"])
 _CTX = Depends(get_context)
 _ME = Depends(current_principal)
 UPLOAD_LIMIT = golden.MAX_BYTES + 65_536
-
-
-def _flash(resp: Any, note: str, ok: bool = True) -> Any:
-    resp.body = resp.body + message_html(note, ok=ok, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
 
 
 def _step_response(
@@ -73,7 +67,7 @@ def _step_response(
     data = fv.editor_data(ctx, me, agent_id, version, step)
     data["ed"].update(extra)
     resp = render(request, ctx, me, f"_factory_step_{step}.html", **data)
-    return _flash(resp, note, ok) if note else resp
+    return append_message(resp, note, ok=ok) if note else resp
 
 
 # ------------------------------------------------------------------------------- JSON API

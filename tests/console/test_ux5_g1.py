@@ -116,7 +116,8 @@ def test_governance_overview_folds_the_zero_rows(ux: Console) -> None:
     h = r.text
     assert words(h) < 400
     assert h.count("<tr>") < 60
-    assert "Control readiness by system" in h and "Advisory, not legal advice" in h
+    # UI-041: no block for a feature that is off (the control catalogue is off in this rig)
+    assert "Control readiness by system" not in h and "Advisory, not legal advice" in h
     assert "Systems by autonomy level" not in h and "Not measured" in h or "%" in h
 
 
@@ -125,7 +126,7 @@ def test_supervisor_overview_folds_identical_rows(ux: Console) -> None:
     assert r.status_code == 200
     h = r.text
     assert words(h) < 400
-    assert "Agents with stops or gaps" in h and 'data-chain="unverified"' in h
+    assert "Agents with blocked calls or gaps" in h and 'data-chain="unverified"' in h
     assert "DETECTORS_ENABLED" not in h and "shown" in h
 
 
@@ -157,7 +158,7 @@ def test_health_hides_env_flags_and_paths_from_non_admin(ux: Console) -> None:
 def test_workflows_plain_names_and_intervals(ux: Console) -> None:
     h = ux.get("/console/workflows").text
     assert "<code>case_intake</code>" not in h and "0 h 0 m" not in h
-    assert "Scheduled jobs" in h and "Approvals and sinks" in h
+    assert "Scheduled jobs" in h and "Approvals and outputs" in h
 
 
 def test_decisions_filters_collapse(ux: Console) -> None:

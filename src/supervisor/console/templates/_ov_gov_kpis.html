@@ -2,8 +2,12 @@
 {% import "_v3.html" as v3 with context %}
 {# WP-G6: the KPI block; d.kpis exists only with MCP_SERVER_ENABLED. Same figures as GET /v1/kpis. #}
 {% if d.get('kpis') %}
-{% macro kpi_rate(label, bp, key) %}<tr><td>{{ label }}</td><td>{% if bp is none %}<span class="muted">{{ t('nv3_na') }}</span> <span class="hint">{{ t('g6_na_' ~ d.kpis.unavailable.get(key, '')) if d.kpis.unavailable.get(key) else '' }}</span>{% else %}{{ v3.pct(bp) }}{% endif %}</td></tr>{% endmacro %}
-{% macro kpi_map(items) %}{% for k, n in items.items() %}{{ k }}: {{ n }}{{ ' · ' if not loop.last }}{% else %}{{ t('g6_kpi_none') }}{% endfor %}{% endmacro %}
+{# UI-043: a figure whose feature is off is not shown as a row; one line below lists them. A figure the
+   page shows already (stages table, classification rate and overdue tiles) is not repeated here. #}
+{% set na = namespace(items=[]) %}
+{% macro kpi_rate(label, bp, key) %}{% if bp is none %}{% set na.items = na.items + [label] %}{% else %}<tr><td>{{ label }}</td><td>{{ v3.pct(bp) }}</td></tr>{% endif %}{% endmacro %}
+{# UI-042: an enum key becomes its label (kind, risk level or stage) #}
+{% macro kpi_map(items, how='') %}{% for k, n in items.items() %}{{ label_text('kind', k) if how == 'kind' else (t('sy_risk_' ~ k) if how == 'risk' else (t('sy_stage_' ~ k) if how == 'stage' else k)) }}: {{ n }}{{ ' · ' if not loop.last }}{% else %}{{ t('g6_kpi_none') }}{% endfor %}{% endmacro %}
 <section class="card" data-section="kpis">
 <h2 class="sec">{{ t('g6_kpi_title') }}</h2>
 <p class="hint">{{ t('g6_kpi_sub') }}</p>
@@ -11,13 +15,13 @@
 <div>
 <h3>{{ t('g6_kpi_coverage') }}</h3>
 <div class="tablewrap flat"><table class="list" data-table="kpi-coverage"><tbody>
-<tr><td>{{ t('g6_kpi_assets') }}</td><td>{{ kpi_map(d.kpis.coverage.assets_by_kind) }}</td></tr>
-<tr><td>{{ t('g6_kpi_by_risk') }}</td><td>{{ kpi_map(d.kpis.coverage.systems_by_risk) }}</td></tr>
-<tr><td>{{ t('g6_kpi_by_stage') }}</td><td>{{ kpi_map(d.kpis.coverage.systems_by_stage) }}</td></tr>
-{{ kpi_rate(t('g6_kpi_class_rate'), d.kpis.coverage.classification_rate_bp, 'classification_rate_bp') }}
+<tr><td>{{ t('g6_kpi_assets') }}</td><td>{{ kpi_map(d.kpis.coverage.assets_by_kind, 'kind') }}</td></tr>
+<tr><td>{{ t('g6_kpi_by_risk') }}</td><td>{{ kpi_map(d.kpis.coverage.systems_by_risk, 'risk') }}</td></tr>
 {{ kpi_rate(t('g6_kpi_policy_cov'), d.kpis.coverage.policy_coverage_bp, 'policy_coverage_bp') }}
 </tbody></table></div>
 </div>
+{% set qk = d.kpis.quality %}
+{% if qk.risk_treatment_coverage_bp is not none or qk.acceptable_residual_bp is not none or qk.control_readiness_bp is not none or qk.implementation_per_policy_bp is not none %}
 <div>
 <h3>{{ t('g6_kpi_quality') }}</h3>
 <div class="tablewrap flat"><table class="list" data-table="kpi-quality"><tbody>
@@ -27,11 +31,11 @@
 {{ kpi_rate(t('g6_kpi_impl'), d.kpis.quality.implementation_per_policy_bp, 'implementation_per_policy_bp') }}
 </tbody></table></div>
 </div>
+{% else %}{% for lbl in [t('g6_kpi_risk_treat'), t('g6_kpi_residual'), t('g6_kpi_readiness'), t('g6_kpi_impl')] %}{% set na.items = na.items + [lbl] %}{% endfor %}{% endif %}
 <div>
 <h3>{{ t('g6_kpi_speed') }}</h3>
 <div class="tablewrap flat"><table class="list" data-table="kpi-speed"><tbody>
-<tr><td>{{ t('g6_kpi_days') }}</td><td>{{ kpi_map(d.kpis.speed.avg_days_per_stage) }}</td></tr>
-<tr><td>{{ t('g6_kpi_overdue') }}</td><td>{% if d.kpis.speed.overdue_tasks is none %}<span class="muted">{{ t('nv3_na') }}</span>{% else %}{{ d.kpis.speed.overdue_tasks }}{% endif %}</td></tr>
+<tr><td>{{ t('g6_kpi_days') }}</td><td>{{ kpi_map(d.kpis.speed.avg_days_per_stage, 'stage') }}</td></tr>
 {{ kpi_rate(t('g6_kpi_inherit'), d.kpis.speed.inheritance_rate_bp, 'inheritance_rate_bp') }}
 <tr><td>{{ t('g6_kpi_runs') }}</td><td>{{ d.kpis.speed.automation.rule_runs }}</td></tr>
 <tr><td>{{ t('g6_kpi_events') }}</td><td>{{ d.kpis.speed.automation.events }}</td></tr>
@@ -39,5 +43,8 @@
 </tbody></table></div>
 </div>
 </div>
+{% if na.items %}<p class="hint" data-kpi-off>{{ t('nv3_na') }} ({{ na.items|length }}): {{ na.items|join(', ') }}</p>{% endif %}
+{# a reason that is not "the feature is off" (the figures failed, or the store is larger than one pass) stays visible #}
+{% for why in ['error', 'capped'] if why in d.kpis.unavailable.values() %}<p class="hint" data-kpi-why="{{ why }}">{{ t('g6_na_' ~ why) }}</p>{% endfor %}
 </section>
 {% endif %}

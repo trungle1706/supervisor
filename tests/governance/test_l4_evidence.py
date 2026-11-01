@@ -444,7 +444,7 @@ def test_refresh_button_closes_and_writes_two_audit_rows(l4: Console) -> None:
     assert {x["permission"] for x in new} == {"systems.edit"} and new[1]["actor"] == CREATOR
     assert new[1]["detail"] == "duty_evidence_refresh checked=1 closed=1"
     assert new[1]["before_hash"] != new[1]["after_hash"]
-    assert "Evidence read again" in r.text
+    assert "Evidence refreshed." in r.text
     again = l4.post(_url(sid, "refresh-evidence"), {}, user=CREATOR)
     assert again.status_code == 200 and "closed=0" in _audit(l4)[-1]["detail"]
 

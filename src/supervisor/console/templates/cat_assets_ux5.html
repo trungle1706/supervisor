@@ -12,28 +12,31 @@
 {% if d.off %}
 {{ g4.empty(t('nv3_na_inventory_off')) }}
 {% elif d.ux.total == 0 %}
-{% if d.tab == 'mcp' %}{{ g4.empty(t('g4_mcp_none'), '/console/integrations?lang=' ~ lang, t('nav_integrations')) }}
+{% if d.tab == 'mcp' %}{# UI-091: the Integrations page may be off; no link then #}{% if shell().pages.get('integrations') %}{{ g4.empty(t('g4_mcp_none'), '/console/integrations?lang=' ~ lang, t('nav_integrations')) }}{% else %}{{ g4.empty(t('g4_mcp_none')) }}{% endif %}
 {% else %}{{ g4.empty(t('g4_cat_none')) }}{% endif %}
 {% else %}
-<form class="g4-searchbar" method="get" action="/console/catalogues">
+<form class="g4-searchbar" method="get" action="/console/catalogues" data-autosubmit>
   <input type="hidden" name="tab" value="{{ d.tab }}"><input type="hidden" name="lang" value="{{ lang }}">
   <input type="search" name="q" value="{{ d.ux.q }}" placeholder="{{ t('g4_search') }}" aria-label="{{ t('g4_search') }}">
   <select name="status" aria-label="{{ t('status') }}">
     <option value="">{{ t('g4_all_statuses') }}</option>
     {% for s in ['active', 'unmanaged', 'allowlisted'] if d.ux.counts.get(s) %}<option value="{{ s }}"{% if d.ux.status == s %} selected{% endif %}>{{ t('nv3_ast_' ~ s) }} ({{ d.ux.counts[s] }})</option>{% endfor %}
   </select>
-  <button class="btn" type="submit">{{ t('g4_search_btn') }}</button>
+  <noscript><button class="btn" type="submit">{{ t('g4_search_btn') }}</button></noscript>
+  <a class="chipbtn" href="/console/catalogues?tab={{ d.tab }}&amp;lang={{ lang }}">{{ t('reset') }}</a>
 </form>
 {% if d.rows %}
+{# UI-090: "Last seen" only when it differs between rows #}
+{% set show_seen = (d.rows|map(attribute='last_seen')|map('day')|unique|list|length) > 1 %}
 <div class="tablewrap"><table class="list" data-table="assets">
-<thead><tr><th scope="col">{{ t('nv3_c_name') }}</th>{% if d.ux.kinds|length > 1 %}<th scope="col">{{ t('nv3_c_kind') }}</th>{% endif %}<th scope="col">{{ t('status') }}</th>{% if d.ux.show_risk %}<th scope="col">{{ t('nv3_c_own_risk') }}</th>{% endif %}{% if d.ux.dups %}<th scope="col" class="n">{{ t('g4_found') }}</th>{% endif %}<th scope="col">{{ t('nv3_c_last_seen') }}</th></tr></thead>
+<thead><tr><th scope="col">{{ t('nv3_c_name') }}</th>{% if d.ux.kinds|length > 1 %}<th scope="col">{{ t('nv3_c_kind') }}</th>{% endif %}<th scope="col">{{ t('status') }}</th>{% if d.ux.show_risk %}<th scope="col">{{ t('nv3_c_own_risk') }}</th>{% endif %}{% if d.ux.dups %}<th scope="col" class="n">{{ t('g4_found') }}</th>{% endif %}{% if show_seen %}<th scope="col">{{ t('nv3_c_last_seen') }}</th>{% endif %}</tr></thead>
 <tbody>
 {% for r in d.rows %}
-<tr><td class="mono">{{ r.name }}</td>{% if d.ux.kinds|length > 1 %}<td>{{ r.kind|replace('_', ' ')|capitalize }}</td>{% endif %}<td>{{ ui.pill(t('nv3_ast_' ~ r.status), {'active': 'ok', 'unmanaged': 'warn', 'allowlisted': 'neutral'}.get(r.status, 'neutral')) }}</td>{% if d.ux.show_risk %}<td>{% if r.own_risk %}{{ ui.sev(r.own_risk) }}{% else %}<span class="muted">-</span>{% endif %}</td>{% endif %}{% if d.ux.dups %}<td class="n">{{ r.n }}</td>{% endif %}<td>{{ r.last_seen|day }}</td></tr>
+<tr><td class="mono">{{ r.name }}</td>{% if d.ux.kinds|length > 1 %}<td>{{ label_for('kind', r.kind) }}</td>{% endif %}<td>{{ ui.pill(t('nv3_ast_' ~ r.status), {'active': 'ok', 'unmanaged': 'warn', 'allowlisted': 'neutral'}.get(r.status, 'neutral')) }}</td>{% if d.ux.show_risk %}<td>{% if r.own_risk %}{{ ui.sev(r.own_risk) }}{% else %}<span class="muted">-</span>{% endif %}</td>{% endif %}{% if d.ux.dups %}<td class="n">{{ r.n }}</td>{% endif %}{% if show_seen %}<td>{{ r.last_seen|day }}</td>{% endif %}</tr>
 {% endfor %}
 </tbody></table></div>
-{{ u5.pager(d.ux.page, d.ux.pages, d.ux.base ~ '&lang=' ~ lang) }}
-<div class="u5-foot"><span>{{ t('ux5_shown_of', shown=d.rows|length, total=d.ux.matched) }}</span></div>
+{# UI-090 / UI-325: one count line: the pager when there are several pages, else "n of m shown" #}
+{% if d.ux.pages > 1 %}{{ u5.pager(d.ux.page, d.ux.pages, d.ux.base ~ '&lang=' ~ lang) }}{% else %}<div class="u5-foot"><span>{{ t('ux5_shown_of', shown=d.rows|length, total=d.ux.matched) }}</span></div>{% endif %}
 {% else %}
 {{ g4.empty(t('g4_no_match')) }}
 {% endif %}

@@ -22,10 +22,10 @@ ingress_reject        3002   3         Authentication: ingress credential refuse
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime
 from typing import Any
 
 from supervisor.core.canonical import canonical_json
+from supervisor.core.timeutil import parse_utc_strict
 
 OCSF_VERSION = "1.1.0"
 
@@ -87,8 +87,7 @@ def severity_id(cef: int) -> int:
 
 
 def _time_ms(ts: str) -> int:
-    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    return int(dt.timestamp() * 1000)
+    return int(parse_utc_strict(ts).timestamp() * 1000)
 
 
 DEFAULT_SRC: dict[str, str] = {"svc_name": "supervisor"}

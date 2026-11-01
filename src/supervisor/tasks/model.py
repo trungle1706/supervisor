@@ -184,12 +184,6 @@ def plan_at(cfg: TaskConfig, level: str, classes: Iterable[str]) -> dict[str, li
     return out
 
 
-def next_stage_at(cfg: TaskConfig, current: str, level: str, classes: Iterable[str]) -> str | None:
-    p = plan_at(cfg, level, classes)
-    after = [s for s in STAGES if p[s] and STAGES.index(s) > STAGES.index(current)]
-    return after[0] if after else None
-
-
 def done_refusal(owner_role: str, roles: Iterable[str]) -> str | None:
     """None when a person with these roles may mark a task of ``owner_role`` done; else the role
     that is needed. ``owner`` tasks: anyone who may edit tasks; a reviewer, approver, auditor or

@@ -143,6 +143,12 @@
       if (evt.key === "Escape" && window.location.hash === "#nav-gear") { window.location.hash = ""; }
     });
   })();
+  // UI-321: one filter pattern. A GET filter form marked data-autosubmit applies on change (like
+  // the htmx filter bar); without JS the form keeps a submit button inside <noscript>.
+  document.addEventListener("change", function (evt) {
+    var f = evt.target.closest ? evt.target.closest("form[data-autosubmit]") : null;
+    if (f && f.requestSubmit && evt.target.matches("select, input[list]")) { f.requestSubmit(); }
+  });
   document.addEventListener("keydown", function (evt) {
     if (evt.key === "Escape") {
       var pop = document.getElementById("search-results");

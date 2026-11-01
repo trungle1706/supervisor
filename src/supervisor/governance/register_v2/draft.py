@@ -58,9 +58,14 @@ class DraftStore:
         suggestions: dict[str, Any],
     ) -> dict[str, Any]:
         if source_kind not in rm.SOURCE_KINDS:
-            raise rm.RegisterError("source_kind", "unknown source")
+            raise rm.RegisterError(
+                "source_kind", "This source is not recognised. Start from the register page."
+            )
         if len(self.list_mine(owner_user)) >= MAX_DRAFTS_OPEN:
-            raise rm.RegisterError("draft", f"at most {MAX_DRAFTS_OPEN} open drafts; drop one")
+            raise rm.RegisterError(
+                "draft",
+                f"You can have at most {MAX_DRAFTS_OPEN} open drafts. Drop one, then start again.",
+            )
         data = rm.empty_data()
         data["v"] = values
         data["sg"] = suggestions
@@ -81,10 +86,14 @@ class DraftStore:
 
     def get(self, draft_id: str, owner_user: str) -> dict[str, Any]:
         if not rm.DRAFT_ID_RE.match(draft_id or ""):
-            raise rm.RegisterError("draft_id", "is not a draft id")
+            raise rm.RegisterError(
+                "draft_id", "This is not a draft id. Open the draft from your drafts list."
+            )
         row = self.state.get("registration_draft", {"draft_id": draft_id})
         if row is None or row["owner_user"] != owner_user:
-            raise rm.RegisterError("draft_id", "this draft does not exist")
+            raise rm.RegisterError(
+                "draft_id", "This draft was not found. Open it from your drafts list."
+            )
         return _view(dict(row))
 
     def list_mine(self, owner_user: str, status: str = "draft") -> list[dict[str, Any]]:
@@ -124,18 +133,25 @@ class DraftStore:
     ) -> dict[str, Any]:
         """Write a changed draft (the version read is the version expected)."""
         if draft["status"] != "draft":
-            raise rm.RegisterError("draft_id", f"this draft is {draft['status']}")
+            raise rm.RegisterError(
+                "draft_id",
+                f"This draft is {draft['status']}, so it cannot be changed. Start a new one.",
+            )
         changes: dict[str, Any] = {}
         if data is not None:
             text = json.dumps(data, sort_keys=True)
             if len(text.encode("utf-8")) > MAX_DATA_BYTES:
-                raise rm.RegisterError("draft", "holds too much text")
+                raise rm.RegisterError(
+                    "draft", "The draft holds too much text. Shorten your answers."
+                )
             changes["data"] = text
         if step is not None:
             changes["step"] = max(int(draft["step"]), min(self.max_steps, int(step)))
         if status is not None:
             if status not in rm.STATUSES:
-                raise rm.RegisterError("status", "unknown status")
+                raise rm.RegisterError(
+                    "status", "This status is not recognised. Reload the page and try again."
+                )
             changes["status"] = status
         if not changes:
             return draft
@@ -148,14 +164,17 @@ class DraftStore:
             )
         except ConcurrencyError:
             raise rm.RegisterError(
-                "draft", "was changed in another window; reload the page"
+                "draft",
+                "Someone changed this draft in another window. Reload the page and try again.",
             ) from None
         return _view(dict(row))
 
     def record_result(self, draft: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
         """Keep what the submit did (for the result page) on the submitted draft."""
         if draft["status"] != "submitted":
-            raise rm.RegisterError("draft_id", "this draft was not submitted")
+            raise rm.RegisterError(
+                "draft_id", "This draft has not been submitted yet. Submit it first."
+            )
         data = dict(draft["data"])
         data["result"] = result
         try:

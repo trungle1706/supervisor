@@ -53,3 +53,6 @@
 </section>
 {% endif %}
 {% endif %}
+{# GUARDIAN_KIT: "Connect your app to Guardian" (nothing renders while the setting is off) #}
+{% set gk_sid = s.system_id %}{% set gk_src = '' %}
+{% include "_guardian_kit.html" %}

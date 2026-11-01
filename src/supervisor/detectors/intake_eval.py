@@ -1204,14 +1204,6 @@ labelled as a bypass by mistake and is now a benign item.
 """
 
 
-def section_markdown(rows: dict[str, dict[str, Any]]) -> str:
-    """The report without its title, for the section "Documents and URLs" of the detectors
-    validation report."""
-    text = render_markdown(rows)
-    body = text.split("\n", 2)[2] if text.startswith("#") else text
-    return body.replace("\n## ", "\n### ").replace("## ", "### ", 1)
-
-
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="python -m supervisor.detectors.intake_eval",

@@ -171,13 +171,13 @@ def test_scan_prefill_to_submit(reg: Console) -> None:
     # step 1 is prefilled, step 2 waits for a click
     html = reg.get(f"/console/register/{did}/step/1?lang=en").text
     assert 'value="synthetic-helper"' in html or "synthetic-helper" in html
-    assert "Prefilled from the workspace scan" in html
+    assert "Filled in from the workspace scan" in html
     html2 = reg.get(f"/console/register/{did}/step/2?lang=en").text
     assert 'data-suggest="money_movement"' in html2 and "a money tool is linked" in html2
     # leaving step 2 empty is a 400 naming the field
     assert step(reg, did, 1, S1).status_code == 200
     r = step(reg, did, 2, {})
-    assert r.status_code == 400 and "purpose: is required" in r.text
+    assert r.status_code == 400 and "purpose: Fill this in to continue." in r.text
     # one click accepts a suggestion; then the person changes another one
     r = step(reg, did, 2, {"purpose": S2["purpose"], "accept": "money_movement"})
     assert r.status_code == 200
@@ -243,6 +243,21 @@ def test_scan_candidate_checks(reg: Console) -> None:
         reg.get(f"/console/register/new?from={nid}&agent=x", follow_redirects=False).status_code
         == 400
     )
+
+
+def test_one_open_draft_per_scanned_object(reg: Console) -> None:
+    nid = seed_node(reg)
+    did = new(reg, f"?from={nid}")
+    assert new(reg, f"?from={nid}") == did  # the same person resumes, no second draft
+    assert len(rows(reg, "registration_draft", source_ref=nid)) == 1
+    other = "admin.chi"
+    r = reg.get(f"/console/register/new?from={nid}", user=other, follow_redirects=False)
+    assert r.status_code == 400 and f"{ME} is already registering this object" in r.text
+    r = reg.post(f"/console/register/new?from={nid}", {}, user=other)
+    assert r.status_code == 400 and f"{ME} is already registering this object" in r.text
+    assert len(rows(reg, "registration_draft", source_ref=nid)) == 1
+    assert reg.post(f"/console/register/{did}/abandon", {}).status_code in (200, 303)
+    assert new(reg, f"?from={nid}", user=other) != did  # abandoned: another person may start
 
 
 # ------------------------------------------------------------------ policy-only agent

@@ -158,7 +158,7 @@ def _p_export_cap(k: Kit, ids: dict[str, str]) -> tuple[bool, str]:
     r = k.post("/console/decisions/export", {}, user="auditor.dung")
     cap = int(k.ctx.settings.console_export_max_rows)
     m = seed.export_href(r.text)
-    if r.status_code != 200 or not m or f"truncated: {cap} of " not in r.text:
+    if r.status_code != 200 or not m or f"Only {cap} of " not in r.text:
         return False, f"status {r.status_code}"
     body = k.get(m, user="auditor.dung").text
     n = len(list(csv.reader(io.StringIO(body))))
@@ -592,10 +592,17 @@ def fingerprint_and_metrics(workdir: Path) -> dict[str, Any]:
         decisions = k.ctx.tables.query("agent_event", {"event_type": "gate_decision"}, limit=500)
         v2rows = [e for e in decisions if e.get("verdict_status")]
         complete = 0
+        from supervisor.console.i18n import translator
+
+        tr = translator("en", ux5=bool(k.ctx.settings.console_ux5))  # the drawer's own labels
         for e in v2rows:
             t = k.get(f"/console/decisions/{e['event_id']}/drawer?tab=metadata").text
             need = [str(e.get("correlation_id") or ""), "us<", "/console/traces/"]
-            need_ok = all(n in t or n == "us<" for n in need) and "Rules" in t and "Overhead" in t
+            need_ok = (
+                all(n in t or n == "us<" for n in need)
+                and tr("lat_rules") in t
+                and tr("lat_overhead") in t
+            )
             complete += bool(need_ok and (e.get("request_id") or "-") in t)
         out["triage_n"] = len(v2rows)
         out["triage_complete"] = complete

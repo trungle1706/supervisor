@@ -13,7 +13,7 @@ is the finding.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 from supervisor.redteam.multiturn.model import Binding
@@ -148,16 +148,3 @@ class Oracle:
 
 def _int(value: Any) -> int:
     return value if type(value) is int else 0
-
-
-def evaluate_calls(
-    spec: Mapping[str, Any],
-    binding: Binding,
-    calls: Iterable[tuple[int, Mapping[str, Any]]],
-) -> int | None:
-    """Index (0-based) of the first violating call in ``calls`` = (ts, call) pairs, else None."""
-    oracle = Oracle(spec, binding)
-    for i, (ts, call) in enumerate(calls):
-        if oracle.feed(ts, call):
-            return i
-    return None

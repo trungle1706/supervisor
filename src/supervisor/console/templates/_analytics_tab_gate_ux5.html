@@ -9,12 +9,14 @@
       <td class="n">{{ r.median_ms if r.median_ms is not none else '-' }}</td><td class="n">{{ r.p95_ms if r.p95_ms is not none else '-' }}</td>
     </tr>{% endmacro %}
 {% if gate_capped %}<div class="hint">{{ t('an_capped') }}</div>{% endif %}
+{% if gate_rows %}{# UI-200: no row of zero tiles above "no gate decision" #}
 <div class="grid g4" id="gate-totals" style="margin:10px 0">
   {{ ui.stat(t('gate_checked'), gate_total.checked, '', 'checked') }}
   {{ ui.stat(t('gate_blocked'), gate_total.blocked, '', 'blocked') }}
   {{ ui.stat(t('gate_paused'), gate_total.paused, '', 'paused') }}
   {{ ui.stat(t('an_p95'), (gate_total.p95_ms ~ ' ms') if gate_total.p95_ms is not none else '-', '', 'p95') }}
 </div>
+{% endif %}
 {% if gate_rows %}
 {% set maxn = gate_rows|map(attribute='checked')|max %}
 <div class="u5-panel" style="padding:0">

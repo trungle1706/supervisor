@@ -1,0 +1,1144 @@
+{
+ "meta": {
+  "date": "2026-10-31",
+  "model": "qwen2.5:7b-instruct",
+  "api_shape": "chat",
+  "prompt_version": "ca-prompt-10",
+  "config": {
+   "max_steps": 5,
+   "max_tokens": 40000,
+   "prompt_chars": 10500
+  },
+  "note": "Stability: 3 runs per repo with the server's default sampling (temperature not sent), prompt ca-prompt-10."
+ },
+ "repos": [
+  "mlflow_chatagent_savings",
+  "vi_comments_insurance"
+ ],
+ "splits": {
+  "tuned": {
+   "repos": [
+    "mlflow_chatagent_savings",
+    "vi_comments_insurance"
+   ],
+   "deterministic": {
+    "repos": 2,
+    "fields": {
+     "tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "irreversible_tools": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "exact_repos": 0
+     },
+     "hitl_tools": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "amount_args": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "exact_repos": 1
+     },
+     "tool_sinks": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "egress_hosts": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "secret_sources": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "guardrails": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "logging_sinks": {
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "exact_repos": 1
+     },
+     "pii_by_tool": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "entrypoints": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "pinned_models": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     }
+    },
+    "effect_accuracy": {
+     "correct": 3,
+     "scored": 5
+    },
+    "pii_logged": {
+     "correct": 2,
+     "repos": 2,
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "micro_all": {
+     "precision": 0.9523809523809523,
+     "recall": 0.8695652173913043,
+     "f1": 0.909090909090909,
+     "tp": 20,
+     "fp": 1,
+     "fn": 3
+    }
+   },
+   "det_plus_agent": {
+    "repos": 2,
+    "fields": {
+     "tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "irreversible_tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "hitl_tools": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "amount_args": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "tool_sinks": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "egress_hosts": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "secret_sources": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "guardrails": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "logging_sinks": {
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "exact_repos": 1
+     },
+     "pii_by_tool": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "entrypoints": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "pinned_models": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     }
+    },
+    "effect_accuracy": {
+     "correct": 5,
+     "scored": 5
+    },
+    "pii_logged": {
+     "correct": 2,
+     "repos": 2,
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "micro_all": {
+     "precision": 0.9583333333333334,
+     "recall": 1.0,
+     "f1": 0.9787234042553191,
+     "tp": 23,
+     "fp": 1,
+     "fn": 0
+    }
+   },
+   "agent_contribution": {
+    "tools": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "irreversible_tools": {
+     "added_tp": 2,
+     "added_fp": 0
+    },
+    "hitl_tools": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "amount_args": {
+     "added_tp": 1,
+     "added_fp": 0
+    },
+    "tool_sinks": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "egress_hosts": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "secret_sources": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "guardrails": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "logging_sinks": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "pii_by_tool": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "entrypoints": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "pinned_models": {
+     "added_tp": 0,
+     "added_fp": 0
+    }
+   },
+   "evidence": {
+    "final_findings": 32,
+    "valid": 32,
+    "validity_rate": 1.0,
+    "agent_claims_proposed": 24,
+    "agent_claims_kept": 14,
+    "keep_rate": 0.5833333333333334,
+    "rejected_by_reason": {
+     "quote_not_on_line": 7,
+     "duplicate": 3
+    }
+   },
+   "cost": {
+    "repos": 2,
+    "steps_mean": 5.0,
+    "llm_calls_mean": 5.0,
+    "tokens_estimated_mean": 7515.0,
+    "seconds_mean": 998.695,
+    "seconds_total": 1997.39,
+    "files_read_share": 0.8,
+    "stop_reasons": {
+     "max_steps": 2
+    }
+   }
+  },
+  "tuned_without_exemplar_repos": {
+   "repos": [
+    "mlflow_chatagent_savings",
+    "vi_comments_insurance"
+   ],
+   "deterministic": {
+    "repos": 2,
+    "fields": {
+     "tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "irreversible_tools": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "exact_repos": 0
+     },
+     "hitl_tools": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "amount_args": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "exact_repos": 1
+     },
+     "tool_sinks": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "egress_hosts": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "secret_sources": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "guardrails": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "logging_sinks": {
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "exact_repos": 1
+     },
+     "pii_by_tool": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "entrypoints": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "pinned_models": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     }
+    },
+    "effect_accuracy": {
+     "correct": 3,
+     "scored": 5
+    },
+    "pii_logged": {
+     "correct": 2,
+     "repos": 2,
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "micro_all": {
+     "precision": 0.9523809523809523,
+     "recall": 0.8695652173913043,
+     "f1": 0.909090909090909,
+     "tp": 20,
+     "fp": 1,
+     "fn": 3
+    }
+   },
+   "det_plus_agent": {
+    "repos": 2,
+    "fields": {
+     "tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "irreversible_tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "hitl_tools": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "amount_args": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "tool_sinks": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "egress_hosts": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "secret_sources": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "guardrails": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "logging_sinks": {
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "exact_repos": 1
+     },
+     "pii_by_tool": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "entrypoints": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "pinned_models": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     }
+    },
+    "effect_accuracy": {
+     "correct": 5,
+     "scored": 5
+    },
+    "pii_logged": {
+     "correct": 2,
+     "repos": 2,
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "micro_all": {
+     "precision": 0.9583333333333334,
+     "recall": 1.0,
+     "f1": 0.9787234042553191,
+     "tp": 23,
+     "fp": 1,
+     "fn": 0
+    }
+   },
+   "agent_contribution": {
+    "tools": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "irreversible_tools": {
+     "added_tp": 2,
+     "added_fp": 0
+    },
+    "hitl_tools": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "amount_args": {
+     "added_tp": 1,
+     "added_fp": 0
+    },
+    "tool_sinks": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "egress_hosts": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "secret_sources": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "guardrails": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "logging_sinks": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "pii_by_tool": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "entrypoints": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "pinned_models": {
+     "added_tp": 0,
+     "added_fp": 0
+    }
+   },
+   "evidence": {
+    "final_findings": 32,
+    "valid": 32,
+    "validity_rate": 1.0,
+    "agent_claims_proposed": 24,
+    "agent_claims_kept": 14,
+    "keep_rate": 0.5833333333333334,
+    "rejected_by_reason": {
+     "quote_not_on_line": 7,
+     "duplicate": 3
+    }
+   },
+   "cost": {
+    "repos": 2,
+    "steps_mean": 5.0,
+    "llm_calls_mean": 5.0,
+    "tokens_estimated_mean": 7515.0,
+    "seconds_mean": 998.695,
+    "seconds_total": 1997.39,
+    "files_read_share": 0.8,
+    "stop_reasons": {
+     "max_steps": 2
+    }
+   }
+  },
+  "all": {
+   "repos": [
+    "mlflow_chatagent_savings",
+    "vi_comments_insurance"
+   ],
+   "deterministic": {
+    "repos": 2,
+    "fields": {
+     "tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "irreversible_tools": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "exact_repos": 0
+     },
+     "hitl_tools": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "amount_args": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "exact_repos": 1
+     },
+     "tool_sinks": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "egress_hosts": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "secret_sources": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "guardrails": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "logging_sinks": {
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "exact_repos": 1
+     },
+     "pii_by_tool": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "entrypoints": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "pinned_models": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     }
+    },
+    "effect_accuracy": {
+     "correct": 3,
+     "scored": 5
+    },
+    "pii_logged": {
+     "correct": 2,
+     "repos": 2,
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "micro_all": {
+     "precision": 0.9523809523809523,
+     "recall": 0.8695652173913043,
+     "f1": 0.909090909090909,
+     "tp": 20,
+     "fp": 1,
+     "fn": 3
+    }
+   },
+   "det_plus_agent": {
+    "repos": 2,
+    "fields": {
+     "tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "irreversible_tools": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "hitl_tools": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "amount_args": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "tool_sinks": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "egress_hosts": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "secret_sources": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "guardrails": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "logging_sinks": {
+      "precision": 0.0,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "exact_repos": 1
+     },
+     "pii_by_tool": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "entrypoints": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     },
+     "pinned_models": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "exact_repos": 2
+     }
+    },
+    "effect_accuracy": {
+     "correct": 5,
+     "scored": 5
+    },
+    "pii_logged": {
+     "correct": 2,
+     "repos": 2,
+     "precision": null,
+     "recall": null,
+     "f1": null,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0
+    },
+    "micro_all": {
+     "precision": 0.9583333333333334,
+     "recall": 1.0,
+     "f1": 0.9787234042553191,
+     "tp": 23,
+     "fp": 1,
+     "fn": 0
+    }
+   },
+   "agent_contribution": {
+    "tools": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "irreversible_tools": {
+     "added_tp": 2,
+     "added_fp": 0
+    },
+    "hitl_tools": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "amount_args": {
+     "added_tp": 1,
+     "added_fp": 0
+    },
+    "tool_sinks": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "egress_hosts": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "secret_sources": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "guardrails": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "logging_sinks": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "pii_by_tool": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "entrypoints": {
+     "added_tp": 0,
+     "added_fp": 0
+    },
+    "pinned_models": {
+     "added_tp": 0,
+     "added_fp": 0
+    }
+   },
+   "evidence": {
+    "final_findings": 32,
+    "valid": 32,
+    "validity_rate": 1.0,
+    "agent_claims_proposed": 24,
+    "agent_claims_kept": 14,
+    "keep_rate": 0.5833333333333334,
+    "rejected_by_reason": {
+     "quote_not_on_line": 7,
+     "duplicate": 3
+    }
+   },
+   "cost": {
+    "repos": 2,
+    "steps_mean": 5.0,
+    "llm_calls_mean": 5.0,
+    "tokens_estimated_mean": 7515.0,
+    "seconds_mean": 998.695,
+    "seconds_total": 1997.39,
+    "files_read_share": 0.8,
+    "stop_reasons": {
+     "max_steps": 2
+    }
+   }
+  }
+ },
+ "runs_per_repo": 3,
+ "injection": [],
+ "stability": {
+  "mlflow_chatagent_savings": {
+   "runs": 3,
+   "jaccard": {
+    "tools": 1.0,
+    "irreversible_tools": 1.0,
+    "hitl_tools": 1.0,
+    "amount_args": 1.0,
+    "tool_sinks": 1.0,
+    "egress_hosts": 1.0,
+    "secret_sources": 1.0,
+    "guardrails": 1.0,
+    "logging_sinks": 1.0,
+    "pii_by_tool": 1.0,
+    "entrypoints": 1.0,
+    "pinned_models": 1.0
+   },
+   "identical": true
+  },
+  "vi_comments_insurance": {
+   "runs": 3,
+   "jaccard": {
+    "tools": 1.0,
+    "irreversible_tools": 1.0,
+    "hitl_tools": 1.0,
+    "amount_args": 1.0,
+    "tool_sinks": 1.0,
+    "egress_hosts": 1.0,
+    "secret_sources": 1.0,
+    "guardrails": 1.0,
+    "logging_sinks": 1.0,
+    "pii_by_tool": 1.0,
+    "entrypoints": 1.0,
+    "pinned_models": 1.0
+   },
+   "identical": true
+  }
+ },
+ "per_repo": {
+  "mlflow_chatagent_savings": {
+   "cost": {
+    "steps": 5,
+    "llm_calls": 5,
+    "tokens_estimated": 7590,
+    "seconds": 1067.69,
+    "stop_reason": "max_steps",
+    "proposed": 14,
+    "kept": 6,
+    "rejected": 8,
+    "files_read": 2,
+    "files_total": 3,
+    "confidence": "medium"
+   },
+   "confidence": "medium"
+  },
+  "vi_comments_insurance": {
+   "cost": {
+    "steps": 5,
+    "llm_calls": 5,
+    "tokens_estimated": 7440,
+    "seconds": 929.7,
+    "stop_reason": "max_steps",
+    "proposed": 10,
+    "kept": 8,
+    "rejected": 2,
+    "files_read": 2,
+    "files_total": 2,
+    "confidence": "medium"
+   },
+   "confidence": "medium"
+  }
+ }
+}

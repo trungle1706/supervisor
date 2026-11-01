@@ -1,0 +1,147 @@
+{# Stability panel (W8, STABILITY_TAB): verdict banner, time range, seven charts, what changed.
+   Variables: s (system), stab (stability_view.page_data). Read only. Charts are server-side SVG.
+   While live, the element asks for itself again every 5 or 10 seconds (htmx); "Pause updates" asks for
+   the same panel with live=0, which has no timer. #}
+{% macro sent(sn) %}{% set p = sn.params %}{{ t(sn.key, name=t(p.name_key, tool=p.get('tool', '')), a=p.get('a', ''), b=p.get('b', ''), n=p.get('n', ''), unit=(t('st_u_' ~ p.unit_key) if p.get('unit_key') else '')) }}{% endmacro %}
+{% macro unitw(u) %}{{ u.count }} {{ t('st_u_' ~ u.unit_key) }}{% endmacro %}
+{% macro svg(pn, name) %}
+{% set g = pn.svg %}
+<svg class="stab-svg" viewBox="0 0 {{ g.w }} {{ g.h }}" role="img" aria-label="{{ t('st_chart_label', name=name) }}" focusable="false">
+  {% for tk in g.yticks %}<line class="grid" x1="{{ g.x0 }}" x2="{{ g.x1 }}" y1="{{ tk.y }}" y2="{{ tk.y }}"/><text class="tick" x="{{ g.x0 - 6 }}" y="{{ tk.y + 3.5 }}" text-anchor="end">{{ tk.label }}</text>{% endfor %}
+  {% for st in g.stripes %}<rect class="stripe" x="{{ st.x }}" y="{{ g.y0 }}" width="{{ st.w }}" height="{{ g.y1 - g.y0 }}"/>{% endfor %}
+  {% for sr in g.series %}{% if sr.band %}<rect class="band s{{ sr.idx }}" x="{{ g.x0 }}" y="{{ sr.band.y }}" width="{{ g.x1 - g.x0 }}" height="{{ sr.band.h }}"/>{% endif %}{% endfor %}
+  {% for sr in g.series %}
+    {% for b in sr.bars %}<rect class="bar" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="2"><title>{{ b.title }}</title></rect>{% endfor %}
+    {% for d in sr.paths %}<path class="ln s{{ sr.idx }}{{ ' dash' if sr.dash else '' }}" d="{{ d }}"/>{% endfor %}
+    {% for d in sr.dots %}
+      {% if d.breach %}<polygon class="pt breach" points="{{ d.x }},{{ d.y - 5 }} {{ d.x + 5 }},{{ d.y }} {{ d.x }},{{ d.y + 5 }} {{ d.x - 5 }},{{ d.y }}"><title>{{ d.title }}</title></polygon>
+      {% elif d.partial %}<circle class="pt open s{{ sr.idx }}" cx="{{ d.x }}" cy="{{ d.y }}" r="3.5"><title>{{ d.title }}</title></circle>
+      {% else %}<circle class="hit" cx="{{ d.x }}" cy="{{ d.y }}" r="5"><title>{{ d.title }}</title></circle>{% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% for tk in g.xticks %}<text class="tick" x="{{ tk.x }}" y="{{ g.h - 8 }}" text-anchor="{{ 'start' if loop.first else ('end' if loop.last else 'middle') }}">{{ tk.label }}</text>{% endfor %}
+</svg>
+{% endmacro %}
+{% set b = stab.get('b') %}
+{% set q = 'view=' ~ stab.view ~ ('&agent=' ~ stab.agent if stab.get('agent') else '') ~ '&lang=' ~ lang %}
+{% set panel_url = '/console/systems/' ~ s.system_id ~ '/stability/panel?' ~ q %}
+<div id="stab" class="stab" data-page="stability" data-state="{{ stab.state }}" data-view="{{ stab.view }}" data-live="{{ '1' if stab.live else '0' }}"
+  {%- if stab.live and b and b.get('has_data') %} hx-get="{{ panel_url }}&amp;live=1" hx-trigger="every {{ stab.refresh_s }}s" hx-swap="outerHTML" hx-sync="this:replace"{% endif %}>
+
+  <header class="stab-head">
+    <div>
+      <h2>{{ t('st_title') }}</h2>
+      <p class="stab-hint">{{ t('st_intro') }}</p>
+    </div>
+    {% if b and b.get('has_data') %}
+    <div class="stab-live" data-live-state="{{ '1' if stab.live else '0' }}">
+      {% if stab.live %}<span class="stab-pulse" aria-hidden="true"></span><span>{{ t('st_live', n=stab.refresh_s) }}</span>
+        <a class="btn sm" data-act="pause" href="/console/systems/{{ s.system_id }}?tab=stability&amp;{{ q }}&amp;live=0" hx-get="{{ panel_url }}&amp;live=0" hx-target="#stab" hx-swap="outerHTML" hx-push-url="false">{{ t('st_live_pause') }}</a>
+      {% else %}<span class="stab-paused">{{ t('st_live_paused') }}</span>
+        <a class="btn sm" data-act="resume" href="/console/systems/{{ s.system_id }}?tab=stability&amp;{{ q }}&amp;live=1" hx-get="{{ panel_url }}&amp;live=1" hx-target="#stab" hx-swap="outerHTML" hx-push-url="false">{{ t('st_live_resume') }}</a>{% endif %}
+      <span class="stab-hint">{{ t('st_updated', time=(stab.now|hhmmss)) }}</span>
+    </div>
+    {% endif %}
+  </header>
+
+  {# ---- verdict banner #}
+  {% set glyph = {'stable': '✓', 'watch': '▲', 'unstable': '✕', 'nodata': '○'} %}
+  <section class="stab-verdict {{ stab.state }}" data-section="verdict" data-verdict="{{ stab.state }}" aria-live="polite">
+    <div class="stab-vmain">
+      <span class="stab-chip {{ stab.state }}"><span aria-hidden="true">{{ glyph[stab.state] }}</span> {{ t('st_v_' ~ stab.state) }}</span>
+      {% set top = stab.get('top') or b or stab %}
+      <p class="stab-why" data-why="{{ top.get('why', '') }}">
+        {% set w = top.get('why', '') %}
+        {% set names %}{% for n in top.get('names_h', []) %}{{ t(n.key, tool=n.tool) }}{{ ', ' if not loop.last }}{% endfor %}{% endset %}
+        {% if w == 'ok' %}{{ t('st_why_ok', n=top.checked) }}
+        {% elif w == 'range' %}{{ t('st_why_range', names=names) }}
+        {% elif w == 'session' %}{{ t('st_why_session', m=top.m) }}
+        {% elif w == 'streak' %}{{ t('st_why_streak', m=top.m, names=names) }}
+        {% elif w == 'case' %}{{ t('st_why_case') }}
+        {% elif w == 'collecting' %}{{ t('st_why_collecting', have_count=top.have.count, have_unit=t('st_u_' ~ top.have.unit_key), count=top.need.count, unit=t('st_u_' ~ top.need.unit_key)) }}
+        {% elif w == 'nobase' %}{{ t('st_why_nobase', count=top.need.count, unit=t('st_u_' ~ top.need.unit_key)) }}
+        {% elif w == 'quiet' %}{{ t('st_why_quiet', min_n=top.min_n) }}
+        {% elif w == 'waiting' %}{{ t('st_why_waiting', count=top.need.count, unit=t('st_u_' ~ top.need.unit_key)) }}
+        {% elif w == 'notlive' %}{{ t('st_why_notlive', count=top.need.count, unit=t('st_u_' ~ top.need.unit_key)) }}
+        {% elif w == 'noagent' %}{{ t('st_why_noagent') }}{% endif %}
+      </p>
+    </div>
+    {% if top.get('have_pct') is not none and top.get('why') == 'collecting' %}<div class="stab-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ top.have_pct }}"><i style="width: {{ top.have_pct }}%"></i></div>{% endif %}
+    {% if b and b.get('window') %}<p class="stab-rule" data-rule="1">{{ t('st_rule', m=b.m, win=unitw(b.window)) }}</p>{% endif %}
+  </section>
+
+  {# ---- agents #}
+  {% if stab.agents|length > 1 %}
+  <nav class="stab-agents" aria-label="{{ t('st_agent') }}">
+    {% for a in stab.agents %}{% set ab = stab.blocks[a] %}
+      <a class="stab-agent{{ ' on' if a == stab.agent else '' }}" data-agent="{{ a }}" href="/console/systems/{{ s.system_id }}?tab=stability&amp;view={{ stab.view }}&amp;agent={{ a|urlencode }}&amp;lang={{ lang }}" hx-get="/console/systems/{{ s.system_id }}/stability/panel?view={{ stab.view }}&amp;agent={{ a|urlencode }}&amp;live={{ '1' if stab.live else '0' }}&amp;lang={{ lang }}" hx-target="#stab" hx-swap="outerHTML" hx-push-url="false"><span class="mono">{{ a }}</span> <span class="stab-chip sm {{ ab.state }}"><span aria-hidden="true">{{ glyph[ab.state] }}</span> {{ t('st_v_' ~ ab.state) }}</span></a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% if b and b.get('has_data') %}
+  {# ---- time range #}
+  <div class="stab-range" role="group" aria-label="{{ t('st_range') }}">
+    {% for v in stab.views %}
+    <a class="stab-seg{{ ' on' if v == stab.view else '' }}" data-view-pick="{{ v }}" aria-current="{{ 'true' if v == stab.view else 'false' }}" href="/console/systems/{{ s.system_id }}?tab=stability&amp;view={{ v }}&amp;agent={{ stab.agent|urlencode }}&amp;lang={{ lang }}" hx-get="/console/systems/{{ s.system_id }}/stability/panel?view={{ v }}&amp;agent={{ stab.agent|urlencode }}&amp;live={{ '1' if stab.live else '0' }}&amp;lang={{ lang }}" hx-target="#stab" hx-swap="outerHTML" hx-push-url="false">{{ t('st_view_' ~ v) }} <small>{{ t('st_by_' ~ v, s=stab.live_s) }}</small></a>
+    {% endfor %}
+  </div>
+  {% if b.band_note %}<p class="stab-note" data-note="band">{{ t('st_note_band', win=unitw(b.window)) }}</p>{% endif %}
+  {% if b.truncated %}<p class="stab-note" data-note="trunc">{{ t('st_trunc', n='20,000') }}</p>{% endif %}
+
+  {# ---- charts #}
+  <div class="stab-grid" data-section="charts">
+    {% for c in b.charts %}
+    <section class="stab-card{{ ' wide' if c.id == 'mix' else '' }}" data-chart="{{ c.id }}">
+      <h3>{{ t('st_c_' ~ c.id) }}{% if c.mock %} <span class="stab-mock">{{ t('st_mock_chip') }}</span>{% endif %}</h3>
+      <p class="stab-sent" data-sentence="{{ c.id }}">{{ sent(c.sentence) }}</p>
+      {% if c.note %}<p class="stab-hint">{{ t(c.note) }}</p>{% endif %}
+      <div class="stab-panels{{ ' multi' if c.panels|length > 1 else '' }}">
+        {% for pn in c.panels %}
+        <figure class="stab-fig{{ ' mockfig' if pn.mock else '' }}">
+          {% if pn.title %}<figcaption>{% if pn.mock %}{{ t(pn.title) }} <span class="stab-mock">{{ t('st_mock_chip') }}</span>{% else %}<span class="mono">{{ pn.title }}</span>{% endif %}</figcaption>{% endif %}
+          {% if pn.svg.empty %}<div class="stab-nodata" data-nodata="1">{{ t('st_nodata') }}</div>
+          {% else %}{{ svg(pn, t('st_c_' ~ c.id) ~ (' ' ~ pn.title if pn.title and not pn.mock else '')) }}{% endif %}
+          {% if (c.panels|length == 1 or pn.mock) and not pn.svg.empty and (pn.series|length > 1 or pn.series[0].has_band) %}
+          <ul class="stab-legend">
+            {% for sr in pn.series %}<li><i class="sw s{{ loop.index0 }}{{ ' dash' if sr.dash else '' }}"></i>{{ t(sr.name_key, tool=pn.title) }}</li>{% endfor %}
+            {% if pn.series|selectattr('has_band')|list %}<li><i class="sw band"></i>{{ t('st_lg_band') }}</li><li><i class="sw dia"></i>{{ t('st_lg_breach') }}</li>{% endif %}
+          </ul>
+          {% endif %}
+          <details class="stab-table"><summary>{{ t('st_table') }}</summary>
+            <div class="tablewrap flat"><table><thead><tr><th scope="col">{{ t('st_col_time') }}</th>{% for sr in pn.series %}<th scope="col" class="n">{{ t(sr.name_key, tool=pn.title) }}</th>{% endfor %}</tr></thead>
+            <tbody>{% for r in pn.rows|reverse %}<tr><td>{{ r.label }}</td>{% for sr in pn.series %}<td class="n">{{ r[sr.key] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+          </details>
+        </figure>
+        {% endfor %}
+      </div>
+      {% if c.id == 'mix' and c.panels and not c.panels[0].svg.empty and c.panels[0].series[0].has_band %}
+      <ul class="stab-legend"><li><i class="sw s0"></i>{{ t('st_c_mix') }}</li><li><i class="sw band"></i>{{ t('st_lg_band') }}</li><li><i class="sw dia"></i>{{ t('st_lg_breach') }}</li></ul>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <section class="stab-empty" data-section="empty">
+    <h3>{{ t('st_empty_title') }}</h3>
+    <p class="stab-hint">{{ t('st_empty_will') }}</p>
+    <div class="stab-skel" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  </section>
+  {% endif %}
+
+  {# ---- what changed #}
+  {% if b and b.get('has_data') or stab.timeline %}
+  <section class="stab-card changed" data-section="changed">
+    <h3>{{ t('st_changed') }}</h3>
+    {% if stab.timeline %}
+    <ol class="stab-tl">
+      {% for e in stab.timeline %}
+      <li data-kind="{{ e.kind }}"><time datetime="{{ e.ts.isoformat() }}">{{ e.ts|u5when }}</time>
+        <span>{{ t('st_ev_' ~ e.kind, **e.params) }}</span>
+        {% if e.link %}<a href="{{ e.link }}{{ '&amp;' if '?' in e.link else '?' }}lang={{ lang }}">{{ t('st_ev_open') }}</a>{% endif %}</li>
+      {% endfor %}
+    </ol>
+    {% else %}<p class="stab-hint">{{ t('st_changed_none') }}</p>{% endif %}
+  </section>
+  {% endif %}
+</div>

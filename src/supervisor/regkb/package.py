@@ -35,6 +35,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from supervisor.core.canonical import sha256_bytes_hex as sha256_hex
 from supervisor.core.errors import SupervisorError
 
 PACKAGE_FORMAT = "regwatch-package-1"
@@ -79,10 +80,6 @@ class PackageError(SupervisorError):
     def __init__(self, code: str, text: str) -> None:
         super().__init__(f"{code}: {text}")
         self.code = code
-
-
-def sha256_hex(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def key_id_of(public_key: Ed25519PublicKey) -> str:

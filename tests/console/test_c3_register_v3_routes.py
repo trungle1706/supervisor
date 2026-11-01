@@ -84,3 +84,21 @@ def test_a_panel_without_its_flag_is_400_with_the_flag_name(v3: Console) -> None
     assert r.status_code == 400 and "ONBOARD_INTAKE" in r.text.upper()
     r = v3.post(f"/console/facts/{did}", {}, user=ME)
     assert r.status_code == 400 and "ONBOARD_FACTS" in r.text.upper()
+
+
+def test_step_two_shows_the_source_analysis_tab_only_with_its_flag(
+    v3: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Source analysis agent: a second tab on the facts step. Off: step 2 is as before."""
+    monkeypatch.setattr(v3.ctx.settings, "onboard_intake", True)
+    monkeypatch.setattr(v3.ctx.settings, "onboard_facts", True)
+    did = new(v3)
+    off = v3.get(f"/console/register/{did}/step/2", user=ME)
+    assert off.status_code == 200 and 'data-register="facts-tabs"' not in off.text
+    monkeypatch.setattr(v3.ctx.settings, "code_agent_enabled", True)
+    on_ = v3.get(f"/console/register/{did}/step/2", user=ME)
+    assert on_.status_code == 200
+    assert 'data-register="facts-tabs"' in on_.text and f"/console/code-analysis/{did}" in on_.text
+    assert 'id="facts-panel"' in on_.text  # the Facts tab is the one shown first
+    panel = v3.get(f"/console/code-analysis/{did}", user=ME, headers=HX)
+    assert panel.status_code == 200 and 'id="code-agent-panel"' in panel.text

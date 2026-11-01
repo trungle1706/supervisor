@@ -88,7 +88,9 @@ def build(data: Mapping[str, Any], page: Any = 1) -> dict[str, Any]:
     t_rows, t_page, t_pages = page_slice(transcript, page, TRANSCRIPT_PAGE)
     return {
         "groups": group_story(story),
-        "stops": ((data.get("head") or {}).get("joined") or 0) + 1,
+        # UI-183: the stops are the hard-rule rows of the Rules tab (same rows as "Rules broken"
+        # in the case file), not the number of gate links + 1 (that said 1 with no row at all)
+        "stops": sum(1 for r in verdict_rows if r.get("tier") == 0 and r.get("action") != "allow"),
         "rule_groups": group_verdicts(verdict_rows),
         "check_log": list(verdict_rows[:CHECK_LOG_CAP]),
         "check_log_total": len(verdict_rows),

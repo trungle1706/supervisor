@@ -34,7 +34,7 @@
       <option value="no" {{ 'selected' if a.answer == 'no' }}>{{ t('sy_cls_no') }}</option>
     </select>{% else %}{{ t('sy_cls_' ~ a.answer) if a.answer else t('sy_cls_open') }}{% endif %}</td>
     <td>{{ t('sy_cls_src_' ~ a.source) }}{% if a.get('mock') %} <span class="pill warn">{{ t('sy_cls_mock') }}</span>{% endif %}</td>
-    <td>{% if can_edit %}<input name="j_{{ a.id }}" value="{{ a.justification }}" maxlength="500" aria-label="{{ t('sy_cls_why') }}">{% else %}{{ a.justification }}{% endif %}</td>
+    <td>{% if can_edit %}<input name="j_{{ a.id }}" value="{{ a.justification }}" maxlength="500" aria-label="{{ t('sy_cls_why') }}">{% else %}{{ demo(a.justification) }}{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

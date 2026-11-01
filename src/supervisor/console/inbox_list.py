@@ -11,7 +11,7 @@ from typing import Any
 
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -77,7 +77,7 @@ def list_view(notices: list[dict[str, Any]], query: Mapping[str, str]) -> dict[s
         and (not p["channel"] or n.get("channel") == p["channel"])
     ]
     rows = sort_rows(rows, col, direction)
-    page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(rows, p, PAGE_SIZE)
     base = {k: p[k] for k in ("status", "channel")}
     summaries = {str(n["notice_id"]): summarize(n) for n in page.items}
     return {

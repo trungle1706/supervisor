@@ -34,13 +34,13 @@ from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.console import agent_detail
 from supervisor.console.context import ConsoleContext, get_context
+from supervisor.console.htmx import append_message
 from supervisor.console.routes import (
     _call,
     _check_id,
     _lang,
     audited,
     form_or_plain,
-    message_html,
     render,
 )
 from supervisor.core import rbac
@@ -229,8 +229,7 @@ async def _respond(
     template = "classify.html" if plain else "_classify_panel.html"
     resp = render(request, ctx, me, template, section="systems", **data)
     if not plain and note:
-        resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
-        resp.headers["content-length"] = str(len(resp.body))
+        append_message(resp, note)
     return resp
 
 

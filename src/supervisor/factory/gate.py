@@ -601,7 +601,6 @@ def run_cases(
     *,
     judge: bool = True,
     progress: Callable[[int, int], None] | None = None,
-    store_dir: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Run the harness on each case; layer-1 checks and (optionally) the two judge questions."""
     out: list[dict[str, Any]] = []

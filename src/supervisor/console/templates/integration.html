@@ -29,6 +29,8 @@
   </tbody>
 </table></div>
 {% else %}
-<p class="muted" data-integration-empty="1">{{ t('int_none') }}</p>
+{# UI-081: an administrator is not told to ask an administrator; the command is shown instead #}
+{% if 'admin' in me.roles %}<p class="muted" data-integration-empty="1">{{ t('b3_int_none_admin') }} <code>python -m supervisor.advisory.integration --target &lt;folder&gt; --out &lt;folder&gt;</code></p>
+{% else %}<p class="muted" data-integration-empty="1">{{ t('int_none') }}</p>{% endif %}
 {% endif %}
 {% endblock %}

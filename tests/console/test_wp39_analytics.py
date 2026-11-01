@@ -159,7 +159,7 @@ def test_gate_tab_tables_and_series(v2console: Console) -> None:
     for table in ("dd-agent", "dd-consumer", "dd-rule", "dd-detector", "dd-series"):
         assert f'id="{table}"' in page
     body = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
-    assert "Report" in body and "Transform" in body and "Not evaluated" in body
+    assert "Report" in body and "Transform" in body and "Not assessed" in body
     # a-one: 3 requests, 2 reports = 6666 bp, 1 block = 3333 bp
     m = re.search(r"a-one 3 2 (\d+) bp 0 0 bp 0 0 bp 1 (\d+) bp", body)
     assert m and m.group(1) == "6666" and m.group(2) == "3333"

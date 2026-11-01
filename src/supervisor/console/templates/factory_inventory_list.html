@@ -1,0 +1,50 @@
+{# Inventory runs of one agent (W4, FACTORY_INVENTORY_RUN): the start form and the earlier runs. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('finv_title') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/finv.css">
+{{ ui.crumbs([(t('fa_title'), '/console/factory'), (agent.name|replace(' demo:showcase', ''), '/console/factory/' ~ agent.id), (t('finv_title'), None)]) }}
+<div class="finv" data-page="finv-list">
+  <header class="finv-head">
+    <h1>{{ t('finv_title') }}</h1>
+    <div class="finv-chips">{{ ui.pill(agent.name|replace(' demo:showcase', ''), 'neutral') }} {{ ui.pill(t('fa_dim_' ~ agent.dimension_id), 'info') }}</div>
+  </header>
+  <p class="finv-banner" data-banner="1">{{ t('finv_banner') }}</p>
+  <section class="card" data-section="start">
+    <h2>{{ t('finv_run_h') }}</h2>
+    <p class="hint">{{ t('finv_run_hint') }}</p>
+    {% if not model_ready %}<p class="notice" data-model-off="1"><span class="dot"></span>{{ t('fg_model_off') }}</p>{% endif %}
+    {% if can_run %}
+    <form class="finv-filters" hx-post="/console/factory/{{ agent.id }}/inventory/run" hx-swap="none" method="post">
+      <label>{{ t('finv_version') }}
+        <select name="version" data-field="version">
+          {% for v in versions %}<option value="{{ v.version }}" {{ 'selected' if v.version == default_version }}>v{{ v.version }} - {{ t('finv_state_' ~ v.state) }}</option>{% endfor %}
+        </select></label>
+      <button class="btn primary" data-act="run-inventory" {{ 'disabled' if running or not model_ready }}>{{ t('finv_run') }}</button>
+    </form>
+    {% if running %}<p class="hint" data-running="1">{{ t('finv_busy') }}</p>{% endif %}
+    <p class="hint">{{ t('finv_limits', n=parallel) }}{% if max %} {{ t('finv_limit_max', n=max) }}{% endif %}</p>
+    {% else %}<p class="hint" data-readonly="1">{{ t('finv_no_run') }}</p>{% endif %}
+  </section>
+  <section class="card" data-section="runs">
+    <h2>{{ t('finv_runs') }}</h2>
+    <div class="finv-scroll"><table data-table="inventory-runs">
+      <thead><tr><th scope="col">{{ t('finv_c_started') }}</th><th scope="col">{{ t('finv_c_version') }}</th><th scope="col">{{ t('finv_c_status') }}</th><th class="n" scope="col">{{ t('finv_c_done') }}</th><th class="n" scope="col">{{ t('finv_t_fail') }}</th><th scope="col">{{ t('finv_c_model') }}</th><th scope="col"></th></tr></thead>
+      <tbody>
+      {% for r in runs %}
+        <tr data-run="{{ r.run_id }}" data-status="{{ r.status }}">
+          <td>{{ r.started_at }}</td>
+          <td>v{{ r.agent_version }}{% if r.draft %} {{ ui.pill(t('finv_draft_short'), 'warn') }}{% endif %}</td>
+          <td>{{ ui.pill(t('finv_status_' ~ r.status), {'done': 'ok', 'failed': 'bad', 'cancelled': 'neutral'}.get(r.status, 'info'), True) }}</td>
+          <td class="n">{{ r.done }}/{{ r.total }}</td>
+          <td class="n">{{ r.needs_action }}</td>
+          <td class="mono">{{ r.model_id }}</td>
+          <td><a href="/console/factory/{{ agent.id }}/inventory/{{ r.run_id }}" data-act="open-run">{{ t('finv_open') }}</a></td>
+        </tr>
+      {% else %}<tr><td class="hint" colspan="7">{{ t('finv_no_runs') }}</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+{% endblock %}

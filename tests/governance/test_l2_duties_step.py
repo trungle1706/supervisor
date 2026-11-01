@@ -20,7 +20,8 @@ from .conftest import Console
 from .test_n3_register import ME, S1, S2, new, rows, step, submit
 
 NAME = "N3 helper"  # the name S1 gives the system
-BANNER = "Not legal advice. Bank counsel must confirm."
+BANNER = "Not legal advice. Bank counsel confirms."  # the wording on screen
+BANNER_DATA = "Not legal advice. Bank counsel must confirm."  # text stored in task and status rows
 
 
 @pytest.fixture
@@ -99,7 +100,7 @@ def test_flag_off_submit_writes_no_duty_rows(reg: Console) -> None:
     for n, form in ((1, S1), (2, S2), (3, {}), (4, {}), (5, {"bind_form": "1"})):
         assert step(reg, did, n, form).status_code == 200
     html = page(reg, did, 6)
-    assert "review-duties" not in html and "Duty status rows" not in html
+    assert "review-duties" not in html and "Duty statuses" not in html
     assert submit(reg, did).status_code == 200
     assert rows(reg, "obligation_status") == []
     assert not [t for t in rows(reg, "task") if str(t["template_id"]).startswith("DUTY-")]
@@ -135,7 +136,7 @@ def test_flag_on_seven_steps_in_order(duties: Console) -> None:
         "Pre-deployment check",
         "Duties",
         "Quick risk assessment",
-        "Guardian tools",
+        "Guardians",
         "Review and submit",
     ]
     assert step(duties, did, 3).status_code == 200
@@ -168,7 +169,7 @@ def test_step_renders_matrix_rows_and_questions(duties: Console) -> None:
     assert 'data-table="duties"' in html
     assert re.search(r'data-duty="[^"]+" data-applies="yes" data-coverage="(partial|none)"', html)
     assert 'data-applies="no"' not in html
-    for head in ("Instrument", "Article", "Duty", "Applies", "Coverage"):
+    for head in ("Document", "Article", "Duty", "Applies", "Coverage"):
         assert f">{head}</th>" in html
     # the open questions are fields named by the question id
     v = dut.view(duties.ctx, get_draft(duties, did))
@@ -436,7 +437,7 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
     assert applying and gaps and asking
     assert len(groups) < len(gaps) and sum(len(g) for g in groups.values()) == len(gaps)
     assert (
-        f"{len(applying) + len(asking)} duty rows will be stored (apply or need an answer); "
+        f"{len(applying) + len(asking)} duties will be saved (apply or need an answer). "
         f"{len(groups)} tasks will open" in review
     )
     r = submit(duties, did)
@@ -453,7 +454,7 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
         assert s["applies"] == "yes" and s["status"] == "open"
         assert s["coverage"] == dut.coverage_of(row) in ("full", "partial", "none")
         assert s["owner_user"] == ME and s["closing_control"] is None
-        assert BANNER in s["note"]
+        assert BANNER_DATA in s["note"]
         eff = dut.effective_date(row)
         assert (str(s["due_date"])[:10] if s["due_date"] else None) == (
             eff.isoformat() if eff else None
@@ -484,10 +485,10 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
         assert t["owner_role"] == "owner" and t["status"] == "open" and t["kind"] == "custom"
         assert t["stage"] == "initiation" and not t["required"]
         ref = t["evidence_ref"]
-        assert ref.startswith(BANNER)
+        assert ref.startswith(BANNER_DATA)
         ids = sorted(r.obligation_id for r in group)
         if n <= dut.MAX_IDS_IN_TASK:
-            assert ref == f"{BANNER} " + ", ".join(ids)
+            assert ref == f"{BANNER_DATA} " + ", ".join(ids)
         else:
             raise AssertionError("no group has more than 60 duties in this draft")
         # due date: the earliest effective date still ahead, else the default period
@@ -508,7 +509,7 @@ def test_submit_writes_status_rows_and_gap_tasks(duties: Console) -> None:
     assert not [t for t in tasks if t["title"].startswith("Close duty ")]
     # the result page names the write and its counts; the intake tasks are still opened
     page_ = duties.get(f"/console/register/{did}/result?lang=en").text
-    assert "Duty status rows" in page_ and f"{len(st)} / {len(groups)}" in page_
+    assert "Duty statuses" in page_ and f"{len(st)} / {len(groups)}" in page_
     assert {"SYS-INTAKE-CONFIRM", "SYS-INTAKE-CHECKS"} <= {
         t["template_id"] for t in rows(duties, "task", agent_id=sid)
     }
@@ -539,7 +540,7 @@ def test_task_lists_at_most_60_duty_ids(duties: Console) -> None:
     (t,) = [t for t in rows(duties, "task", agent_id="sys_cap")]
     assert t["title"] == "Close 130 duties of Law X (coverage none)"
     ids = [f"X-{i:03d}" for i in range(130)]
-    assert t["evidence_ref"] == f"{BANNER} " + ", ".join(ids[:60]) + ", ... and 70 more"
+    assert t["evidence_ref"] == f"{BANNER_DATA} " + ", ".join(ids[:60]) + ", ... and 70 more"
     assert "X-060" not in t["evidence_ref"]
     # a group of one reads "1 duty"; a repeat is a no-op
     one = group[:1]
@@ -577,7 +578,7 @@ def test_permissions(duties: Console) -> None:
     assert duties.get("/console/register/new", user="viewer.hoa").status_code == 403
     # another person with the right gets the answer for a draft that does not exist
     other = duties.get(url, user="reviewer.binh")
-    assert other.status_code == 400 and "does not exist" in other.text
+    assert other.status_code == 400 and "was not found" in other.text
     assert duties.post(url, {"Q-cross_border": "no"}, user="reviewer.binh").status_code == 400
     assert "duties_answers" not in get_draft(duties, did)["data"]
 
@@ -661,7 +662,7 @@ def test_obligation_status_roundtrip(duties: Console) -> None:
         "owner_user": ME,
         "due_date": "2027-01-01",
         "closing_control": None,
-        "note": BANNER,
+        "note": BANNER_DATA,
         "created_at": now,
     }
     duties.ctx.state.insert("obligation_status", row)

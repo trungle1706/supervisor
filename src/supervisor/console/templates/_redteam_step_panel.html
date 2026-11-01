@@ -1,0 +1,70 @@
+{# Red team test panel (W7, REDTEAM_TAB). Two modes of one file.
+   - Included by the registration step Guardians (step template of W6, slot "ignore missing") or by
+     the Red team tab: no `rt` variable. It renders nothing when the setting is off, else a loader
+     that fetches this panel from /console/redteam/panel/<system> by htmx.
+   - Rendered by that route: `rt` holds the scope, the options and the live or last result. #}
+{% import "_ui.html" as ui with context %}
+{% set vchip = {'safe': 'ok', 'conditions': 'warn', 'not_safe': 'bad', 'not_tested': 'neutral'} %}
+{% if rt is defined and rt and rt.target is defined %}
+{% set live = rt.active %}
+{% if live and live.status == 'running' %}
+  {% set pg = live %}
+  {% set where = rt.where %}
+  {% include "_redteam_progress.html" %}
+{% else %}
+<section class="card rt" id="rt-panel" data-rt="panel" data-where="{{ rt.where }}" data-system="{{ rt.system_id }}">
+  <div class="rt-head">
+    <h3>{{ t('rt_step_h') }}</h3>
+    <div class="rt-chips"><span class="rt-chip mock" title="{{ t('rt_how_agent') }}">{{ t('rt_simulated') }}</span></div>
+  </div>
+  <p class="hint">{{ t('rt_intro') }}</p>
+  <p class="rt-scope" data-scope="1">{{ t('rt_scope', n=rt.n_tested, m=rt.n_not_tested) }}
+    {% if rt.target.tool_source == 'facts' %}<span class="hint">{{ t('rt_scope_tools', tools=rt.tools|join(', ') ~ ('...' if rt.n_tools > rt.tools|length else '')) }}</span>
+    {% else %}<span class="hint">{{ t('rt_scope_form') }}</span>{% endif %}</p>
+  {% if rt.approval_above %}<p class="hint" data-limit="1">{{ t('rt_limit_line', amount=('{:,}'.format(rt.approval_above)).replace(',', '.' if lang == 'vi' else ',')) }}</p>{% endif %}
+
+  {% if rt.last %}
+  <div class="rt-result" data-last="{{ rt.last.run_id }}" data-verdict="{{ rt.last.verdict }}">
+    <span class="rt-chip {{ vchip[rt.last.verdict] }}">{{ t('rt_v_' ~ rt.last.verdict) }}</span>
+    <span>{{ t('rt_summary_line', stopped=rt.last.stopped, n=rt.last.attacks, through=rt.last.got_through) }}</span>
+    <span class="hint">{{ t('rt_last', when=rt.last_when) }}</span>
+    <a class="btn sm" href="/console/redteam/report/{{ rt.last.run_id }}?lang={{ lang }}" data-act="open-report">{{ t('rt_open_report') }}</a>
+  </div>
+  {% else %}<p class="hint" data-never="1">{{ t('rt_never') }}</p>{% endif %}
+
+  {% if rt.can_run and rt.n_tested %}
+  <form class="rt-form" hx-post="/console/redteam/{{ rt.system_id }}/run?where={{ rt.where }}&amp;lang={{ lang }}" hx-target="#rt-panel" hx-swap="outerHTML" method="post">
+    <div class="rt-opts">
+      <label>{{ t('rt_o_rounds') }}
+        <select name="trials">{% for n in rt.trials %}<option value="{{ n }}"{% if n == rt.trials_default %} selected{% endif %}>{{ t('rt_o_rounds_1') if n == 1 else t('rt_o_rounds_n', n=n) }}</option>{% endfor %}</select></label>
+      <label>{{ t('rt_o_lang') }}
+        <select name="langs">{% for l in ['vi', 'en', 'vi,en'] %}<option value="{{ l }}"{% if l == lang %} selected{% endif %}>{{ t('rt_lang_' ~ l|replace(',', '_')) }}</option>{% endfor %}</select></label>
+      <label>{{ t('rt_o_attacker') }}
+        <select name="attacker"><option value="templates" selected>{{ t('rt_att_templates') }}</option><option value="ai"{% if not rt.ai_ready %} disabled{% endif %}>{{ t('rt_att_ai') }}</option></select></label>
+      <label>{{ t('rt_o_ai_n') }}
+        <select name="ai_n">{% for n in rt.ai_counts %}<option value="{{ n }}"{% if n == rt.ai_default %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+    </div>
+    <p class="hint">{{ t('rt_att_hint') }}{% if not rt.ai_ready %} {{ t('rt_att_ai_off') }}{% endif %}</p>
+    <p class="rt-actions"><button class="btn primary" type="submit" data-act="run-redteam">{{ t('rt_run_again') if rt.last else t('rt_run') }}</button>
+      <span class="hint">{{ t('rt_after_hint') }}</span></p>
+  </form>
+  {% elif not rt.can_run %}<p class="hint" data-readonly="1">{{ t('rt_view_only') }}</p>{% endif %}
+
+  {% if rt.runs|length > 1 and rt.where == 'tab' %}
+  <h4>{{ t('rt_history_h') }}</h4>
+  <ul class="rt-list" data-list="history">
+  {% for r in rt.runs %}<li>{% if r.status == 'done' %}<a href="/console/redteam/report/{{ r.run_id }}?lang={{ lang }}">{{ t('rt_history_row', when=r.when, verdict=t('rt_v_' ~ r.verdict) if r.verdict else t('rt_status_' ~ r.status)) }}</a>
+    {% else %}{{ r.when }}: {{ t('rt_status_' ~ r.status) }}{% endif %}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+{% else %}
+{% set _sid = system_id if system_id is defined and system_id else (system.system_id if system is defined and system else '') %}
+{% if redteam_tab is defined and redteam_tab and _sid %}
+<link rel="stylesheet" href="/console/static/rteam.css">
+<div class="rt rt-loader" id="rt-panel" data-rt="loader" data-system="{{ _sid }}" hx-get="/console/redteam/panel/{{ _sid|urlencode }}?where={{ rt_where if rt_where is defined else 'step' }}&amp;lang={{ lang }}" hx-trigger="load" hx-swap="outerHTML">
+  <p class="hint">{{ t('rt_loading') }}</p>
+</div>
+{% endif %}
+{% endif %}

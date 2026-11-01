@@ -166,12 +166,12 @@ def test_page_lists_runs_reports_and_packages_with_pending_review(
     assert page.status_code == 200
     text = page.text
     assert "rw_20261028_abcdef" in text and "watch-2026-10-28.json" in text
-    assert "pending review (WP-W2)" in text and "100/2026/TT-NHNN" in text
+    assert "waiting for review" in text and "100/2026/TT-NHNN" in text
     assert "Stored, not applied." in text
     runs = on.get(RUNS, user="admin.chi").json()
     assert runs["runs"][0]["run_id"] == "rw_20261028_abcdef" and runs["reports"][0]["changes"]
     vi = on.get(PAGE + "?lang=vi", user="admin.chi")
-    assert "chờ xem xét (WP-W2)" in vi.text
+    assert "chờ xem xét" in vi.text
 
 
 def test_nav_tab_follows_the_flag_and_admin_role(

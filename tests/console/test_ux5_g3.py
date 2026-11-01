@@ -43,7 +43,7 @@ def words(html: str) -> int:
 def test_evidence_label_is_short_and_readable() -> None:
     t = i18n.translator("en", ux5=True)
     row = {"status_reason": "present: agent_event_log (agent_event); missing: none"}
-    assert compliance_ux5.evidence_label(row, t) == "Evidence: agent event log. Missing: nothing."
+    assert compliance_ux5.evidence_label(row, t) == "Evidence: agent event log. Nothing missing."
     row = {"status_reason": "present: none; missing: launch_report (evidence not on)"}
     assert compliance_ux5.evidence_label(row, t) == "Missing: launch report (not switched on)."
     row = {"status_reason": "bank process, no Supervisor control; process ids: security_assessment"}
@@ -93,7 +93,7 @@ def test_list_page(ux: Console) -> None:
     assert r.status_code == 200 and 'class="ux5"' in r.text
     for agent in ("payments", "credit_prequal", "customer_service"):
         assert f'data-agent="{agent}"' in r.text
-    assert r.text.count("Advisory only") >= 1 and "Open matrix" not in r.text
+    assert r.text.count("Not legal advice") >= 1 and "Open matrix" not in r.text
     assert "python -m supervisor.advisory" not in r.text
     assert words(r.text) < 400
 
@@ -106,7 +106,8 @@ def test_summary_tab_is_short_and_answers_first(ux: Console) -> None:
     q = max(_demo_matrix("", "payments")["questions"], key=lambda x: len(x["obligation_ids"]))
     assert f'data-question="{q["id"]}"' in r.text
     assert f"Blocks {len(q['obligation_ids'])} duties" in r.text
-    assert "Show reasoning (" in r.text
+    assert "Show reasoning (" not in r.text  # UI-113: the entries are on the Decision 33 tab
+    assert "tab=d33" in r.text
     assert "profile.json#decision33" not in r.text  # source files are counted, not listed
     assert words(r.text) < 900
     assert f'data-obligation="{GAP_ID}"' not in r.text or r.text.count("data-obligation=") <= 8
@@ -175,7 +176,8 @@ def test_obligation_page(ux: Console) -> None:
         "data-", ""
     )  # id words only, no raw id for non-admin
     assert "Agent version" in r.text and "Source note" in r.text
-    assert "No Vietnamese text stored for this duty." in r.text
+    assert "No Vietnamese text stored for this duty." not in r.text  # UI-116: no empty block
+    assert 'data-text-vi="1"' not in r.text
     assert words(r.text) < 400
 
 
@@ -199,7 +201,7 @@ def test_drafts_page(ux: Console) -> None:
 def test_internal_documents_page(ux: Console) -> None:
     r = ux.get("/console/regkb/internal")
     assert r.status_code == 200 and 'class="ux5"' in r.text
-    assert "Policies, standards and procedures the bank uploaded." in r.text
+    assert "Bank policies, standards and procedures you uploaded." in r.text
     assert "Not legal advice. Bank counsel confirms." in r.text
     assert 'data-regkb-banner="1"' not in r.text
     assert words(r.text) < 200

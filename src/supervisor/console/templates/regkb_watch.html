@@ -23,11 +23,16 @@
   {% endif %}
 {% endmacro %}
 {% block content %}
-{{ ui.crumbs([('Regulations', None), (t('rw_title'), None)]) }}
+{{ ui.crumbs([(t('nv3_risks_controls'), None), (t('rw_title'), None)]) }}
 {{ ui.pagehead(t('rw_title')) }}
 <section class="card" id="regwatch-panel" data-section="regwatch">
   <div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ t('rw_banner') }}</b></div>
   <p class="hint">{{ t('rw_hint') }}</p>
+  {# UI-120: nothing ran and nothing was imported: one empty state, not three headings with a count of 0 #}
+  {% set nothing = not rw.runs and not rw.reports and not rw.packages %}
+  {% if nothing %}
+  <p class="hint" data-empty="regwatch-runs">{{ t('rw_no_runs') }}</p>
+  {% else %}
 
   <h3>{{ t('rw_runs') }} <span class="k">{{ rw.runs|length }}</span></h3>
   {% if rw.runs %}
@@ -81,5 +86,6 @@
   {% else %}
   <p class="hint" data-empty="regwatch-packages">{{ t('rw_no_packages') }}</p>
   {% endfor %}
+  {% endif %}
 </section>
 {% endblock %}

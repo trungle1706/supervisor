@@ -1,0 +1,108 @@
+{# Brief report of one assessment run (ONBOARD_ORCHESTRATOR): the totals, the failed checks and one
+   block per risk type with its findings. Opened in place from the Run assessment panel (htmx) and as
+   a page (system_orch_brief.html). Variables: s, brief_* (systems_orch.brief_view). Reads only. #}
+{% import "_ux5.html" as u5 with context %}
+{% set run = brief_run %}
+{% set ob = '/console/systems/' ~ s.system_id %}
+{% set vk = {'pass': 'ok', 'fail': 'bad', 'question': 'warn', 'not_applicable': 'na'} %}
+{% set tot = brief_totals %}
+{% macro lab(d) %}{% set l = brief_labels.get(d) %}{% if l %}{{ l[1] if lang == 'vi' else l[0] }}{% else %}{{ d }}{% endif %}{% endmacro %}
+{% macro verdict(v) %}{{ u5.status_chip(vk.get(v, 'na'), t('g2_br_v_' ~ v) if v in vk else t('g2_br_v_none')) }}{% endmacro %}
+{% set ex_on = brief_exec_on is defined and brief_exec_on %}
+{% macro pick_lang(d) %}{{ d.vi if lang == 'vi' else d.en }}{% endmacro %}
+{% macro sev(v) %}{{ u5.status_chip({'high': 'bad', 'medium': 'warn', 'low': 'na'}[v], t('exec_sev_' ~ v)) }}{% endmacro %}
+{% macro rating(v) %}{{ u5.status_chip({'high': 'bad', 'medium': 'warn', 'low': 'info', 'clear': 'ok', 'open': 'na'}[v], t('exec_rating_' ~ v)) }}{% endmacro %}
+{% macro writer(w) %}{% if w == 'rules' %}{{ t('exec_writer_rules') }}{% elif w == 'mock' %}{{ t('exec_writer_mock') }}{% else %}{{ t('exec_writer_ai', model=w[3:]) }}{% endif %}{% endmacro %}
+{% macro card(it, dims=none) %}
+<article class="g2-ex-card" data-exec-item="{{ it.key }}" data-status="{{ it.status }}" data-severity="{{ it.severity }}">
+  <div class="g2-ex-top">{{ sev(it.severity) }} <span class="muted g2-ex-st">{{ t('exec_st_' ~ it.status) }}</span>
+    {% if dims %}<span class="muted g2-ex-dims">{{ t('exec_applies') }}: {% for d in dims %}{{ lab(d) }}{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}</div>
+  <p class="g2-ex-head">{{ pick_lang(it.headline) }}</p>
+  <dl class="g2-ex-kv">
+    <dt>{{ t('exec_why') }}</dt><dd>{{ pick_lang(it.impact) }}</dd>
+    <dt>{{ t('exec_next') }}</dt><dd>{{ pick_lang(it.action) }}</dd>
+    <dt>{{ t('exec_who') }}</dt><dd>{{ t('exec_owner_' ~ it.owner) }}</dd>
+    {% if it.fact_refs %}<dt>{{ t('exec_code') }}</dt><dd>{% for r in (it.fact_refs|unique|list)[:4] %}<code>{{ r }}</code>{% if not loop.last %}<br>{% endif %}{% endfor %}</dd>{% endif %}
+  </dl>
+</article>
+{% endmacro %}
+<div class="g2-br" data-orch="brief-body" data-run="{{ run.run_id }}">
+  <div class="g2-br-head">
+    <h3>{{ t('g2_br_title', n=run.attempt_n) }}</h3>
+    {{ u5.status_chip('ok' if run.status == 'done' else 'bad' if run.status == 'failed' else 'warn', t('orch_run_' ~ run.status)) }}
+    <span class="muted" data-orch="brief-meta">{% if run.finished_at %}{{ run.finished_at[:16]|replace('T', ' ') }} UTC · {% endif %}{{ t('g2_pg_secs', s=brief_seconds if brief_seconds is not none else 0) }} · {{ run.created_by }}</span>
+    <span class="g2-sp"></span>
+    {% if not (brief_page is defined and brief_page) %}<a class="btn sm" href="{{ ob }}/orchestrate/{{ run.run_id }}/brief?lang={{ lang }}" target="_blank" rel="noopener" data-act="orch-brief-page">{{ t('g2_br_page') }}</a>{% endif %}
+  </div>
+  {% if ex_on %}
+  <section class="g2-ex-bottom" data-orch="exec-bottom">
+    <h4>{{ t('exec_bottom') }}</h4>
+    {% if brief_bottom %}
+    <div class="g2-ex-cards">{% for it in brief_bottom %}{{ card(it, it.dims) }}{% endfor %}</div>
+    {% else %}<p class="muted">{{ t('exec_none') }}</p>{% endif %}
+    <p class="muted g2-ex-note">{{ t('exec_advisory') }}</p>
+  </section>
+  {% endif %}
+  <dl class="g2-br-kpis" data-orch="brief-kpis">
+    <div><dt>{{ t('g2_br_k_class') }}</dt><dd>{{ t('pf_out_' ~ brief_outcome) if brief_outcome else t('pf_out_none') }}</dd></div>
+    <div><dt>{{ t('g2_br_k_types') }}</dt><dd><b>{{ brief_reported }}</b> / {{ brief_applicable }}{% if brief_n > brief_applicable %} <span class="muted">{{ t('g2_pg_na', n=brief_n - brief_applicable) }}</span>{% endif %}</dd></div>
+    <div><dt>{{ t('g2_br_k_need') }}</dt><dd><b>{{ brief_need }}</b></dd></div>
+    <div><dt>{{ t('g2_br_k_findings') }}</dt><dd class="g2-br-chips">{{ u5.status_chip('ok', t('g2_br_n_pass', n=tot.passed)) }} {{ u5.status_chip('bad', t('g2_br_n_fail', n=tot.failed)) }} {{ u5.status_chip('warn', t('g2_br_n_q', n=tot.questions)) }}</dd></div>
+  </dl>
+  <p class="g2-br-say" data-orch="brief-headline">
+    {% if tot.failed %}<b>{{ t('g2_br_say_fail', n=tot.failed) }}</b>
+    {% elif tot.questions %}<b>{{ t('g2_br_say_q', n=tot.questions) }}</b>
+    {% elif tot.total %}<b>{{ t('g2_br_say_ok') }}</b>
+    {% else %}<b>{{ t('g2_br_say_none') }}</b>{% endif %}
+    {% if brief_problems %} {{ t('g2_br_say_problems', n=brief_problems) }}{% endif %}
+    {{ t('g2_br_say_next') }}
+  </p>
+  {% if brief_points and not ex_on %}
+  <section class="g2-br-points" data-orch="brief-fails">
+    <h4>{{ t('g2_br_fails') }}</h4>
+    <ul>{% for p in brief_points[:8] %}<li><b>{{ lab(p.dimension_id) }}</b> · <code>{{ p.finding.checklist_id }}</code> {{ p.finding.rationale }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+  <h4>{{ t('g2_br_by_type') }}</h4>
+  <ol class="g2-br-types">
+  {% for ty in brief_types %}
+    <li id="rd-{{ ty.dimension_id }}" data-orch-brief-dim="{{ ty.dimension_id }}" data-verdict="{{ ty.verdict }}">
+    {% if not ty.applies %}
+      <div class="g2-br-row na"><b>{{ lab(ty.dimension_id) }}</b> {{ u5.status_chip('na', t('orch_it_not_applicable')) }}<span class="muted">{% set rk = 'orch_reason_' ~ ty.reason %}{% set rt = t(rk) %}{{ rt if rt != rk else ty.reason }}</span></div>
+    {% else %}
+      <details{% if ty.open %} open{% endif %}>
+        <summary class="g2-br-row">
+          <b>{{ lab(ty.dimension_id) }}</b>
+          {{ verdict(ty.verdict) }}
+          {% if ty.status != 'done' %}{{ u5.status_chip('bad' if ty.needs_person or ty.status in ('failed', 'budget_exceeded') else 'warn', t('orch_it_' ~ ty.status)) }}{% endif %}
+          <span class="muted g2-br-n">{{ t('g2_br_counts', p=ty.summary.get('passed', 0), f=ty.summary.get('failed', 0), q=ty.summary.get('questions', 0)) }}</span>
+          {% if ex_on and ty.exec %}{{ rating(ty.exec.rating) }}{% endif %}
+          <span class="muted g2-br-n">{% if ex_on %}<span data-orch="agent-kind" data-kind="{{ ty.agent_kind }}">{{ t('exec_kind_' ~ ty.agent_kind) }}</span>{% else %}{{ t('g2_br_rule') if ty.agent == 'rule' else ty.agent }}{% endif %}{% if ty.model_id and ty.model_id != 'none' %} · {{ ty.model_id }}{% endif %} · {{ t('g2_br_ms', ms=ty.ms) }}</span>
+          {% if ex_on and ty.exec %}<span class="g2-br-top" data-orch="type-bottom">{{ pick_lang(ty.exec.bottom_line)|truncate(200) }}</span>{% elif ty.top %}<span class="g2-br-top">{{ ty.top[0].rationale|truncate(140) }}</span>{% elif ty.note %}<span class="g2-br-top">{{ ty.note }}</span>{% endif %}
+        </summary>
+        {% if ex_on and ty.exec %}
+        <section class="g2-ex-key" data-orch="exec-key">
+          <h4>{{ t('exec_key') }} <span class="muted g2-ex-writer" data-orch="exec-writer">{{ writer(ty.exec.writer) }}</span></h4>
+          {% if ty.exec['items'] %}<div class="g2-ex-cards">{% for it in ty.exec['items'] %}{{ card(it) }}{% endfor %}</div>
+          {% else %}<p class="muted">{{ t('exec_none') }}</p>{% endif %}
+        </section>
+        {% endif %}
+        {% if ty.findings %}
+        {% if ex_on and ty.exec %}<details class="g2-ex-all" data-orch="exec-all"><summary>{{ t('exec_all', n=ty.findings|length) }}</summary>{% endif %}
+        <table class="g2-br-find" data-table="brief-findings">
+          <thead><tr><th scope="col">{{ t('g2_br_c_result') }}</th><th scope="col">{{ t('g2_br_c_check') }}</th><th scope="col">{{ t('g2_br_c_why') }}</th><th scope="col">{{ t('g2_br_c_ev') }}</th></tr></thead>
+          <tbody>{% for f in ty.findings %}
+            <tr data-finding="{{ f.finding_id }}"><td>{{ verdict(f.verdict) }}</td><td><code>{{ f.checklist_id }}</code></td><td>{{ f.rationale }}<span class="muted"> ({{ t('g2_br_conf_' ~ f.confidence) }})</span></td>
+              <td>{% for e in f.evidence[:3] %}<code>{{ e.ref|truncate(60) }}</code>{% if not loop.last %}<br>{% endif %}{% else %}<span class="muted">-</span>{% endfor %}</td></tr>
+          {% endfor %}</tbody>
+        </table>
+        {% if ex_on and ty.exec %}</details>{% endif %}
+        {% else %}<p class="muted">{{ ty.note or t('g2_br_no_report') }}</p>{% endif %}
+        {% if ty.has_report %}<p class="g2-br-raw"><a href="/v1/orchestrate/{{ run.run_id }}/reports/{{ ty.dimension_id }}" data-orch="report-json">{{ t('g2_br_json') }}</a></p>{% endif %}
+      </details>
+    {% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+  <p class="muted g2-br-foot">{{ brief_banner }} {{ t('g2_br_foot') }}</p>
+</div>

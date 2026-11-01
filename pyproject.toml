@@ -68,7 +68,7 @@ markers = [
 line-length = 100
 target-version = "py311"
 src = ["src", "."]
-extend-exclude = ["docs", "data/corpus/repos", "tests/onboard/data"]
+extend-exclude = ["docs", "data/corpus/repos", "data/corpus/repos_agent", "tests/onboard/data"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "T20"]

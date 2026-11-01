@@ -6,9 +6,14 @@ templates (supply chain, reputation; also ``draft``, marked TEMPLATE in the desc
 (synthetic human-style labels) hold their golden sets; the dev tool ``tools/factory_golden_gen.py``
 writes them.
 
-``seed`` creates the agents the catalogue does not have yet and nothing else: an id that has a row
-(any version) is skipped, so a team's edits are never overwritten and a second call changes
-nothing. Seeding writes drafts only; promotion happens through the gate and the approvals.
+``seed`` creates the agents the catalogue does not have yet. An id that already has a row is
+skipped, unless the committed starter has a NEWER version than every row of the id (for example
+the starter is 0.2 and the catalogue holds only 0.1): then the new version is added beside the old
+one as a draft and the old rows stay untouched. A second call changes nothing, and a team's own
+version (any version equal to or newer than the starter) is never replaced. The golden set is
+kept per agent, not per version: starter case ids are merged in (same id, new content), a team's
+cases under other ids stay. Seeding writes drafts only; promotion happens through the gate and
+the approvals.
 Run by ``python -m supervisor.factory seed`` and, with ``FACTORY_SEED_STARTERS=1`` and
 ``AGENT_FACTORY=1``, once at startup.
 """
@@ -37,6 +42,10 @@ STARTER_IDS = (
 )
 TEMPLATE_IDS = ("supply-chain-assessor", "reputation-assessor")
 ACTOR = "starter.seed"
+
+
+def _vkey(version: str) -> tuple[int, ...]:
+    return tuple(int(x) for x in str(version).split(".") if x.isdigit())
 
 
 def _read(path: Path) -> Any:
@@ -80,12 +89,16 @@ def seed(
     directory: Path | None = None,
 ) -> dict[str, list[str]]:
     """Create the missing starter agents and templates as drafts and copy their golden sets.
-    Returns the ids ``created`` and ``skipped`` (an id that already has a row)."""
+    Returns the ids ``created`` (new id), ``added`` (``<id>@<version>``: a newer starter version
+    added beside older rows) and ``skipped`` (an id that has this version or a newer one)."""
     created: list[str] = []
+    added: list[str] = []
     skipped: list[str] = []
     for raw in load_definitions(directory):
         agent_id = str(raw["id"])
-        if fstore.versions(agent_id):
+        existing = fstore.versions(agent_id)
+        starter_version = str((raw.get("lifecycle") or {}).get("version") or "")
+        if existing and not _vkey(starter_version) > _vkey(existing[-1]["version"]):
             skipped.append(agent_id)
             continue
         model = store.validate_definition(raw, fstore.tools, fstore.groups)
@@ -105,7 +118,13 @@ def seed(
             },
         )
         fstore.record_event(
-            agent_id, doc["lifecycle"]["version"], "created", actor, "from starter definition"
+            agent_id,
+            doc["lifecycle"]["version"],
+            "created",
+            actor,
+            "from starter definition"
+            if not existing
+            else f"starter version added beside {existing[-1]['version']}",
         )
         cases, labels = load_golden(agent_id, directory)
         ids = [c["id"] for c in doc["checklist"]]
@@ -126,8 +145,11 @@ def seed(
             if bad2:
                 raise store.FactoryError("invalid_golden", f"{agent_id}: {bad2[0]['reason']}")
             golden.store_labels(data_dir, agent_id, good)
-        created.append(agent_id)
-    return {"created": created, "skipped": skipped}
+        if existing:
+            added.append(f"{agent_id}@{doc['lifecycle']['version']}")
+        else:
+            created.append(agent_id)
+    return {"created": created, "added": added, "skipped": skipped}
 
 
 def seed_for_runtime(settings: Any, runtime: Any) -> dict[str, list[str]] | None:
@@ -140,6 +162,6 @@ def seed_for_runtime(settings: Any, runtime: Any) -> dict[str, list[str]] | None
     ctx = build_context(runtime)
     fstore = store.FactoryStore(ctx.state, ctx.tables, ctx.clock)
     result = seed(fstore, Path(settings.data_dir))
-    if result["created"]:
-        log.info("starter agents created: %s", ", ".join(result["created"]))
+    if result["created"] or result["added"]:
+        log.info("starter agents created: %s", ", ".join([*result["created"], *result["added"]]))
     return result

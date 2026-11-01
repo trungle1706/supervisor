@@ -8,22 +8,16 @@ template key test sees them. ``UX5`` overrides existing keys (en, vi), listed in
 from __future__ import annotations
 
 NEW: dict[str, tuple[str, str]] = {
-    "u5g1_my_purpose": (
-        "The state of the {n} AI systems in your scope.",
-        "Tình trạng của {n} hệ thống AI trong phạm vi của bạn.",
-    ),
-    "u5g1_items_wait": ("{n} items wait for you", "{n} việc đang chờ bạn"),
-    "u5g1_cases_open": ("{n} open cases", "{n} vụ việc đang mở"),
-    "u5g1_clock_left": ("Report due in {d}", "Báo cáo còn {d} đến hạn"),
+    "u5g1_my_purpose": ("Status of your {n} AI systems.", "Tình trạng {n} hệ thống AI của bạn."),
+    "u5g1_clock_left": ("Report due in {d}", "Còn {d} đến hạn báo cáo"),
     "u5g1_clock_over": ("Report overdue by {d}", "Báo cáo quá hạn {d}"),
     "u5g1_attention": ("Needs attention", "Cần chú ý"),
     "u5g1_all_good": ("Nothing needs attention.", "Không có việc cần chú ý."),
     "u5g1_more_open": ("{n} more items are open.", "Còn {n} việc đang mở."),
-    "u5g1_open_task": ("Open task", "Mở nhiệm vụ"),
-    "u5g1_open_cases": ("Open cases", "Mở vụ việc"),
-    "u5g1_open_candidates": ("Open candidates", "Mở ứng viên"),
-    "u5g1_open_item": ("Open item", "Mở việc"),
-    "u5g1_all_n": ("All {n}", "Tất cả {n}"),
+    "u5g1_open_task": ("View task", "Xem nhiệm vụ"),
+    "u5g1_open_cases": ("View cases", "Xem vụ việc"),
+    "u5g1_open_candidates": ("View candidates", "Xem ứng viên"),
+    "u5g1_open_item": ("View item", "Xem hạng mục"),
     "u5g1_key_figures": ("Key figures", "Số liệu chính"),
     "u5g1_agents_running": ("Agents, {n} running", "Tác tử, {n} đang chạy"),
     "u5g1_systems_n": ("{n} systems", "{n} hệ thống"),
@@ -41,8 +35,8 @@ NEW: dict[str, tuple[str, str]] = {
     # governance overview
     "u5g1_gov_purpose": ("Showing {n} of {total} systems.", "Hiển thị {n} / {total} hệ thống."),
     "u5g1_classified_tip": (
-        "Classification rate: systems with a Decision 33 class set by a person, over systems in scope.",
-        "Tỷ lệ phân loại: hệ thống có phân loại Quyết định 33 do người đặt, trên số hệ thống trong phạm vi.",
+        "Share of in-scope AI systems that a person has classified under Decision 33.",
+        "Tỷ lệ hệ thống AI trong phạm vi đã được người phân loại theo Quyết định 33.",
     ),
     "u5g1_not_measured": ("Not measured", "Chưa đo"),
     "u5g1_not_measured_line": (
@@ -59,30 +53,22 @@ NEW: dict[str, tuple[str, str]] = {
         "hệ thống chưa có biện pháp kiểm soát (không hiển thị)",
     ),
     "u5g1_policy_none": ("No compliance data yet.", "Chưa có dữ liệu tuân thủ."),
-    "u5g1_policy_fold": (
-        "systems without policy data (not shown)",
-        "hệ thống chưa có dữ liệu chính sách (không hiển thị)",
-    ),
     "u5g1_advisory": (
         "Advisory, not legal advice",
         "Chỉ mang tính tham khảo, không phải tư vấn pháp lý",
     ),
-    "u5g1_advisory_tip": (
-        "From the advisory compliance matrix. Not legal advice; bank counsel confirms.",
-        "Từ ma trận tuân thủ mang tính tham khảo. Không phải tư vấn pháp lý; pháp chế ngân hàng xác nhận.",
-    ),
     # supervisor overview
     "u5g1_sup_purpose": (
-        "Runtime health of the {n} agents in scope.",
-        "Tình trạng vận hành của {n} tác tử trong phạm vi.",
+        "Live status of the {n} agents in your scope.",
+        "Tình trạng hoạt động của {n} tác tử trong phạm vi của bạn.",
     ),
     "u5g1_sup_problem": (
-        "Agents with stops or gaps",
-        "Tác tử có chặn hoặc thiếu sót",
+        "Agents with blocked calls or gaps",
+        "Tác tử có lệnh bị chặn hoặc thiếu sót",
     ),
     "u5g1_sup_fold": (
-        "agents with no blocks and full coverage (not listed)",
-        "tác tử không bị chặn và đủ độ phủ (không liệt kê)",
+        "agents with no blocked calls and full coverage (hidden)",
+        "tác tử không có lệnh bị chặn và đủ độ phủ (ẩn)",
     ),
     "u5g1_sup_all": ("All {n} agents", "Tất cả {n} tác tử"),
     "u5g1_chain_banner": (
@@ -91,7 +77,7 @@ NEW: dict[str, tuple[str, str]] = {
     ),
     "u5g1_verify": ("Verify", "Xác minh"),
     "u5g1_no_problem": (
-        "No agent has stops or coverage gaps.",
+        "No agent has blocked calls or coverage gaps.",
         "Không có tác tử nào bị chặn hoặc thiếu độ phủ.",
     ),
     # search
@@ -111,11 +97,10 @@ NEW: dict[str, tuple[str, str]] = {
     "u5g1_health_status": ("Status", "Trạng thái"),
     "u5g1_health_dev": ("Developer checks", "Kiểm tra cho nhà phát triển"),
     "u5g1_health_pre": (
-        "Preflight: {fail} fail, {skip} skipped, {ok} ok",
-        "Preflight: {fail} lỗi, {skip} bỏ qua, {ok} đạt",
+        "Startup checks: {fail} failed, {skip} skipped, {ok} passed",
+        "Kiểm tra khởi động: {fail} không đạt, {skip} bỏ qua, {ok} đạt",
     ),
     "u5g1_show_checks": ("Show checks", "Xem các kiểm tra"),
-    "u5g1_mock_judges": ("Mock judges in use.", "Đang dùng judge mô phỏng."),
     # workflows
     "u5g1_wf_alerts": ("Alert rules ({n})", "Quy tắc cảnh báo ({n})"),
     "u5g1_every_min": ("Every minute", "Mỗi phút"),
@@ -129,13 +114,13 @@ NEW: dict[str, tuple[str, str]] = {
     "u5g1_job_anchor": ("Evidence anchoring", "Neo bằng chứng"),
     "u5g1_job_case_intake": ("Case intake", "Tiếp nhận vụ việc"),
     "u5g1_job_control_status": ("Control status", "Trạng thái kiểm soát"),
-    "u5g1_job_decision_rollup": ("Decision roll-up", "Tổng hợp quyết định"),
+    "u5g1_job_decision_rollup": ("Decision summary", "Tổng hợp quyết định"),
     "u5g1_job_drift": ("Drift check", "Kiểm tra lệch"),
     "u5g1_job_fairness": ("Fairness check", "Kiểm tra công bằng"),
     "u5g1_job_governance_actions": ("Governance actions", "Hành động quản trị"),
-    "u5g1_job_guardian_shadow": ("Guardian shadow run", "Chạy bóng guardian"),
-    "u5g1_job_ingest": ("Trace ingest", "Nạp dấu vết"),
-    "u5g1_job_judge_sweep": ("Judge sweep", "Quét bằng judge"),
+    "u5g1_job_guardian_shadow": ("Guardian trial run", "Chạy thử bộ bảo vệ"),
+    "u5g1_job_ingest": ("Trace collection", "Thu thập dấu vết"),
+    "u5g1_job_judge_sweep": ("AI judge review", "Rà soát bằng bộ đánh giá AI"),
     "u5g1_job_metrics": ("Metrics", "Chỉ số"),
     "u5g1_job_multiagent": ("Multi-agent check", "Kiểm tra đa tác tử"),
     "u5g1_job_notify": ("Notices", "Thông báo"),
@@ -145,44 +130,40 @@ NEW: dict[str, tuple[str, str]] = {
     "u5g1_job_session_monitor": ("Session monitor", "Giám sát phiên"),
     "u5g1_job_siem": ("SIEM export", "Xuất sang SIEM"),
     "u5g1_job_task_due": ("Task due dates", "Hạn nhiệm vụ"),
-    "u5g1_job_tool_analytics": ("Tool analytics", "Phân tích công cụ"),
-    "u5g1_job_scheduler": ("Scheduler", "Bộ lập lịch"),
+    "u5g1_job_tool_analytics": ("Tool usage", "Mức dùng công cụ"),
+    "u5g1_job_scheduler": ("Job schedule", "Lịch chạy tác vụ"),
     "u5g1_wf_jobs": ("Scheduled jobs", "Tác vụ định kỳ"),
-    "u5g1_wf_approvals": ("Approvals and sinks", "Phê duyệt và đầu ra"),
+    "u5g1_wf_approvals": ("Approvals and outputs", "Phê duyệt và nơi nhận"),
     # decisions
     "u5g1_more_filters": ("More filters", "Thêm bộ lọc"),
     # inbox
     "u5g1_inbox_sent": ("Sent to {who}", "Gửi tới {who}"),
     "u5g1_inbox_details": ("Details", "Chi tiết"),
     "u5g1_inbox_about": (
-        "Delivery to the bank's ITSM and pager is set in Settings > Integrations.",
-        "Việc chuyển thông báo tới ITSM và pager của ngân hàng được đặt trong Cài đặt > Tích hợp.",
+        "Alerts go to the bank's ITSM and pager as set in Settings > Integrations.",
+        "Thông báo được chuyển tới ITSM và pager của ngân hàng theo cài đặt tại Cài đặt > Tích hợp.",
     ),
     "u5g1_inbox_line": ("{agent}: {kind}", "{agent}: {kind}"),
     # my agents
-    "u5g1_agents_total_tip": (
-        "Registered agents, agents the gate knows from policy only, and workspace candidates.",
-        "Tác tử đã đăng ký, tác tử chỉ có trong chính sách và ứng viên trong workspace.",
-    ),
 }
 
 UX5: dict[str, tuple[str, str]] = {
     "nv3_cover_master_off": (
-        "Detectors are off, so no agent is covered.",
-        "Bộ phát hiện đang tắt, nên chưa tác tử nào được phủ.",
+        "Detectors are switched off, so no agent is covered.",
+        "Bộ phát hiện đang tắt nên chưa có tác tử nào được bảo vệ.",
     ),
-    "nv3_na_inventory_off": ("Inventory is off.", "Kiểm kê đang tắt."),
-    "nv3_na_controls_off": ("Controls are off.", "Kiểm soát đang tắt."),
-    "nv3_na_risks_off": ("The risk register is off.", "Sổ rủi ro đang tắt."),
-    "nv3_na_compliance_off": ("The compliance tab is off.", "Tab tuân thủ đang tắt."),
+    "nv3_na_inventory_off": ("Inventory is switched off.", "Phần kiểm kê đang tắt."),
+    "nv3_na_controls_off": ("Controls are switched off.", "Phần kiểm soát đang tắt."),
+    "nv3_na_risks_off": ("The risk register is switched off.", "Sổ rủi ro đang tắt."),
+    "nv3_na_compliance_off": ("The compliance tab is switched off.", "Tab tuân thủ đang tắt."),
     "nv3_na_no_status": (
         "Controls have not been assessed yet.",
         "Các biện pháp kiểm soát chưa được đánh giá.",
     ),
     "decisions_purpose_v2": ("All gate decisions.", "Mọi quyết định của cổng."),
     "decisions_why_v2": (
-        "Open a row to see the request, response and findings.",
-        "Mở một dòng để xem yêu cầu, phản hồi và phát hiện.",
+        "Open a decision to see the request, response and findings.",
+        "Mở một quyết định để xem yêu cầu, phản hồi và phát hiện.",
     ),
     "mya_purpose": (
         "Agents in your scope, with their gate state.",
@@ -202,38 +183,35 @@ UX5: dict[str, tuple[str, str]] = {
     ),
     "health_why": ("Fix every FAIL before go-live.", "Sửa mọi lỗi FAIL trước khi vận hành thật."),
     "h_judge_mock": ("Mock judges in use.", "Đang dùng giám khảo giả lập."),
-    "h_onboard_detail": (
-        "Start form for onboarding runs.",
-        "Biểu mẫu Bắt đầu cho các lần tiếp nhận.",
-    ),
+    "h_onboard_detail": ("Form to start onboarding.", "Biểu mẫu để bắt đầu tiếp nhận."),
     "h_databricks_in_use": (
         "Live workspace checks run outside this page.",
         "Kiểm tra workspace trực tiếp chạy ngoài trang này.",
     ),
     "health_note": ("Secret values are never shown.", "Không bao giờ hiển thị giá trị bí mật."),
     "nv3_wf_lede": (
-        "Automatic jobs and rules. Read only.",
-        "Công việc và quy tắc tự động. Chỉ đọc.",
+        "Automatic jobs and rules. View only.",
+        "Các công việc và quy tắc tự động. Chỉ xem.",
     ),
-    "nv3_never": ("Never run", "Chưa chạy"),
+    "nv3_never": ("Never run", "Chưa chạy lần nào"),
     "inbox_purpose": (
         "Notices about cases: new, sign-off needed, closed.",
         "Thông báo về vụ việc: mới, cần phê duyệt, đã đóng.",
     ),
-    "ov4_dim_intake": ("Intake complete", "Thông tin đầu vào đầy đủ"),
-    "ov4_dim_class": ("Decision 33 class set", "Đã đặt phân loại Quyết định 33"),
-    "ov4_dim_duties": ("Duties closed, average", "Nghĩa vụ đã đóng, trung bình"),
+    "ov4_dim_intake": ("Registration details complete", "Thông tin đăng ký đầy đủ"),
+    "ov4_dim_class": ("Decision 33 class set", "Đã có phân loại Quyết định 33"),
+    "ov4_dim_duties": ("Duties closed, average", "Nghĩa vụ đã hoàn tất, trung bình"),
     "du_ov_line": ("{avg}%", "{avg}%"),
     "ov4_assess": ("Assessment progress", "Tiến độ đánh giá"),
     "ov4_risk_by_autonomy": ("Autonomy level", "Mức tự chủ"),
     "ov4_pipeline": ("Progress by step", "Tiến độ theo bước"),
     "ov4_pipeline_note": (
         "Counts overlap: one system can be in several steps.",
-        "Các số liệu chồng nhau: một hệ thống có thể ở nhiều bước.",
+        "Các số có thể trùng nhau: một hệ thống có thể ở nhiều bước.",
     ),
-    "ov4_t_cover": ("Agents with a guardian", "Tác tử có guardian"),
+    "ov4_t_cover": ("Agents with a guardian", "Tác tử có bộ bảo vệ"),
     "ov4_why_overdue_high": (
         "Overdue high-risk task: {arg}.",
-        "Nhiệm vụ rủi ro cao quá hạn: {arg}.",
+        "Công việc rủi ro cao quá hạn: {arg}.",
     ),
 }

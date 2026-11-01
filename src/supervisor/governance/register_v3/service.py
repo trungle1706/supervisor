@@ -47,7 +47,7 @@ def needs_text(settings: Any) -> str:
         )
         if not getattr(settings, n, False)
     ]
-    return "REGISTER_V3 needs " + ", ".join(miss)
+    return "The new register flow needs these settings switched on: " + ", ".join(miss) + "."
 
 
 def on(ctx: Any) -> bool:
@@ -153,7 +153,9 @@ def _accept(data: dict[str, Any], which: str) -> None:
     fields = (*rm.STEP1, *rm.STEP2)
     for f in fields if which == "*" else (which,):
         if f not in fields:
-            raise rm.RegisterError("accept", "is not a field of this step")
+            raise rm.RegisterError(
+                "accept", "This suggestion does not belong to this step. Reload the page."
+            )
         s = data["sg"].get(f)
         if s is not None:
             data["v"][f] = s["value"]
@@ -170,11 +172,13 @@ def save_identify(
     from supervisor.governance.register_v2 import service as rs
 
     accept = (form.get("accept") or "").strip()
-    if accept:
-        _accept(data, accept)
     v = dict(data["v"])
     for step in (1, 2):
         v.update(rm.clean_step(step, form, v, strict=strict))
+    data["v"] = v
+    if accept:  # after the posted fields: a blank field of the form never hides the suggestion
+        _accept(data, accept)
+    v = dict(data["v"])
     if rs.scoped(ctx, me):
         v["owner_user"] = str(me.user_id)
     data["v"] = v
@@ -225,7 +229,7 @@ def ensure_system(ctx: Any, me: Any, draft: dict[str, Any], data: dict[str, Any]
         cur = ctx.systems.get(sid)
         if cur["status"] != "draft":
             raise rm.RegisterError(
-                "step", f"the system is {cur['status']}; it cannot be changed here"
+                "step", f"The AI system is {cur['status']}, so it cannot be changed here."
             )
         want = system_changes(ctx, me, draft, data)
         if want.get("owner_user") == cur["owner_user"]:
@@ -344,10 +348,12 @@ def _mark(r: Any, source: str, confirmed: bool, ref: str) -> dict[str, Any]:
 def clean_skip(raw: str) -> str:
     text = (raw or "").strip()
     if len(text) < MIN_SKIP:
-        raise rm.RegisterError("skip_reason", f"at least {MIN_SKIP} characters")
+        raise rm.RegisterError("skip_reason", f"Give a reason of at least {MIN_SKIP} characters.")
     if len(text) > rm.MAX_ANSWER_WHY or any(ord(c) < 32 and c not in "\n\t" for c in text):
         raise rm.RegisterError(
-            "skip_reason", f"at most {rm.MAX_ANSWER_WHY} characters, no control characters"
+            "skip_reason",
+            f"Keep the reason to {rm.MAX_ANSWER_WHY} characters or fewer, without special "
+            "characters.",
         )
     return text
 
@@ -361,7 +367,7 @@ def save_step(
 
     n = len(rm.STEP_KEYS_V3)
     if not 1 <= step <= n:
-        raise rm.RegisterError("step", f"must be 1 to {n}")
+        raise rm.RegisterError("step", f"Choose a step from 1 to {n}.")
     key = rm.STEP_KEYS_V3[step - 1]
     data = {k: (dict(v) if isinstance(v, dict) else v) for k, v in draft["data"].items()}
     strict = not stay and not (form.get("accept") or "").strip()
@@ -377,7 +383,7 @@ def save_step(
             and not data.get("skip_source")
         ):
             raise rm.RegisterError(
-                "source", "upload a source or give a reason to go on without one"
+                "source", "Upload a source, or give a reason to continue without one."
             )
     elif key == "facts":
         apply_facts_prefill(ctx, draft, data)
@@ -483,6 +489,7 @@ def step_view(
         "live": {
             "source": bool(s.onboard_intake),
             "facts": bool(s.onboard_facts),
+            "analysis": bool(getattr(s, "code_agent_enabled", False)),
             "assess": bool(s.onboard_orchestrator),
             "guardians": bool(s.onboard_predeploy),
         },
@@ -533,6 +540,8 @@ def step_view(
         out["level"] = class_level(ctx, draft)
     elif key == "guardians":
         out["g"] = rs.guardian_view(ctx, me, draft)
+        out["system_id"] = sid  # the kit and the red-team panel: the system record of the draft
+        out["source_key"] = out["src_key"]  # ... and the key its source attempts are stored under
         out["sg_on"] = False
         if sid:  # WP-G4: the smart guardian proposal (SMART_GUARDIAN)
             from supervisor.console import smart_guardian_view

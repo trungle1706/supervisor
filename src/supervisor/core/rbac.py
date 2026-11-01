@@ -520,6 +520,7 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/systems/{system_id}/guardian-proposal/reject"): "systems.edit",
     ("GET", "/console/systems/{system_id}/orchestrate"): "systems.view",
     ("POST", "/console/systems/{system_id}/orchestrate"): "systems.edit",
+    ("GET", "/console/systems/{system_id}/orchestrate/{run_id}/brief"): "systems.view",
     ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/set"): "systems.edit",
     ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/confirm"): "systems.edit",
     ("POST", "/console/systems/{system_id}/risk-dimensions/{dim}/waive"): "systems.approve",
@@ -621,6 +622,14 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/console/factory/{agent_id}/promote/reject"): "factory.approve",
     ("POST", "/console/factory/{agent_id}/promote/activate"): "factory.approve",
     ("POST", "/console/factory/{agent_id}/promote/rollback"): "factory.rollback",
+    # --- W4 (v0.11.2) --- inventory run (FACTORY_INVENTORY_RUN; 400 factory_inventory_off)
+    ("GET", "/console/factory/{agent_id}/inventory"): "systems.view",
+    ("POST", "/console/factory/{agent_id}/inventory/run"): "factory.edit",
+    ("GET", "/console/factory/{agent_id}/inventory/{run_id}"): "systems.view",
+    ("GET", "/console/factory/{agent_id}/inventory/{run_id}/progress"): "systems.view",
+    ("POST", "/console/factory/{agent_id}/inventory/{run_id}/cancel"): "factory.edit",
+    ("GET", "/console/factory/{agent_id}/inventory/{run_id}/system/{system_id}"): "systems.view",
+    ("GET", "/console/factory/{agent_id}/inventory/{run_id}/export.csv"): "systems.view",
     # --- WP-O1 (phase 9) --- candidate source intake (ONBOARD_INTAKE; 400 with the flag when off)
     ("GET", "/v1/intake/{node_id}"): "systems.view",
     ("POST", "/v1/intake/{node_id}"): "systems.edit",
@@ -632,11 +641,33 @@ ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/v1/facts/{node_id}/{n}"): "systems.edit",
     ("GET", "/console/facts/{node_id}"): "systems.view",
     ("POST", "/console/facts/{node_id}"): "systems.edit",
+    # source analysis agent (CODE_AGENT_ENABLED)
+    ("GET", "/v1/code-analysis/{node_id}"): "systems.view",
+    ("POST", "/v1/code-analysis/{node_id}/run"): "systems.edit",
+    ("POST", "/v1/code-analysis/{node_id}/apply"): "systems.edit",
+    ("GET", "/console/code-analysis/{node_id}"): "systems.view",
+    ("POST", "/console/code-analysis/{node_id}/run"): "systems.edit",
+    ("POST", "/console/code-analysis/{node_id}/apply"): "systems.edit",
+    ("GET", "/console/code-analysis/{node_id}/file"): "systems.view",
     # --- WP-O3 (phase 9) --- pre-deploy assessment (ONBOARD_PREDEPLOY; 400 predeploy_off when off)
     ("GET", "/v1/predeploy/{node_id}"): "systems.view",
     ("POST", "/v1/predeploy/{node_id}/{n}"): "systems.edit",
     ("GET", "/console/predeploy/{node_id}"): "systems.view",
     ("POST", "/console/predeploy/{node_id}"): "systems.edit",
+    # --- Guardian kit (GUARDIAN_KIT; 400 guardian_kit_off when off)
+    ("GET", "/console/guardian-kit/{system_id}"): "systems.view",
+    ("GET", "/console/guardian-kit/{system_id}/guardian_client.py"): "systems.view",
+    ("POST", "/console/guardian-kit/{system_id}/check"): "systems.edit",
+    # --- W8 --- stability after go-live (STABILITY_TAB; 400 when off), read only
+    ("GET", "/console/systems/{system_id}/stability"): "systems.view",
+    ("GET", "/console/systems/{system_id}/stability/panel"): "systems.view",
+    # --- W7 --- red team test before go-live (REDTEAM_TAB; 400 redteam_tab_off when off)
+    ("GET", "/console/redteam/panel/{system_id}"): "systems.view",
+    ("POST", "/console/redteam/{system_id}/run"): "systems.edit",
+    ("GET", "/console/redteam/progress/{run_id}"): "systems.view",
+    ("POST", "/console/redteam/run/{run_id}/cancel"): "systems.edit",
+    ("GET", "/console/redteam/run/{run_id}"): "systems.view",
+    ("GET", "/console/redteam/report/{run_id}"): "systems.view",
     # --- WP-O4 (phase 9) --- attach view (ONBOARD_ATTACH_VIEW; 400 attach_off when off)
     ("GET", "/console/attach/{node_id}"): "systems.view",
     ("POST", "/console/attach/{node_id}/check"): "systems.edit",
@@ -677,6 +708,9 @@ ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/console/regkb/changes/{package_sha}/{instrument_id}"): "regkb.view",
     ("POST", "/console/regkb/changes/{package_sha}/{instrument_id}/diff"): "regkb.confirm",
     ("POST", "/console/regkb/changes/{package_sha}/{instrument_id}/apply"): "regkb.confirm",
+    # --- regulation graph (KBGRAPH_ENABLED; 400 kbgraph_off)
+    ("GET", "/v1/regkb/graph"): "regkb.view",
+    ("GET", "/console/regkb/graph"): "regkb.view",
     # --- WP-G6 --- MCP server, connected apps, KPIs (MCP_SERVER_ENABLED)
     ("POST", "/mcp"): AGENT,  # the credential is the HMAC signature of a connected app
     ("GET", "/v1/mcp/apps"): "mcp.apps",

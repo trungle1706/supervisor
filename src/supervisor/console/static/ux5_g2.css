@@ -9,6 +9,8 @@
 /* ---- system head and grouped tab nav ---- */
 .ux5 .g2-syshead { margin: 4px 0 8px; }
 .ux5 .g2-syshead .u5-title { gap: 8px; }
+.ux5 .g2-syshead .u5-title h1 { min-width: 0; overflow-wrap: break-word; }
+.ux5 .g2-syshead .g2-menu-r { margin-left: auto; }
 .ux5 .g2-meta { color: var(--u5-muted); font-size: 13px; margin-top: 2px; }
 .ux5 .g2-why { margin-top: 4px; }
 .ux5 .g2-why > summary { font-size: 12px; cursor: pointer; color: var(--u5-muted); }
@@ -80,9 +82,71 @@
 .ux5 .g2-q textarea, .ux5 .g2-q input[type="text"] { width: 100%; box-sizing: border-box; }
 .ux5 .g2-formcol { max-width: 760px; }
 .ux5 .g2-formcol .card { width: 100%; box-sizing: border-box; }
-.ux5 .g2-steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
-.ux5 .g2-steps span { font-size: 12px; font-weight: 600; padding: 3px 9px; border: 1px solid var(--u5-line); border-radius: 999px; color: var(--u5-muted); background: var(--u5-panel); }
-.ux5 .g2-steps span.on { color: var(--u5-ink); border-color: var(--u5-ink); }
 .ux5 .g2-foot { border-top: 1px solid var(--u5-line-soft); padding: 10px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ux5 .g2-formcol > .g2-foot, .ux5 .g2-formcol form > .g2-foot { position: sticky; bottom: 0; background: var(--u5-ground); border-top: 1px solid var(--u5-line); }
 .ux5 .g2-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+/* UI-065: the bulk bar of a duty group shows only while a duty of that group is ticked. */
+.g2-fw:not(:has(.g2-c-sel input:checked)) .g2-bulk { display: none; }
+
+/* Run assessment: live progress bar (one segment per applicable risk type) and the brief report. */
+.ux5 .g2-prog { margin: 6px 0 12px; }
+.ux5 .g2-prog-bar { display: flex; gap: 3px; height: 8px; }
+.ux5 .g2-prog-seg { flex: 1 1 0; border-radius: 4px; background: var(--u5-inset); transition: background-color 300ms ease-out; }
+.ux5 .g2-prog-seg.ok { background: var(--u5-ok); }
+.ux5 .g2-prog-seg.bad { background: var(--u5-high); }
+.ux5 .g2-prog-seg.run { background: var(--u5-info); animation: g2-pulse 1.2s ease-in-out infinite; }
+@keyframes g2-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .ux5 .g2-prog-seg.run { animation: none; } .ux5 .g2-prog-seg { transition: none; } }
+.ux5 .g2-prog-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 6px 0 0; font-size: 13px; }
+.ux5 .g2-prog-line b { font-variant-numeric: tabular-nums; }
+.ux5 .g2-brief { margin-top: 8px; }
+.ux5 .g2-brief > summary { list-style: none; display: inline-flex; cursor: pointer; }
+.ux5 .g2-brief > summary::-webkit-details-marker { display: none; }
+.ux5 .g2-brief[open] > summary { margin-bottom: 8px; }
+.ux5 .g2-br { border: 1px solid var(--u5-line); border-radius: 10px; background: var(--u5-panel); padding: 14px 16px; }
+.ux5 .g2-br-page .g2-br { border: 0; padding: 0; }
+.ux5 .g2-br-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.ux5 .g2-br-head h3 { margin: 0; }
+.ux5 .g2-br h4 { margin: 14px 0 6px; font-size: 13px; color: var(--u5-muted); text-transform: uppercase; letter-spacing: .04em; }
+.ux5 .g2-br-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 12px 0; }
+.ux5 .g2-br-kpis > div { background: var(--u5-inset); border-radius: 8px; padding: 8px 10px; }
+.ux5 .g2-br-kpis dt { font-size: 12px; color: var(--u5-muted); }
+.ux5 .g2-br-kpis dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.ux5 .g2-br-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.ux5 .g2-br-say { margin: 4px 0 8px; }
+.ux5 .g2-br-points ul { margin: 0; padding-left: 18px; }
+.ux5 .g2-br-types { list-style: none; margin: 0; padding: 0; }
+.ux5 .g2-br-types > li { border-top: 1px solid var(--u5-line-soft); }
+.ux5 .g2-br-row { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 8px 0; cursor: pointer; }
+.ux5 .g2-br-row.na { cursor: default; }
+.ux5 .g2-br-n { font-size: 12px; font-variant-numeric: tabular-nums; }
+.ux5 .g2-br-top { flex-basis: 100%; font-size: 13px; color: var(--u5-body); }
+.ux5 .g2-br-find { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
+.ux5 .g2-br-find th, .ux5 .g2-br-find td { text-align: left; vertical-align: top; padding: 6px 8px; border-top: 1px solid var(--u5-line-soft); }
+.ux5 .g2-br-find code { word-break: break-all; }
+.ux5 .g2-br-raw { margin: 0 0 8px; font-size: 13px; }
+.ux5 .g2-br-foot { margin: 12px 0 0; font-size: 12px; }
+@media (max-width: 640px) { .ux5 .g2-br-find thead { display: none; } .ux5 .g2-br-find td { display: block; border: 0; padding: 2px 0; } .ux5 .g2-br-find tr { display: block; border-top: 1px solid var(--u5-line-soft); padding: 6px 0; } }
+/* while a run is live the Run assessment button waits (a second start answers run_in_progress) */
+.ux5 [data-rd="banner"]:has(+ #orch-panel .g2-prog.live) [data-act="orch-run"] { opacity: .5; pointer-events: none; }
+
+/* Executive findings of the assessment summary (ORCH_EXEC_FINDINGS): bottom line and key findings. */
+.ux5 .g2-ex-bottom { margin: 12px 0; }
+.ux5 .g2-ex-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 10px; }
+.ux5 .g2-ex-card { border: 1px solid var(--u5-line); border-radius: 8px; background: var(--u5-panel); padding: 10px 12px; min-width: 0; overflow-wrap: anywhere; }
+.ux5 .g2-ex-top { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12px; }
+.ux5 .g2-ex-head { margin: 6px 0; font-weight: 600; color: var(--u5-ink); }
+.ux5 .g2-ex-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13px; }
+.ux5 .g2-ex-kv dt { color: var(--u5-muted); }
+.ux5 .g2-ex-kv dd { margin: 0; color: var(--u5-body); }
+.ux5 .g2-ex-kv code { overflow-wrap: anywhere; font-size: 12px; }
+.ux5 .g2-ex-note { margin: 8px 0 0; font-size: 12px; }
+.ux5 .g2-ex-key { margin: 4px 0 10px; }
+.ux5 .g2-ex-key h4 { margin-top: 8px; }
+.ux5 .g2-ex-writer { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.ux5 .g2-ex-all > summary { cursor: pointer; font-size: 13px; color: var(--u5-muted); padding: 4px 0; }
+@media (max-width: 640px) { .ux5 .g2-ex-kv { grid-template-columns: minmax(0, 1fr); gap: 0; } .ux5 .g2-ex-kv dd { margin-bottom: 6px; } }
+
+/* W8: with the Stability tab the Operate group is wider than a phone: let its tabs wrap */
+@media (max-width: 560px) { .ux5 .g2-sysnav .tabs { flex-wrap: wrap; } }

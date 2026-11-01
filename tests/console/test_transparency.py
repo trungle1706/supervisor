@@ -88,8 +88,8 @@ def test_page_drawer_generate_button_and_tab(tp_on: Console) -> None:
     page = tp_on.get("/console/transparency")
     assert page.status_code == 200 and "payments" in page.text
     assert "/console/transparency" in tp_on.get("/console/").text
-    assert "Generate" in page.text  # reviewer sees the button
-    assert "Generate" not in tp_on.get("/console/transparency", user="viewer.hoa").text
+    assert "Create all versions" in page.text  # reviewer sees the button
+    assert "Create all versions" not in tp_on.get("/console/transparency", user="viewer.hoa").text
     d = tp_on.get("/console/transparency/payments/drawer?variant=regulator", headers=HX)
     assert d.status_code == 200 and "VN-QD33-2026" in d.text
     assert (

@@ -167,7 +167,7 @@ def test_span_panel_partial_and_verdict_kinds(ux: Console, tree: str) -> None:
     assert "tool_call transfer" in r.text
     assert "Tier 0b finding" in r.text and "injection" in r.text
     low = r.text.lower()
-    assert "judge" in low and "mock" in low and "advisory" in low
+    assert "judge" in low and "mock" in low and "advice only" in low
     assert "judge says so" in r.text
     gate = ux.get(f"/console/traces/{tree}/span/s4").text
     assert "PAY-02" in gate and "Gate rule" in gate
@@ -180,9 +180,9 @@ def test_span_panel_partial_and_verdict_kinds(ux: Console, tree: str) -> None:
 def test_capture_level_decides_what_text_is_shown_and_never_raw_pii(ux: Console, tree: str) -> None:
     masked = ux.get(f"/console/traces/{tree}/span/s3").text
     assert PHONE not in masked  # the masker runs again before the excerpt is shown
-    assert "PHONE" in masked and "Arguments (masked)" in masked
+    assert "PHONE" in masked and "Inputs (data hidden)" in masked
     digest = ux.get(f"/console/traces/{tree}/span/s2").text
-    assert "PRIVATE-DIGEST-TEXT" not in digest and "Digest level" in digest
+    assert "PRIVATE-DIGEST-TEXT" not in digest and "No text is kept for this step" in digest
     full = ux.get(f"/console/traces/{tree}").text
     assert PHONE not in full and "PRIVATE-DIGEST-TEXT" not in full
 
@@ -200,7 +200,7 @@ def test_no_masker_shows_no_text(ux: Console, monkeypatch: pytest.MonkeyPatch) -
     t = "trace-ux3-nomask"
     _event(ux, t, "n1", None, "tool_call", tool="transfer", level="masked", args=f"call {PHONE}")
     html = ux.get(f"/console/traces/{t}").text
-    assert PHONE not in html and "Digest level" in html
+    assert PHONE not in html and "No text is kept for this step" in html
 
 
 def test_cycles_missing_parents_and_the_span_cap(ux: Console) -> None:
@@ -269,7 +269,7 @@ def test_policies_lists_rules_versions_and_filters(ux: Console) -> None:
 
 def test_policy_drawer_yaml_refs_and_versions(ux: Console) -> None:
     d = ux.get("/console/policies/PAY-02/drawer?tab=details").text
-    assert "Internal limit" in d and "payments" in d and "Catalogue capabilities" in d
+    assert "Internal limit" in d and "payments" in d and "Guardians that apply" in d
     assert "single_limit" in d  # a gate-rule manifest for money
     y = ux.get("/console/policies/PAY-02/drawer?tab=yaml").text
     assert "100000000" in y and "agent_scope" in y
@@ -329,7 +329,9 @@ def test_credentials_show_metadata_and_never_a_secret(ux: Console, keys_file: Pa
     assert "8f3a1c2e-aaaa-bbbb-cccc-0123456789ab" not in html  # principal is shortened
     assert "8f3a...89ab" in html
     assert "ingress_auth rotate" in html
-    assert "INGRESS_AUTH_ENABLED is off" in html  # the flag is off in the test store
+    assert (
+        "Agent authentication is off, so the gate accepts calls without a key" in html
+    )  # the flag is off in the test store
     # the owner role may open it too; the secret is not in any header either
     r2 = ux.get("/console/credentials", user="payops-lead@example.invalid")
     assert r2.status_code == 200 and SECRET_KEY not in json.dumps(dict(r2.headers))
@@ -437,7 +439,7 @@ def test_audit_log_lists_filters_and_drawer(ux: Console) -> None:
     )
     d = ux.get(f"/console/audit/{ok_row['action_id']}/drawer", user="auditor.dung").text
     assert ok_row["before_hash"] in d and ok_row["after_hash"] in d
-    assert ok_row["request_id"] in d and "Rows of the same request" in d
+    assert ok_row["request_id"] in d and "Other decisions in this request" in d
     assert ids and ux.get(f"/console/audit?drawer={ids[0]}", user="auditor.dung").status_code == 200
     assert ux.get("/console/audit/zzzz/drawer", user="auditor.dung").status_code == 400
     for bad in ("outcome=x", "range=x", "page=999", "actor=a%20b", "permission=%3C"):
@@ -506,7 +508,7 @@ def test_integrations_status_and_no_secret(
     assert "URLSECRET" not in html and "TOKENSECRET" not in html and "collector" not in html
     siem = html.split('data-row="siem"')[1].split("</tr>")[0]
     assert ">2<" in siem  # two dead letters, counted from the file
-    assert html.count("stub (fake)") == 3  # pager, ITSM, SCIM
+    assert html.count("simulated (test)") == 3  # pager, ITSM, SCIM
     assert "Read-only" in html or "read-only" in html
 
 

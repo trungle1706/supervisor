@@ -20,9 +20,10 @@
 </header>
 {%- endmacro %}
 
-{% macro disclaimer(text) -%}
-{# One per page, next to the title: a chip with the text as tooltip. #}
-<span class="u5-chip na" tabindex="0" title="{{ text }}"><span class="u5-dot" aria-hidden="true"></span>{{ text|truncate(28, True, '...') }}</span>
+{% macro disclaimer(text, label=None) -%}
+{# One per page, next to the title: a chip with the text as tooltip. `label` is a short chip text
+   (UI-115) so a long disclaimer is not cut in the middle of a word. #}
+<span class="u5-chip na" tabindex="0" title="{{ text }}"><span class="u5-dot" aria-hidden="true"></span>{{ label or (text|truncate(28, True, '...')) }}</span>
 {%- endmacro %}
 
 {% macro tick_strip(counts, cap=60) -%}

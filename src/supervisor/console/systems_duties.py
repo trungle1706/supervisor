@@ -17,17 +17,10 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from supervisor.cases.service import PermissionDenied
+from supervisor.console.authz import may_system, person
 from supervisor.console.listing import ListingError, paginate, parse_int, query_string
-from supervisor.core import rbac
 from supervisor.governance import duties_gap as dg
 from supervisor.governance import duty_evidence as de
-
-
-def person(me: Any) -> str:
-    if getattr(me, "kind", "") != "user":
-        raise PermissionDenied("this action needs a signed-in person")
-    return str(me.user_id)
 
 
 def is_on(ctx: Any) -> bool:
@@ -51,17 +44,11 @@ def audit_note(action: str, before: str, after: str, n: int, typed: str | None =
 
 
 def may_edit(me: Any, system: Mapping[str, Any]) -> bool:
-    user = getattr(me, "kind", "") == "user"
-    return bool(
-        user and rbac.allowed(me.roles, "systems.edit") and system.get("status") != "archived"
-    )
+    return may_system(me, system, "systems.edit")
 
 
 def may_waive(me: Any, system: Mapping[str, Any]) -> bool:
-    user = getattr(me, "kind", "") == "user"
-    return bool(
-        user and rbac.allowed(me.roles, "systems.approve") and system.get("status") != "archived"
-    )
+    return may_system(me, system, "systems.approve")
 
 
 # ------------------------------------------------------------------------------ the buttons

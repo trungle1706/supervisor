@@ -5,8 +5,6 @@ The one object the job, the CLI, the routes, the console and the compliance advi
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 import logging
 from collections.abc import Mapping
@@ -14,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.config import REPO_ROOT, Settings
+from supervisor.core.csvsafe import csv_cell, write_csv
 from supervisor.core.errors import check_agent_id
 from supervisor.inventory import shadow
 from supervisor.inventory.fill import (
@@ -60,10 +59,7 @@ EDGE_CSV = (
 )
 
 
-def _cell(value: Any) -> str:
-    """A CSV cell safe to open in a spreadsheet (no formula injection)."""
-    text = "" if value is None else str(value)
-    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+_cell = csv_cell  # kept: the name tests import
 
 
 class InventoryService:
@@ -360,53 +356,43 @@ class InventoryService:
         """(nodes.csv, edges.csv) for the Databricks dashboard notebook."""
         g = self.store.load_graph()
         eff = g.effective_risk()
-        nb = io.StringIO()
-        w = csv.writer(nb, lineterminator="\n")
-        w.writerow(NODE_CSV)
+        node_rows = []
         for n in sorted(g.nodes.values(), key=_nkey):
             first = n.evidence[0] if n.evidence else {"ref": ""}
-            w.writerow(
-                [
-                    _cell(v)
-                    for v in (
-                        n.node_id,
-                        n.kind,
-                        n.name,
-                        n.display_name,
-                        n.status,
-                        n.own_risk,
-                        eff.get(n.node_id),
-                        n.risk_source,
-                        n.decision33_class,
-                        "|".join(n.sources),
-                        first["ref"],
-                    )
-                ]
+            node_rows.append(
+                (
+                    n.node_id,
+                    n.kind,
+                    n.name,
+                    n.display_name,
+                    n.status,
+                    n.own_risk,
+                    eff.get(n.node_id),
+                    n.risk_source,
+                    n.decision33_class,
+                    "|".join(n.sources),
+                    first["ref"],
+                )
             )
-        eb = io.StringIO()
-        w = csv.writer(eb, lineterminator="\n")
-        w.writerow(EDGE_CSV)
+        edge_rows = []
         for e in _edges(g):
             s, d = g.nodes.get(e.src_id), g.nodes.get(e.dst_id)
-            w.writerow(
-                [
-                    _cell(v)
-                    for v in (
-                        e.edge_id,
-                        e.src_id,
-                        s.kind if s else "",
-                        s.name if s else "",
-                        e.kind,
-                        e.dst_id,
-                        d.kind if d else "",
-                        d.name if d else "",
-                        e.source,
-                        e.evidence_ref,
-                        "true" if e.active else "false",
-                    )
-                ]
+            edge_rows.append(
+                (
+                    e.edge_id,
+                    e.src_id,
+                    s.kind if s else "",
+                    s.name if s else "",
+                    e.kind,
+                    e.dst_id,
+                    d.kind if d else "",
+                    d.name if d else "",
+                    e.source,
+                    e.evidence_ref,
+                    "true" if e.active else "false",
+                )
             )
-        return nb.getvalue(), eb.getvalue()
+        return write_csv(NODE_CSV, node_rows), write_csv(EDGE_CSV, edge_rows)
 
     def write_exports(self, out_dir: Path) -> list[Path]:
         out_dir.mkdir(parents=True, exist_ok=True)

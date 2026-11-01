@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from supervisor.console import compliance_view, systems_tabs
+from supervisor.console import compliance_view, systems_tabs, systems_views
 from tests.conftest import REPO_ROOT
 
 from .conftest import Console, draft
@@ -82,7 +82,8 @@ def body(html: str) -> str:
 def test_strip_has_the_spec_order_and_every_tab_answers_200(seeded_registers: Console) -> None:
     sid = system(seeded_registers)
     html = page(seeded_registers, sid, "overview")
-    assert re.findall(r'role="tab" data-tab="(\w+)"', html) == ORDER
+    # UI-069: the read-only Reviews tab shows only once the system has a review
+    assert re.findall(r'role="tab" data-tab="(\w+)"', html) == [t for t in ORDER if t != "reviews"]
     for tab in ORDER:
         for lang in ("en", "vi"):
             assert page(seeded_registers, sid, tab, lang)
@@ -102,7 +103,9 @@ def test_tab_needs_the_permission_of_its_page(
     seeded_registers: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     sid = system(seeded_registers)
-    monkeypatch.setattr(systems_tabs, "may", lambda me, perm: perm != "risks.view")
+    monkeypatch.setattr(
+        systems_views, "may", lambda me, perm: perm != "risks.view"
+    )  # authz.may, as used there
     html = page(seeded_registers, sid, "overview")
     assert "risks" not in re.findall(r'role="tab" data-tab="(\w+)"', html)
     r = seeded_registers.get(f"/console/systems/{sid}?tab=risks")
@@ -161,7 +164,7 @@ def test_risks_tab_with_no_agent_is_empty_not_invented(seeded_registers: Console
 def test_risks_tab_off_says_why(v3: Console, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(v3.ctx.settings, "risk_register_enabled", False)
     html = body(page(v3, system(v3), "risks"))
-    assert "not available" in html and "RISK_REGISTER_ENABLED=1" in html
+    assert "not available" in html and "The risk register is switched off" in html
 
 
 # ------------------------------------------------------------------ Controls
@@ -200,7 +203,7 @@ def test_controls_tab_off_and_no_agents(v3: Console, monkeypatch: pytest.MonkeyP
     assert "linked" in body(page(v3, sid, "controls")).lower()
     monkeypatch.setattr(v3.ctx.settings, "controls_enabled", False)
     html = body(page(v3, system(v3, name="Other"), "controls"))
-    assert "not available" in html and "CONTROLS_ENABLED=1" in html
+    assert "not available" in html and "Controls are switched off" in html
 
 
 # ------------------------------------------------------------------ Policies
@@ -214,7 +217,7 @@ def test_policies_tab_adds_up_the_matrix_of_the_agent(v3: Console) -> None:
     gap = sum(1 for r in yes if r["status"] == "gap")
     html = body(page(v3, sid, "policies"))
     flat = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
-    assert f"Obligations that apply {len(yes)} · Met {met} · Gap {gap}" in flat
+    assert f"Obligations that apply {len(yes)} · Met {met} · Not met {gap}" in flat
     bp = met * 10000 // len(yes)
     assert f"({bp} bp)" in flat
     # per instrument rows add up to the totals
@@ -239,7 +242,7 @@ def test_policies_tab_lists_an_agent_with_no_matrix_apart(v3: Console) -> None:
     add_agent(v3.ctx.runtime.adapters, "lonely_agent")
     sid = system(v3, agents=("payments", "lonely_agent"))
     html = body(page(v3, sid, "policies"))
-    assert "Agents with no matrix" in html and "lonely_agent" in html
+    assert "Agents with no compliance matrix" in html and "lonely_agent" in html
     only = system(v3, name="Only lonely", agents=("lonely_agent",))
     html = body(page(v3, only, "policies"))
     assert "not available" in html and "No linked agent has a compliance matrix" in html
@@ -248,7 +251,7 @@ def test_policies_tab_lists_an_agent_with_no_matrix_apart(v3: Console) -> None:
 def test_policies_tab_off_says_why(v3: Console, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(v3.ctx.settings, "console_compliance_enabled", False)
     html = body(page(v3, system(v3), "policies"))
-    assert "not available" in html and "CONSOLE_COMPLIANCE_ENABLED=1" in html
+    assert "not available" in html and "The compliance tab is switched off" in html
 
 
 # ------------------------------------------------------------------ Guardians
@@ -261,11 +264,11 @@ def test_guardians_tab_reads_the_detector_file_and_the_flags(
     s = v3.ctx.settings
     monkeypatch.setattr(s, "detectors_enabled", False)
     off = body(page(v3, sid, "guardians"))
-    assert "DETECTORS_ENABLED=1" in off and "below floor" in off
+    assert "Detectors are switched off" in off and "below the minimum" in off
     monkeypatch.setattr(s, "detectors_enabled", True)
     on = body(page(v3, sid, "guardians"))
-    assert "<code>dlp_vn</code>" in on and "DETECTORS_ENABLED=1" not in on
-    assert "Read only" in on
+    assert "<code>dlp_vn</code>" in on and "Detectors are switched off" not in on
+    assert "View only" in on
     # the same source as the Supervisor overview
     from supervisor.console import overview_v3
 
@@ -298,7 +301,7 @@ def test_guardians_floor_is_what_the_rules_engine_reads(v3: Console) -> None:
     floor = v3.ctx.rules.guardian_floor(sid)
     assert floor and floor[0]["slug"] == "dlp_vn"
     html = body(page(v3, sid, "guardians"))
-    section = html.split("Mandatory guardian floor")[1].split("</section>")[0]
+    section = html.split("Minimum required guardians")[1].split("</section>")[0]
     for f in floor:
         assert f"<code>{f['slug']}</code>" in section
         assert ", ".join(f["rules"]) in section
@@ -320,7 +323,7 @@ def test_policies_tab_counts_the_obligations_assigned_by_rules(v3: Console) -> N
     sid = system(v3)
     n = len(v3.ctx.rules.obligations(sid))
     html = body(page(v3, sid, "policies"))
-    assert f"{n} obligations assigned by rules" in html
+    assert f"{n} duties assigned by rules" in html
 
 
 # ------------------------------------------------------------------ Reports
@@ -359,8 +362,8 @@ def test_reports_tab_lists_the_incidents_of_the_system(
     sid = system(v3)
     other = system(v3, name="Other system")
     html = body(page(v3, sid, "reports"))
-    assert "Incidents" in html and "not available" in html
-    assert "GOVERNANCE_ACTIONS_ENABLED=1" in html  # the flag of WP-G5 is off
+    # UI-067: the flag of WP-G5 is off, so there is no incidents block (not a "not available" chip)
+    assert 'data-section="system-reports-incidents"' not in html
     monkeypatch.setattr(v3.ctx.settings, "governance_actions_enabled", True)
     at = datetime(2026, 10, 22, 11, 0, tzinfo=UTC)
     ev = GovernanceEvent("alert", "high", "payments", "alert:al_1", at, sid, rule_id="AL-X")

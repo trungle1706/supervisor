@@ -27,6 +27,7 @@ FLAGS = (
     "onboard_predeploy",  # WP-O3: the Pre-deploy tab
     "onboard_attach_view",  # WP-O4: the Attach tab
     "onboard_postdeploy",  # WP-O5: the Post-deploy tab
+    "code_agent_enabled",  # source analysis agent: the Source analysis tab
 )
 DEMO_AGENTS = ("payments", "credit_prequal", "customer_service")
 HX = {"HX-Request": "true"}
@@ -140,7 +141,7 @@ def test_flags_show_their_tabs(console: Console, monkeypatch: pytest.MonkeyPatch
     inv = console.get("/console/agents/payments/tab/inventory", headers=HX).text
     assert "not in the inventory" in inv
     assert (
-        "No assurance result"
+        "No tests run yet."
         in console.get("/console/agents/payments/tab/assurance", headers=HX).text
     )
     tools = console.get("/console/agents/payments/tab/tools", headers=HX).text

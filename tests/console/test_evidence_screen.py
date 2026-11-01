@@ -47,9 +47,13 @@ def test_evidence_screen_renders_real_chain(console: Console) -> None:
         shown, hidden = int(m.group(1)), int(m.group(2))
         assert shown == min(head.seq + 1, LANE_CAP) and shown + hidden == head.seq + 1
     assert 'class="b root signed"' in r.text  # signed roots in gold
-    assert "dev key" in r.text  # laptop signer is labelled
+    assert "test key" in r.text  # laptop signer is labelled
     assert "python -m supervisor.evidence.verify" in r.text and 'id="offline-cmd"' in r.text
-    assert "Verify now" in r.text and "Export chain" in r.text and "Build audit pack" in r.text
+    assert (
+        "Verify now" in r.text
+        and "Export evidence chain" in r.text
+        and "Build audit pack" in r.text
+    )
     assert console.get("/console/export").url.path == "/console/evidence"
 
 

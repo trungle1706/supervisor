@@ -85,7 +85,7 @@ def test_assurance_list_and_detail(console: Console, monkeypatch: pytest.MonkeyP
     assert "leak_rate_bp = 900" in d.text and "no-go 500" in d.text
     assert "/console/evidence" in d.text and "efefefefefef" in d.text
     vi = console.get("/console/assurance/run-test-1?lang=vi")
-    assert vi.status_code == 200 and "Gói" in vi.text
+    assert vi.status_code == 200 and "Bộ kiểm thử" in vi.text
 
 
 def test_assurance_errors_are_400(console: Console, monkeypatch: pytest.MonkeyPatch) -> None:

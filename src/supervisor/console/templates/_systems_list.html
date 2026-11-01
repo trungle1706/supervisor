@@ -8,7 +8,7 @@
   <thead>
     <tr>
       {{ tb.th('name', t('sy_col_name'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
-      {{ tb.th('owner_team', t('sy_col_team'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
+      {{ tb.th('owner_team', t('b3_col_owner'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
       {{ tb.th('lifecycle_stage', t('sy_col_stage'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
       {{ tb.th('risk', t('sy_col_risk'), sort_col, sort_dir, '/console/systems', '/console/systems/rows', base_qs) }}
       <th scope="col" class="n">{{ t('sy_col_components') }}</th>
@@ -22,7 +22,7 @@
       <td><a class="head rowlink"{% if ux5 %} title="{{ s.system_id }}"{% endif %} href="/console/systems?drawer={{ s.system_id }}&amp;{{ dq }}" hx-get="/console/systems/{{ s.system_id }}/drawer?{{ dq }}" hx-target="#drawer" hx-push-url="false">{{ s.name }}</a>{% if not ux5 %}<div class="idline mono">{{ s.system_id }}</div>{% endif %}</td>
       <td>{{ s.owner_team }}</td>
       <td>{{ t('sy_stage_' ~ s.lifecycle_stage) }}</td>
-      <td>{{ ui.pill(t('sy_risk_' ~ s.effective_risk_level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk_level, 'neutral')) }}{% if s.effective_risk_source == 'inherited' %} <span class="muted">{{ t('sy_inherited') }}</span>{% endif %}</td>
+      <td>{{ ui.pill(t('sy_risk_' ~ s.effective_risk_level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk_level, 'neutral')) }}{% if s.effective_risk_source == 'inherited' %} <span class="muted" title="{{ t('b3_inherited_tip') }}">{{ t('sy_inherited') }}</span>{% endif %}</td>
       <td class="n">{{ s.components_n }}</td>
       <td>{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }}</td>
     </tr>

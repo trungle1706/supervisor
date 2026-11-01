@@ -204,9 +204,9 @@ def test_a_call_that_matched_block_and_pause_is_counted_by_the_label(v2console: 
     # the stopping rule says pause (pause first), the verdict status says block (block first)
     assert (b2 - b1, p1 - p2) == (1, 1) and b1 + p1 == b2 + p2
     page = v2console.get("/console/analytics?tab=gate").text
-    assert 'id="dd-series-note"' in page and "block before pause" in page
+    assert 'id="dd-series-note"' in page and "Blocked ranked above Paused" in page
     # UX5-BUG: the rollup tables say they are a different source from the tiles
-    assert 'id="dd-rollup-note"' in page and "daily rollup" in page
+    assert 'id="dd-rollup-note"' in page and "daily summary" in page
 
 
 # --------------------------------------------------------------------------- F17

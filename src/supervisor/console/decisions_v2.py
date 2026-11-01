@@ -18,11 +18,9 @@ masked again on the way out, so a buggy detector cannot leak through the console
 
 from __future__ import annotations
 
-import csv
 import datetime as dt
 import hashlib
 import hmac
-import io
 import json
 import re
 import secrets
@@ -49,13 +47,13 @@ from supervisor.console import decisions as v1
 from supervisor.console import ux3
 from supervisor.console.listing import (
     ListingError,
-    paginate,
-    parse_int,
+    paginate_query,
     parse_sort,
     query_string,
     sort_rows,
 )
 from supervisor.console.readmodels import rules_index
+from supervisor.core.csvsafe import write_csv
 from supervisor.core.detectors import MAX_DEPTH, walk_leaves
 
 DRAWER_TABS = ("request", "response", "detections", "metadata")
@@ -253,7 +251,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     p = parse_params(query)
     rows, opts = rows_for(ctx, p)
     shown, col, direction = ordered(rows, p)
-    page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(shown, p, PAGE_SIZE)
     counts = {s: sum(1 for r in rows if r["status"] == s) for s in STATUSES}
     tiles = [{"label": "all", "n": len(rows), "on": not p["status"], "qs": _qs(p, status="")}]
     tiles += [
@@ -729,16 +727,6 @@ def drawer_view(ctx: Any, event_id: str, tab: str, query: Mapping[str, str]) -> 
 # ---------------------------------------------------------------------------- export
 
 
-def _cell(value: Any) -> str:
-    """One CSV cell. A cell that a spreadsheet could read as a formula gets a leading quote
-    (OWASP CSV injection rule); control characters become spaces."""
-    text = "" if value is None else str(value)
-    text = "".join(" " if (ord(c) < 32 or ord(c) == 127) else c for c in text)
-    if text[:1] in ("=", "+", "-", "@"):
-        text = "'" + text
-    return text
-
-
 def export_csv(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     """Build the masked CSV of the filtered list (sorted as the list is). At most
     CONSOLE_EXPORT_MAX_ROWS rows; ``truncated`` says when rows were left out. Returns the text,
@@ -748,38 +736,37 @@ def export_csv(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     shown, _, _ = ordered(rows, p)
     cap = int(ctx.settings.console_export_max_rows)
     take = shown[:cap]
-    buf = io.StringIO(newline="")
-    w = csv.writer(buf, lineterminator="\r\n")
-    w.writerow(EXPORT_COLUMNS)
-    for r in take:
-        w.writerow(
-            [
-                _cell(x)
-                for x in (
-                    r["ts"].astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    if isinstance(r["ts"], dt.datetime)
-                    else r["ts"],
-                    r["event_id"],
-                    r["request_id"],
-                    r["correlation_id"],
-                    r["trace_id"],
-                    r["agent_id"],
-                    r["consumer_id"],
-                    r["tool"],
-                    r["direction"],
-                    r["status"],
-                    r["action"],
-                    ";".join(r["rule_ids"]),
-                    ";".join(r["codes"]),
-                    ";".join(r["not_eval"]),
-                    r["latency_us"],
-                    r["latency_rules_us"],
-                    r["latency_detectors_us"],
-                    r["case_id"],
-                    ";".join(r["kept_args"]),
-                )
-            ]
-        )
+    text = write_csv(
+        EXPORT_COLUMNS,
+        (
+            (
+                r["ts"].astimezone(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if isinstance(r["ts"], dt.datetime)
+                else r["ts"],
+                r["event_id"],
+                r["request_id"],
+                r["correlation_id"],
+                r["trace_id"],
+                r["agent_id"],
+                r["consumer_id"],
+                r["tool"],
+                r["direction"],
+                r["status"],
+                r["action"],
+                ";".join(r["rule_ids"]),
+                ";".join(r["codes"]),
+                ";".join(r["not_eval"]),
+                r["latency_us"],
+                r["latency_rules_us"],
+                r["latency_detectors_us"],
+                r["case_id"],
+                ";".join(r["kept_args"]),
+            )
+            for r in take
+        ),
+        "\r\n",
+        flatten_controls=True,
+    )
     now = ctx.clock.now()
     truncated = len(shown) > cap
     name = (
@@ -788,7 +775,7 @@ def export_csv(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     )
     return {
         "name": name,
-        "text": buf.getvalue(),
+        "text": text,
         "rows": len(take),
         "total": len(shown),
         "truncated": truncated,

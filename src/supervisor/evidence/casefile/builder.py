@@ -79,6 +79,22 @@ class SignoffItem(_Frozen):
     auth_method: str
 
 
+NOT_CONFIGURED_D33 = "Chưa cấu hình / Not configured"
+
+
+def decision33_display(text: str | None) -> str:
+    """UI-184: the Decision 33 wording as a reader sees it. A value that is empty or still a
+    ``FILL-ME`` placeholder (``CASEFILE_DECISION33_TEXT`` not set) shows a neutral "not
+    configured" line, never the placeholder text."""
+    value = (text or "").strip()
+    return NOT_CONFIGURED_D33 if not value or value.startswith("FILL-ME") else value
+
+
+def basis_label(basis: str) -> str:
+    """``calendar_days`` -> ``calendar days`` (a token is not shown to a reader)."""
+    return basis.replace("_", " ")
+
+
 class SbvClocks(_Frozen):
     """SBV clocks. ``incident_detected_at`` is the earliest related verdict ts, else the
     case ``opened_at``. Report due = detected + 24 h; remediation due = detected + 5 days.

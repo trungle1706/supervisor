@@ -125,7 +125,7 @@ def test_checks_page_shows_proposals_and_writes_nothing(v3: Console) -> None:
     # proposal, not applied
     assert "Nothing is applied." in html and 'data-wizard="proposals"' in html
     assert (
-        'data-num="class"' in html and "High risk" in html and "proposed risk level: High" in html
+        'data-num="class"' in html and "High risk" in html and "Suggested risk level: High" in html
     )
     assert "Moves money and no person approves before execution" in html  # the G2 flow's reason
     # no folder: the readiness figure is not available, with the reason
@@ -160,12 +160,12 @@ def test_checks_class_is_the_decision33_draft_of_the_rules(v3: Console) -> None:
     )
     # a declared approval is not proof, and questions are left to a person: never "not high risk"
     assert lo.status_code == 200 and "Not high risk" not in lo.text
-    assert "Not classified" in lo.text and "Some questions are left to a person" in lo.text
-    assert "no level proposed; a person sets it" in lo.text
+    assert "Not classified" in lo.text and "Some questions need a reviewer" in lo.text
+    assert "No level suggested. A reviewer sets it." in lo.text
     hi = v3.post(
         CHECKS, {**FORM, "name": "Credit one", "credit_decision": "1", "human_control": "none"}
     )
-    assert "High risk" in hi.text and "proposed risk level: High" in hi.text
+    assert "High risk" in hi.text and "Suggested risk level: High" in hi.text
     assert "from the classification rules" in hi.text
     assert counts(v3) == (0, 0, 0)
 
@@ -373,7 +373,9 @@ def test_a_broken_rules_file_does_not_stop_the_wizard(
 
     monkeypatch.setattr(v3.ctx.rules, "ruleset", boom)
     r = v3.post(CHECKS, FORM)
-    assert r.status_code == 200 and "assignment rules engine is not installed" in r.text
+    assert (
+        r.status_code == 200 and "Rule-based assignment is not available in this version." in r.text
+    )
 
 
 # ------------------------------------------------------------------ review fixes
@@ -383,7 +385,12 @@ def test_advisor_is_off_without_allowed_roots_and_confined_to_them(
     v3: Console, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
-    assert r.status_code == 200 and "ONBOARD_ALLOWED_ROOTS is empty" in r.text
+    assert (
+        r.status_code == 200
+        and "The readiness check is switched off. "
+        "Ask an administrator to set ONBOARD_ALLOWED_ROOTS."
+        in r.text
+    )
     monkeypatch.setattr(v3.ctx.settings, "onboard_allowed_roots", str(REPO_ROOT_SUB))
     r = v3.post(CHECKS, {**FORM, "repo_path": REPO})
     assert r.status_code == 400 and "outside ONBOARD_ALLOWED_ROOTS" in r.text
@@ -408,7 +415,9 @@ def test_second_check_while_one_runs_is_400_and_a_slow_one_times_out(
     monkeypatch.setattr(adv, "advise", slow)
     monkeypatch.setattr(systems_wizard, "ADVISOR_TIMEOUT_S", 0.3)
     r = roots.post(CHECKS, {**FORM, "repo_path": REPO})
-    assert r.status_code == 200 and "did not finish within 30 s" in r.text
+    assert (
+        r.status_code == 200 and "The readiness check took longer than 30 s and stopped." in r.text
+    )
     assert started.is_set()
     # the scan still runs: a second call is refused
     r = roots.post(CHECKS, {**FORM, "name": "Second", "repo_path": REPO})

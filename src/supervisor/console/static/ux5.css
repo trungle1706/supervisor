@@ -43,19 +43,18 @@
 .ux5 h2, .ux5 h2.sec { font-size: 18px; line-height: 1.3; font-weight: 700; color: var(--u5-ink); }
 .ux5 h3, .ux5 .card h3 { font-size: 15px; line-height: 1.35; font-weight: 600; color: var(--u5-ink); letter-spacing: 0; }
 .ux5 h4 { font-size: 14px; font-weight: 600; }
-.ux5 .u5-display { font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
-.ux5 .u5-label, .ux5 label { font-size: 12px; font-weight: 600; color: var(--u5-muted); }
+.ux5 label { font-size: 12px; font-weight: 600; color: var(--u5-muted); }
 .ux5 small, .ux5 .muted, .ux5 .hint { font-size: 12px; color: var(--u5-muted); }
 .ux5 code, .ux5 .mono, .ux5 .idline { font-family: var(--f-mono); font-size: 12px; color: var(--u5-muted); background: none; }
 .ux5 pre, .ux5 pre code { background: var(--u5-inset); border-radius: 8px; }
 .ux5 .num, .ux5 td.n, .ux5 th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .ux5 .pill.mono, .ux5 .nav .k, .ux5 .side .k { font-family: var(--f-body); font-size: 12px; font-weight: 600; }
-.ux5 .lede, .ux5 .purpose .why, .ux5 .greet-sub { max-width: 72ch; font-size: 14px; color: var(--u5-muted); }
+.ux5 .purpose .why, .ux5 .greet-sub { max-width: 72ch; font-size: 14px; color: var(--u5-muted); }
 .ux5 p, .ux5 li { max-width: 72ch; }
 .ux5 td p, .ux5 td li, .ux5 .u5-panel p { max-width: none; }
 
 /* ---- no uppercase labels ------------------------------------------------------------------ */
-.ux5 th, .ux5 .side-h, .ux5 .side-k, .ux5 .kicker, .ux5 .eyebrow, .ux5 [class*="label"],
+.ux5 th, .ux5 .side-h, .ux5 .side-k, .ux5 .kicker, .ux5 [class*="label"],
 .ux5 .pill, .ux5 .chipbtn, .ux5 .btn, .ux5 .brand small, .ux5 .sres-h, .ux5 .cat-h, .ux5 .sec-tabs-t,
 .ux5 .ov4-rec .l, .ux5 .wstep b { text-transform: none; letter-spacing: 0; }
 .ux5 .sec-tabs-t, .ux5 .cat-h, .ux5 .ov4-rec .l { font-size: 12px; font-weight: 600; color: var(--u5-muted); }
@@ -75,7 +74,6 @@
 .ux5 .card, .ux5 .u5-panel, .ux5 .panel, .ux5 .cat-card {
   background: var(--u5-panel); border: 1px solid var(--u5-line); border-radius: 10px; box-shadow: none; }
 .ux5 .u5-panel { padding: 20px; }
-.ux5 .u5-inset { background: var(--u5-inset); border-radius: 8px; padding: 12px; }
 .ux5 .u5-attn { border: 1px solid var(--u5-attn-line); background: var(--u5-attn-bg); border-radius: 10px; padding: 16px 20px; }
 .ux5 .u5-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); background: var(--u5-panel);
   border: 1px solid var(--u5-line); border-radius: 10px; }
@@ -107,8 +105,6 @@
 .ux5 th[aria-sort] { color: var(--u5-ink); }
 .ux5 td a.head { color: var(--u5-ink); font-weight: 600; }
 .ux5 .u5-sticky thead th { position: sticky; top: 0; z-index: 2; background: var(--u5-panel); }
-.ux5 .u5-scroll { overflow: auto; max-height: 70vh; }
-.ux5 .u5-textcol { min-width: 40ch; }
 
 /* ---- page head, about, footer helpers ---------------------------------------------------------- */
 .ux5 .u5-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; margin: 4px 0 16px; }
@@ -122,8 +118,20 @@
 .ux5 details.u5-about, .ux5 details.u5-tech { flex: 1 1 100%; }
 .ux5 details.u5-about > summary, .ux5 details.u5-tech > summary { cursor: pointer; color: var(--u5-muted); font-size: 13px; }
 .ux5 details.u5-about > div, .ux5 details.u5-tech > div { margin-top: 8px; max-width: 72ch; }
-.ux5 .u5-kv { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr); gap: 4px 16px; margin: 8px 0 0; font-size: 13px; }
-.ux5 .u5-kv dt { color: var(--u5-muted); } .ux5 .u5-kv dd { margin: 0; overflow-wrap: anywhere; }
+/* Key/value list (UI-060). Wide card: label column is 40% of the card, capped at 240px, never below
+   110px; the value column keeps the rest. Narrow card (under 440px of its own width, container query
+   on the grid cards below): label above value, so a value always has the full card width.
+   Values break at word boundaries; only a single token longer than the line (an id, a hash) may
+   break inside the word, and only as a last resort (overflow-wrap: break-word, not anywhere). */
+.ux5 .u5-kv { display: grid; grid-template-columns: minmax(110px, min(40%, 240px)) minmax(0, 1fr); gap: 6px 16px; margin: 8px 0 0; font-size: 13px; }
+.ux5 .u5-kv dt { color: var(--u5-muted); min-width: 0; overflow-wrap: break-word; hyphens: manual; }
+.ux5 .u5-kv dd { margin: 0; min-width: 0; color: var(--u5-body); overflow-wrap: break-word; word-break: normal; }
+.ux5 .g2-cols > .card, .ux5 .g2-cols > .u5-panel { container-type: inline-size; }
+@container (max-width: 440px) {
+  .ux5 .u5-kv { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .ux5 .u5-kv dt { font-size: 12px; margin-top: 10px; }
+  .ux5 .u5-kv dt:first-child { margin-top: 0; }
+}
 .ux5 .u5-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 2px 0; font-size: 12px; color: var(--u5-muted); }
 .ux5 .u5-foot a { font-size: 13px; }
 .ux5 .u5-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
@@ -158,7 +166,8 @@
 .ux5 .side-v3 .side-head { min-height: 64px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--u5-line); box-sizing: border-box; }
 .ux5 .side-v3 .brand { font-size: 16px; font-weight: 700; color: var(--u5-ink); }
 .ux5 .side-v3 .brand .mark { border-radius: 7px; width: 28px; height: 28px; font-family: var(--f-body); font-size: 13px; }
-.ux5 .side-v3 .brand small { font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.ux5 .side-v3 .brand small { font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0;
+  line-height: 1.3; } /* the tagline may wrap to two short lines; never cut */
 .ux5 .side-v3 nav { flex: 1 1 auto; display: flex; flex-direction: column; }
 .ux5 .side-v3 nav > .side-group { margin: 0; padding: 12px 10px; border-bottom: 1px solid var(--u5-line); }
 .ux5 .side-v3 .side-sec { margin: 0; padding: 12px 10px; border-top: 0; border-bottom: 1px solid var(--u5-line); }
@@ -188,3 +197,128 @@
 .ux5 input, .ux5 select, .ux5 textarea { font: inherit; font-size: 14px; border: 1px solid var(--u5-line); border-radius: 8px;
   background: var(--u5-panel); color: var(--u5-ink); }
 .ux5 .skip { background: var(--u5-ink); color: var(--u5-ground); }
+
+/* ======================================================================================================
+   Batch 4 (UI audit): one look per concept. Chips, buttons-as-links, tabs, tables, empty states, stat
+   tiles and breadcrumbs. These rules sit last on purpose: they unify what older per-page rules set.
+   ====================================================================================================== */
+
+/* ---- key/value outside the .u5-kv cards (macro ui.kv, drawer): same 40/60 grid, word-boundary wrap ---- */
+.ux5 .kv, .ux5 .drawer .kv { grid-template-columns: minmax(110px, min(40%, 220px)) minmax(0, 1fr); gap: 6px 16px; }
+.ux5 .kv dd { min-width: 0; overflow-wrap: break-word; }
+.ux5 .kv dt { min-width: 0; }
+
+/* ---- chips: ONE chip. .pill and .u5-chip render identically: dot + word, 12px/600, 1px line.
+   A chip written without its own dot element gets the same 7px dot from ::before. Neutral and
+   not-applicable use the same grey dot. Mono id pills stay dot-less. ---------------------------------- */
+.ux5 .pill:not(.mono):not(:has(> .dot))::before,
+.ux5 .u5-chip:not(:has(> .u5-dot))::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.ux5 .pill.neutral .dot, .ux5 .pill.gold .dot, .ux5 .pill.neutral::before, .ux5 .pill.gold::before,
+.ux5 .pill:not(.ok):not(.warn):not(.bad):not(.crit):not(.info):not(.teal) .dot,
+.ux5 .pill:not(.ok):not(.warn):not(.bad):not(.crit):not(.info):not(.teal):not(.mono)::before { background: var(--u5-na); }
+.ux5 .pill, .ux5 .u5-chip { max-width: 100%; vertical-align: middle; }
+.ux5 a.pill, .ux5 a.u5-chip { text-decoration: none; }
+.ux5 a.pill:hover, .ux5 a.u5-chip:hover { border-color: var(--u5-muted); text-decoration: none; }
+.ux5 .pill.mono { padding: 2px 8px; }
+/* A link-button is an action, not a status: rounded rectangle like .btn, never a chip. */
+.ux5 .chipbtn { border-radius: 8px; padding: 4px 10px; background: var(--u5-panel); border-color: var(--u5-line); color: var(--u5-ink); }
+.ux5 .chipbtn:hover { background: var(--u5-hover); }
+.ux5 .chipbtn.off { opacity: .45; }
+
+/* ---- tabs: ONE strip, an underline in ink. Segmented controls stay for filters (.g2-seg, scope). ---- */
+.ux5 .tabs { display: flex; flex-wrap: wrap; gap: 0 18px; background: none; border: 0; border-bottom: 1px solid var(--u5-line);
+  border-radius: 0; padding: 0; margin: 0 0 14px; box-shadow: none; max-width: 100%; }
+.ux5 .tabs a { padding: 8px 0 9px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: none; color: var(--u5-muted); font-size: 14px; font-weight: 500; white-space: nowrap; }
+.ux5 .tabs a:hover { color: var(--u5-ink); background: none; }
+.ux5 .tabs a.on, .ux5 .tabs a[aria-selected="true"] { background: none; color: var(--u5-ink); font-weight: 600; border-bottom-color: var(--u5-ink); }
+.ux5 .tabs .k, .ux5 .subtabs .k { font-family: var(--f-body); font-size: 12px; background: none; padding: 0; color: var(--u5-muted); opacity: 1; }
+.ux5 .subtabs { gap: 18px; border-bottom-color: var(--u5-line); }
+.ux5 .subtabs a { font-weight: 500; }
+.ux5 .subtabs a.on { font-weight: 600; color: var(--u5-ink); border-bottom-color: var(--u5-ink); }
+.ux5 .g4-tabs > a, .ux5 .g4-more > summary { padding: 8px 4px 9px; margin: 0 7px -1px; }
+.ux5 .g4-tabs > a:hover, .ux5 .g4-more > summary:hover { background: none; color: var(--u5-ink); }
+
+/* ---- tables: one rhythm. 12px muted header, 13px body, 10px cell padding, soft row lines. -------------- */
+.ux5 table.queue, .ux5 table.list, .ux5 table.incidents, .ux5 table.g3-tbl, .ux5 table.g1-grid, .ux5 table.g2-duties,
+.ux5 .tablewrap table { font-size: 13px; }
+.ux5 table.queue td, .ux5 table.list td, .ux5 table.incidents td, .ux5 table.g3-tbl td, .ux5 table.g1-grid td,
+.ux5 .tablewrap td { font-size: 13px; color: var(--u5-body); }
+.ux5 .tablewrap th, .ux5 table.list th, .ux5 table.g3-tbl th { padding-top: 8px; padding-bottom: 8px; }
+.ux5 .tablewrap td, .ux5 table.list td, .ux5 table.g3-tbl td { padding-top: 10px; padding-bottom: 10px; }
+.ux5 th[aria-sort] { color: var(--u5-ink); }
+.ux5 th a.sortlink { color: inherit; font-weight: inherit; }
+.ux5 .g1-o-prohibited { background: var(--u5-ink); }
+.ux5 tr.row:hover td, .ux5 table.queue tbody tr:hover td { background: var(--u5-hover); }
+.ux5 .tablewrap .idline, .ux5 td .idline { font-family: var(--f-body); font-size: 12px; }
+.ux5 .tablewrap { border-color: var(--u5-line); }
+
+/* ---- empty state: ONE dashed panel (ui.empty, .g4-empty, plain .empty). The title is the only bold. ----- */
+.ux5 .empty, .ux5 .emptystate, .ux5 .g4-empty { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 20px;
+  border: 1px dashed var(--u5-line); border-radius: 10px; background: transparent; box-shadow: none; color: var(--u5-muted); font-size: 14px; max-width: none; }
+.ux5 .empty strong, .ux5 .emptystate strong { color: var(--u5-ink); font-weight: 600; }
+.ux5 .empty p, .ux5 .emptystate p, .ux5 .g4-empty p { margin: 0; max-width: 60ch; }
+.ux5 td > .empty, .ux5 td > .emptystate { border: 0; padding: 12px; }
+
+/* ---- stat tile: the number on top, the label below, in every layout (ui.stat used label-first). -------- */
+.ux5 .card.stat { display: flex; flex-direction: column; gap: 2px; padding: 16px 20px; }
+.ux5 .card.stat .bignum { order: 1; font-size: 24px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; color: var(--u5-ink); }
+.ux5 .card.stat .bignum.md { font-size: 18px; }
+.ux5 .card.stat h3 { order: 2; margin: 0; font-size: 12px; font-weight: 400; color: var(--u5-muted); }
+.ux5 .card.stat .sub { order: 3; font-size: 12px; color: var(--u5-muted); }
+.ux5 a.card.stat:hover { border-color: var(--u5-muted); text-decoration: none; }
+
+/* ---- count tiles that filter (ui.tiles): same type scale as the stat tile ---------------------------------- */
+.ux5 .tile { border-color: var(--u5-line); border-radius: var(--r-s); background: var(--u5-panel); text-decoration: none; }
+.ux5 .tile:hover { background: var(--u5-hover); text-decoration: none; }
+.ux5 .tile .n { font-size: 24px; letter-spacing: -.01em; }
+.ux5 .tile .l { font-weight: 400; }
+.ux5 .tile.on { background: var(--u5-ink); color: var(--u5-panel); border-color: var(--u5-ink); }
+.ux5 .tile.on .l { color: var(--u5-panel); }
+
+/* ---- breadcrumbs: ui.crumbs and the hand-written .g3-crumb look the same ----------------------------------- */
+.ux5 .crumbs, .ux5 .g3-crumb { font-size: 12px; }
+.ux5 .crumbs ol { color: var(--u5-muted); }
+.ux5 .crumbs a, .ux5 .g3-crumb a { color: var(--u5-muted); font-weight: 500; }
+.ux5 .crumbs a:hover, .ux5 .g3-crumb a:hover { color: var(--u5-ink); }
+.ux5 .crumbs [aria-current], .ux5 .g3-crumb { color: var(--u5-ink); }
+.ux5 .crumbs [aria-current] { font-weight: 600; }
+.ux5 .g3-crumb { font-weight: 600; }
+.ux5 .g3-crumb a { font-weight: 500; }
+
+/* ---- bar lists: one bar (6px, rounded, inset track) whatever the component ---------------------------------- */
+.ux5 .bar { height: 6px; border-radius: 3px; background: var(--u5-inset); overflow: hidden; }
+.ux5 .g1-counts a { font-weight: 400; color: var(--u5-body); }
+.ux5 .g1-counts a:hover { color: var(--u5-ink); }
+.ux5 .g1-counts b { font-weight: 600; }
+.ux5 .barcell i { background: var(--u5-inset); }
+.ux5 .barcell b { font-weight: 600; }
+
+/* ---- pager: the two-part count line and the page-of line share one muted 12px style ------------------------ */
+.ux5 .pager, .ux5 .u5-foot { font-size: 12px; color: var(--u5-muted); }
+.ux5 .pager .range { font-variant-numeric: tabular-nums; }
+
+/* ---- width fixes under 1400px (1280 laptop, Vietnamese labels 15-25% longer) --------------------------------- */
+@media (max-width: 1400px) {
+  /* UI-004: the 8 risk dimensions fit: cells wrap, the label column shrinks. */
+  .ux5 .g1-grid th, .ux5 .g1-grid td { white-space: normal; vertical-align: top; }
+  .ux5 .g1-grid th[scope="row"] { min-width: 150px; }
+  .ux5 .g1-grid .u5-chip { white-space: normal; align-items: flex-start; }
+  .ux5 .g1-grid .u5-chip .u5-dot { margin-top: 5px; }
+  /* UI-013: My agents drops Last activity and Cases; both stay one click away on the agent page. */
+  .ux5 .my-agents-tbl th:nth-child(7), .ux5 .my-agents-tbl td:nth-child(7),
+  .ux5 .my-agents-tbl th:nth-child(8), .ux5 .my-agents-tbl td:nth-child(8) { display: none; }
+}
+.ux5 .tablewrap td.mono, .ux5 .tablewrap td .mono, .ux5 table td.mono { font-size: 12px; }
+
+/* ---- UI-023 / UI-360: tables inside the 401px side drawer wrap instead of nesting scroll boxes. Headers stay;
+   cells wrap at word boundaries and, for one long token (a hash, a path), anywhere. ---------------------------- */
+.ux5 #drawer .tablewrap, .ux5 #drawer .tablewrap.flat, .ux5 #drawer .at-wrap { overflow-x: visible; }
+.ux5 #drawer table { width: 100%; }
+.ux5 #drawer th, .ux5 #drawer td { white-space: normal; padding-left: 6px; padding-right: 6px; overflow-wrap: anywhere; }
+.ux5 #drawer td .pill, .ux5 #drawer td .u5-chip { white-space: normal; }
+.ux5 #drawer .card, .ux5 #drawer .u5-panel { padding: 14px; }
+
+/* UI-050: a figure tile that is not a link does not react to the pointer. */
+.ux5 span.tile:hover { background: var(--u5-panel); }

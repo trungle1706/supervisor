@@ -14,9 +14,8 @@
     <h4>{{ t('ux4b_floor') }}</h4>
     {% if gd_floor is none %}{{ v3.na(gd_floor_na) }}
     {% elif gd_floor %}
-    <div class="tablewrap flat"><table><thead><tr><th scope="col">{{ t('nv3_guardians') }}</th><th scope="col">{{ t('g2_rules_reason') }}</th></tr></thead><tbody>
-      {% for f in gd_floor %}<tr><td><code>{{ f.slug }}</code></td><td>{% for r in f.rules %}<span class="u5-chip na"><span class="u5-dot"></span>{{ r }}</span> {% endfor %}</td></tr>{% endfor %}
-    </tbody></table></div>
+    {# UI-066: the floor with its reasons is listed once, on the Rules tab #}
+    <p>{% for f in gd_floor %}{{ label_for('guardian', f.slug) }}{{ ', ' if not loop.last }}{% endfor %} · <a href="/console/systems/{{ s.system_id }}?tab=rules&amp;lang={{ lang }}">{{ t('sy_tab_rules') }}</a></p>
     {% else %}<p class="hint">{{ t('ux4b_floor_none') }}</p>{% endif %}
   </section>
   {% if gd_no_agents %}
@@ -42,8 +41,11 @@
   {% if gd_bindings is not none %}
   <section data-section="system-guardians-bindings">
     <h4>{{ t('gb_tab_title') }}</h4>
-    <p>{% for g in gd_bindings if g.state == 'off' or g.locked %}<code>{{ g.slug }}</code> {{ u5.status_chip('warn' if g.locked else 'na', t('gb_locked') if g.locked else t('gb_state_off')) }} {% else %}<span class="muted">{{ t('gb_tab_none') }}</span>{% endfor %}</p>
+    <p>{% for g in gd_bindings if g.state == 'off' or g.locked %}<b>{{ label_for('guardian', g.slug) }}</b> {{ u5.status_chip('warn' if g.locked else 'na', t('gb_locked') if g.locked else t('gb_state_off')) }} {% else %}<span class="muted">{{ t('gb_tab_none') }}</span>{% endfor %}</p>
     <p class="hint"><a href="/console/catalog?system={{ s.system_id }}&amp;lang={{ lang }}">{{ t('gb_tab_link') }}</a></p>
   </section>
   {% endif %}
 </details>
+{# GUARDIAN_KIT: "Connect your app to Guardian" (nothing renders while the setting is off) #}
+{% set gk_sid = s.system_id %}{% set gk_src = '' %}
+{% include "_guardian_kit.html" %}

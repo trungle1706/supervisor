@@ -22,7 +22,6 @@ from supervisor.console import (
     compliance_view,
     overview_v3,
 )
-from supervisor.core import rbac
 
 # tab -> permission of the page it summarises
 TAB_PERM: dict[str, str] = {
@@ -36,10 +35,15 @@ GOV_TABS: tuple[str, ...] = tuple(TAB_PERM)
 GAP_ROWS = 40  # obligations with a gap listed on the Policies tab
 
 
-def may(me: Any, permission: str) -> bool:
-    if getattr(me, "kind", "user") == "user":
-        return rbac.allowed(me.roles, permission)
-    return permission in rbac.NON_USER_OK
+def feature_on(ctx: Any, tab: str) -> bool:
+    """UI-061: False for a governance tab whose feature is off in this config (the tab would show
+    only a "not available" chip). The tab still answers when opened by its URL."""
+    s = ctx.settings
+    return {
+        "risks": bool(s.risk_register_enabled),
+        "controls": bool(s.controls_enabled),
+        "policies": bool(s.console_compliance_enabled),
+    }.get(tab, True)
 
 
 def agents_of(system: Mapping[str, Any]) -> list[str]:

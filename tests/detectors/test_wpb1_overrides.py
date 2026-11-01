@@ -55,6 +55,18 @@ def test_set_stores_a_row_and_one_chain_record(svc: DetectorOverrideService, evi
     assert evidence.entries[-1][2]["action"] == "changed"
 
 
+def test_wildcard_row_is_recorded_in_the_root_lane(adapters: Any) -> None:  # noqa: F811
+    from supervisor.evidence.chain import ChainWriter
+    from tests.evidence.conftest import fixed_signer
+
+    chain = ChainWriter(adapters.tables, adapters.clock, fixed_signer())
+    svc = DetectorOverrideService(adapters.state, adapters.clock, adapters.settings, evidence=chain)
+    svc.set("*", "dlp_vn", "mode", "report", ACTOR, source="smart_guardian")
+    svc.set("a1", "dlp_vn", "mode", "transform", ACTOR)
+    rows = adapters.tables.query("chain_entry", {"record_type": "detector_override"})
+    assert sorted(str(r["lane"]) for r in rows) == ["agent:a1", "root"]
+
+
 def test_agent_row_beats_the_wildcard_row(svc: DetectorOverrideService) -> None:
     svc.set("*", "dlp_vn", "mode", "report", ACTOR)
     svc.set("a1", "dlp_vn", "mode", "transform", ACTOR)

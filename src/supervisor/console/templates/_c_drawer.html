@@ -10,7 +10,7 @@
   </span>
   <h2 id="drawer-title" tabindex="-1">{{ title }}</h2>
   <span class="acts">
-    <button type="button" class="chipbtn" data-copy="#drawer-json">{{ t('copy_json') }}</button>
+    {% if me is not defined or 'admin' in me.roles %}<button type="button" class="chipbtn" data-copy="#drawer-json">{{ t('copy_json') }}</button>{% endif %}
     <button type="button" class="chipbtn" data-drawer-close aria-label="{{ t('drawer_close') }}">✕</button>
   </span>
 </div>

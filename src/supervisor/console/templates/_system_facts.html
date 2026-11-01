@@ -18,7 +18,7 @@
   (t('sy_effective'), t('sy_risk_' ~ s.effective_risk.level) ~ ' (' ~ t('sy_source_' ~ s.effective_risk.source) ~ ')'),
   (t('sy_manual'), t('sy_risk_' ~ s.effective_risk.manual_level)),
   (t('sy_inherited'), t('sy_risk_' ~ s.effective_risk.inherited_level)),
-  (t('sy_f_risk_justification'), s.risk_justification),
+  (t('sy_f_risk_justification'), demo(s.risk_justification) if s.risk_justification else none),
   (t('sy_f_decision33_class'), t('sy_d33_' ~ s.decision33_class)),
   (t('sy_f_business_impact'), t('sy_impact_' ~ s.business_impact)),
   (t('status'), t('sy_st_' ~ s.status)),

@@ -18,7 +18,6 @@ input).
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -28,22 +27,13 @@ from urllib.parse import urlparse
 import httpx
 
 from supervisor.adapters.guard.labels import bp_from_probability, normalise_label, top_attack
+from supervisor.config import is_loopback_url
 from supervisor.core.bounded import Bounded
 from supervisor.core.errors import GuardModelError
 from supervisor.core.ports import GuardScore
 
 HeaderFactory = Callable[[], Mapping[str, str]]
 MAX_BODY_BYTES = 1_000_000
-
-
-def _is_loopback(url: str) -> bool:
-    host = (urlparse(url).hostname or "").strip("[]").lower()
-    if host == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
 
 
 class ClassifierEndpointGuard:
@@ -76,7 +66,7 @@ class ClassifierEndpointGuard:
         self._bounded = Bounded()
         self.__api_key = api_key or None
         self._headers = headers
-        self._client = httpx.Client(transport=transport, trust_env=not _is_loopback(url))
+        self._client = httpx.Client(transport=transport, trust_env=not is_loopback_url(url))
 
     def __repr__(self) -> str:
         return (

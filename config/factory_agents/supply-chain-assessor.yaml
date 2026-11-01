@@ -4,9 +4,8 @@
 schema_version: '1.0'
 id: supply-chain-assessor
 name: Supply chain assessor (TEMPLATE)
-description: 'TEMPLATE, not a live agent: starting point for the supply chain risk type (Circular 53 Art.
-  14(3)(g), Art. 19). Checklist only; the golden set is empty and the platform team must add one before
-  a gate run.'
+description: Starter agent for the supply chain risk type (Circular 53 Art. 14(3)(g), Art. 19). Version
+  0.2 adds checks decided from the code scan and an executive text for every item.
 owner_group: platform
 dimension_id: supply_chain
 policy_refs:
@@ -29,6 +28,22 @@ checklist:
   severity: high
   pass_rule: The inventory lists model, data set and tool facts with supplier, version, licence and integrity
     value.
+  executive:
+    key: sbom_missing
+    headline_fail:
+      en: No full list of libraries, models and data sets with versions and integrity values exists.
+      vi: Chưa có danh sách đầy đủ thư viện, mô hình và bộ dữ liệu kèm phiên bản và giá trị toàn vẹn.
+    headline_open:
+      en: The scan did not give a full list of components with supplier, version and integrity value.
+      vi: Kết quả quét chưa cho danh sách đầy đủ thành phần kèm nhà cung cấp, phiên bản và giá trị toàn
+        vẹn.
+    impact:
+      en: A compromised component would be hard to find and replace.
+      vi: Một thành phần bị xâm nhập sẽ khó phát hiện và khó thay thế.
+    action:
+      en: Build a bill of materials with supplier, version, licence and integrity value.
+      vi: Lập bảng kê thành phần gồm nhà cung cấp, phiên bản, giấy phép và giá trị toàn vẹn.
+    owner: security
 - id: SC-02
   question: Does the licence pack licence_allowlist pass at the current version (Circular 53 Art. 19(1))?
   evidence:
@@ -36,6 +51,21 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack licence_allowlist passed at the current
     version of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_licence_allowlist
+    headline_fail:
+      en: The software licence check did not pass on the current version.
+      vi: Kiểm tra giấy phép phần mềm không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The software licence check has not been run on the current version.
+      vi: Chưa chạy kiểm tra giấy phép phần mềm ở phiên bản hiện tại.
+    impact:
+      en: A component with a licence the bank cannot accept could create a legal claim.
+      vi: Một thành phần có giấy phép ngân hàng không thể chấp nhận có thể dẫn đến tranh chấp pháp lý.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: legal
 - id: SC-03
   question: Does the pin and hash pack pin_hash_check pass at the current version (Circular 53 Art. 19(3))?
   evidence:
@@ -43,6 +73,21 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack pin_hash_check passed at the current version
     of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_pin_hash_check
+    headline_fail:
+      en: The version and integrity check did not pass on the current version.
+      vi: Kiểm tra phiên bản và tính toàn vẹn không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The version and integrity check has not been run on the current version.
+      vi: Chưa chạy kiểm tra phiên bản và tính toàn vẹn ở phiên bản hiện tại.
+    impact:
+      en: A changed or swapped component could enter the system unnoticed.
+      vi: Một thành phần bị thay đổi hoặc bị tráo có thể lọt vào hệ thống mà không ai biết.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: security
 - id: SC-04
   question: Does the tool manifest pack mcp_tool_manifest_drift pass at the current version (Circular
     53 Art. 19(3))?
@@ -51,6 +96,21 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack mcp_tool_manifest_drift passed at the current
     version of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_mcp_tool_manifest_drift
+    headline_fail:
+      en: The tool list change check did not pass on the current version.
+      vi: Kiểm tra thay đổi danh sách công cụ không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The tool list change check has not been run on the current version.
+      vi: Chưa chạy kiểm tra thay đổi danh sách công cụ ở phiên bản hiện tại.
+    impact:
+      en: A tool could change after approval and do more than was approved.
+      vi: Một công cụ có thể bị thay đổi sau khi được duyệt và làm nhiều hơn phạm vi đã duyệt.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: security
 - id: SC-05
   question: Were the components of a high-risk system reviewed in the last 12 months (Circular 53 Art.
     19(5))?
@@ -58,6 +118,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: The review date in the record is within 365 days. Not applicable below high risk.
+  executive:
+    key: component_review_overdue
+    headline_fail:
+      en: The components of a high-risk system were not reviewed in the last 12 months.
+      vi: Các thành phần của hệ thống rủi ro cao chưa được rà soát trong 12 tháng qua.
+    headline_open:
+      en: Nothing shows a component review in the last 12 months.
+      vi: Chưa có thông tin về lần rà soát thành phần trong 12 tháng qua.
+    impact:
+      en: Known weaknesses in old components may be left open.
+      vi: Các điểm yếu đã biết trong thành phần cũ có thể vẫn chưa được khắc phục.
+    action:
+      en: Review the components and record the date.
+      vi: Rà soát các thành phần và ghi lại ngày thực hiện.
+    owner: security
 - id: SC-06
   question: Are pre-trained models and data sets taken only from approved sources (Circular 53 Art. 19(1))?
   evidence:
@@ -65,6 +140,46 @@ checklist:
   - system_record
   severity: medium
   pass_rule: Each model and data set fact names an approved source.
+  executive:
+    key: unapproved_sources
+    headline_fail:
+      en: A pre-trained model or data set comes from a source that is not approved.
+      vi: Có mô hình huấn luyện sẵn hoặc bộ dữ liệu đến từ nguồn chưa được duyệt.
+    headline_open:
+      en: Nothing shows that models and data sets come from approved sources.
+      vi: Chưa có thông tin cho thấy mô hình và bộ dữ liệu đến từ nguồn đã duyệt.
+    impact:
+      en: Unvetted models or data can hide harmful behaviour.
+      vi: Mô hình hoặc dữ liệu chưa được thẩm định có thể che giấu hành vi gây hại.
+    action:
+      en: Replace the component or have the source approved.
+      vi: Thay thành phần hoặc xin duyệt nguồn.
+    owner: security
+- id: SC-07
+  question: Does the code scan name the family of every model the system calls, so its origin is known
+    (Circular 53 Art. 19(1), Art. 19(2))?
+  evidence:
+  - fact
+  severity: medium
+  pass_rule: 'Look at the model and endpoint facts (detail has family=...). Fail when one has family=unknown:
+    cite it. Pass when every model and endpoint fact names a family other than unknown: cite one. No model
+    or endpoint fact, or a fact with no family: question.'
+  executive:
+    key: model_unknown
+    headline_fail:
+      en: The code uses a model whose family the scan could not identify.
+      vi: Mã dùng một mô hình mà bước quét không xác định được dòng mô hình.
+    headline_open:
+      en: The scan did not list the model and its family.
+      vi: Bước quét chưa liệt kê mô hình và dòng mô hình.
+    impact:
+      en: An unnamed model cannot be validated, and a judge model may end up the same as the agent's model.
+      vi: Mô hình chưa xác định tên thì không thể kiểm định, và mô hình đánh giá có thể trùng với mô hình
+        của tác tử.
+    action:
+      en: Name the model and its family in the record.
+      vi: Ghi rõ tên mô hình và dòng mô hình vào hồ sơ.
+    owner: model_validation
 evidence_rules:
   allowed_sources:
   - fact
@@ -122,6 +237,38 @@ instructions: 'You assess the supply chain risk of one AI system for a bank unde
   result, or a pass only at an older version, is a fail. A pack that has no result is a question.
 
 
+  Fact items (how to read the facts)
+
+  - A fact reads ''kind name: detail''. Decide a fact item from the facts and the record only, and cite
+  the fact that shows the result.
+
+  - tool facts: the detail gives risk_class (money, credit, pii_export, read_only) and approved=yes or
+  no. approved=yes means the tool is on the allowed list; it is not a human approval step.
+
+  - A human approval step is an approval_point fact. The autonomy fact says L0 ''no tools'', L1 ''every
+  tool only reads'', L2 ''every tool with a side effect has a human approval step in the same code'',
+  L3 ''tools with side effects and no human approval step in code'' followed by the tool names.
+
+  - decision33 facts: high_risk or not_high_risk with human_gate_in_code=True or False. The fact named
+  ''transactions triggered'' means tools run transactions and no human check was found in code. It is
+  a proposal; counsel confirms.
+
+  - model and endpoint facts: family=unknown means the scan could not name the model family.
+
+  - weak_spot facts name gaps that the scan found, for example ''No tracing found''.
+
+  - external_url facts: an address is allowed when its host is loopback (127.0.0.1, localhost) or contains
+  FILL-ME.
+
+  - claim facts ''Handles personal data field <name>'' list personal data fields by name. Write only the
+  field name in a reason.
+
+  - A pass that rests on something not being there cites the autonomy fact, which shows that the code
+  was scanned. Never invent a fact.
+
+  - A fail needs a cited fact that shows the problem. A missing fact is a question, not a fail.
+
+
   Checklist
 
   - SC-01 (high; fact, system_record): Is there a bill of materials of libraries, models, training data
@@ -142,6 +289,9 @@ instructions: 'You assess the supply chain risk of one AI system for a bank unde
   - SC-06 (medium; fact, system_record): Are pre-trained models and data sets taken only from approved
   sources (Circular 53 Art. 19(1))?
 
+  - SC-07 (medium; fact): Does the code scan name the family of every model the system calls, so its origin
+  is known (Circular 53 Art. 19(1), Art. 19(2))?
+
   '
 harness:
   system_prompt:
@@ -158,9 +308,7 @@ harness:
   memory:
     system_memory: false
   hitl:
-    approval_points:
-    - kind: verdict
-      ref: question
+    approval_points: []
     permissions: []
   verification:
     verifier: rules
@@ -178,5 +326,5 @@ guardians:
 eval_pack: supply-chain-assessor-golden-v1
 lifecycle:
   state: draft
-  version: '0.1'
+  version: '0.2'
   approvals: []

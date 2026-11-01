@@ -1,5 +1,8 @@
 """ITSM tickets for cases (WP11 stub, OFF by default; ServiceNow / Jira on the bank side).
 
+Not wired to a feature yet: nothing in ``src/`` imports this module; only
+``tests/integrations/test_integrations.py`` does. It is kept on purpose (planned integration).
+
 Direction: Supervisor -> ITSM (create, update, close); ITSM -> Supervisor only through
 the write-back of the ticket number into ``cases.itsm_ref`` (``CaseService.set_itsm_ref``,
 recorded on the evidence chain).

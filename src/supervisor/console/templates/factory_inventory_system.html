@@ -1,0 +1,50 @@
+{# One system of an inventory run (W4): the executive findings, then the raw findings (masked). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ row.name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/finv.css">
+{% set base = '/console/factory/' ~ agent.id ~ '/inventory/' ~ run.run_id %}
+{{ ui.crumbs([(t('fa_title'), '/console/factory'), (agent.name|replace(' demo:showcase', ''), '/console/factory/' ~ agent.id), (t('finv_title'), '/console/factory/' ~ agent.id ~ '/inventory'), (run.run_id[:12], base), (row.name, None)]) }}
+<div class="finv" data-page="finv-system" data-system="{{ row.system_id }}">
+  <header class="finv-head">
+    <h1>{{ row.name }}</h1>
+    <div class="finv-chips"><span class="finv-lvl {{ row.level }}">{{ t('finv_level_' ~ row.level) }}</span>{% if row.customer_facing %}{{ ui.pill(t('finv_customer_short'), 'neutral') }}{% endif %}{% if run.draft %}{{ ui.pill(t('finv_draft_label'), 'warn', True) }}{% endif %}</div>
+  </header>
+  <p class="finv-banner" data-banner="1">{{ t('finv_banner') }}</p>
+  <p class="hint"><span class="mono">{{ row.system_id }}</span> &middot; {{ row.owner_team or '-' }} &middot; {{ t('finv_outcome_' ~ row.outcome_source) }}: <span class="mono">{{ row.outcome }}</span> &middot; <a href="/console/systems/{{ row.system_id|urlencode }}">{{ t('finv_open_system') }}</a></p>
+  {% if row.status != 'assessed' %}
+  <p class="notice" data-error="1"><span class="dot"></span>{{ t('finv_sys_error') }} <span class="mono">{{ row.error }}</span></p>
+  {% else %}
+  <section class="card" data-section="exec">
+    <h2>{{ t('finv_exec_h') }}</h2>
+    {% if exec %}
+      <p data-bottom-line="1"><b>{{ exec.bottom_line[lang] or exec.bottom_line['en'] }}</b></p>
+      <div class="finv-exec" data-list="exec">
+      {% for it in exec['items'] %}
+        <article class="{{ it.status }}" data-key="{{ it.key }}" data-status="{{ it.status }}">
+          <p><span class="finv-sev {{ it.severity }}">{{ t('finv_sev_' ~ it.severity) }}</span> <span class="finv-v {{ it.status }}">{{ t('finv_es_' ~ it.status) }}</span> <b>{{ it.headline[lang] or it.headline['en'] }}</b></p>
+          {% if it.impact %}<p>{{ it.impact[lang] or it.impact['en'] }}</p>{% endif %}
+          {% if it.action %}<p><b>{{ t('finv_action') }}:</b> {{ it.action[lang] or it.action['en'] }}{% if it.owner %} <small>({{ t('finv_role_' ~ it.owner) }})</small>{% endif %}</p>{% endif %}
+        </article>
+      {% else %}<p class="hint">{{ t('finv_exec_none') }}</p>{% endfor %}
+      </div>
+    {% else %}<p class="hint" data-no-exec="1">{{ t('finv_no_exec') }}</p>{% endif %}
+  </section>
+  <section class="card" data-section="findings">
+    <h2>{{ t('finv_find_h') }}</h2>
+    <p class="hint">{{ t('finv_find_hint') }}</p>
+    {% for f in findings %}
+    <article class="finv-find {{ f.verdict }}" data-finding="{{ f.finding_id }}" data-verdict="{{ f.verdict }}">
+      <p><span class="finv-v {{ f.verdict }}"><span aria-hidden="true">{{ glyph[f.verdict] }}</span> {{ t('finv_v_' ~ f.verdict) }}</span> <span class="mono">{{ f.checklist_id }}</span> {{ f.question }}</p>
+      <p data-rationale="1">{{ f.rationale }}</p>
+      {% if f.evidence %}<details><summary>{{ t('finv_evidence_n', n=f.evidence|length) }}</summary><ul data-evidence="1">
+        {% for e in f.evidence %}<li data-evidence-ref="{{ e.ref }}"><span class="muted">{{ e.kind }}</span> <span class="mono">{{ e.file or e.ref }}{% if e.line %}:{{ e.line }}{% endif %}</span>{% if texts.get(e.ref) %}<br><span lang="vi">{{ texts[e.ref] }}</span>{% endif %}</li>{% endfor %}
+      </ul></details>{% endif %}
+    </article>
+    {% else %}<p class="hint">{{ t('finv_find_none') }}</p>{% endfor %}
+  </section>
+  {% endif %}
+  <p><a class="btn" href="{{ base }}#finv-systems">&larr; {{ t('finv_back') }}</a></p>
+</div>
+{% endblock %}

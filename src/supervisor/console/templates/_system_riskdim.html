@@ -42,7 +42,7 @@
   </p>
   {% if rd_register %}
   <p data-rd="lines"><b>{{ t('rd_lines') }}:</b>
-    {% for l in r.risk_lines %}<a class="mono" href="/console/risks?lang={{ lang }}">{{ l.risk_id }}</a> {{ l.title }} <span class="muted">({{ l.category }})</span>{% if not loop.last %}; {% endif %}{% else %}<span class="muted">{{ t('rd_lines_none') }}</span>{% endfor %}
+    {% for l in r.risk_lines %}{% if shell().pages.get('risks') %}<a class="mono" href="/console/risks?lang={{ lang }}">{{ l.risk_id }}</a>{% else %}<span class="mono">{{ l.risk_id }}</span>{% endif %} {{ l.title }} <span class="muted">({{ l.category }})</span>{% if not loop.last %}; {% endif %}{% else %}<span class="muted">{{ t('rd_lines_none') }}</span>{% endfor %}
   </p>
   {% endif %}
   {% if rd_can_edit %}

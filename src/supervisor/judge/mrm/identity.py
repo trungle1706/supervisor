@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.config import REPO_ROOT
+from supervisor.core.flags import truthy as _truthy
 from supervisor.judge.prompts import LABELS, POLICY_CATALOG, PROMPT_VERSION, prompt_hash
 
 JUDGE_ID = "judge.tiered"
@@ -146,12 +147,6 @@ def identity_from_router(
         mask_version=mask_version,
         golden_set_hash=golden_set_hash(golden_root),
     )
-
-
-def _truthy(value: Any) -> bool:
-    if isinstance(value, str):  # Databricks returns strings
-        return value.strip().lower() in ("true", "1")
-    return bool(value)
 
 
 def same_key(record: Mapping[str, Any], ident: JudgeIdentity) -> bool:

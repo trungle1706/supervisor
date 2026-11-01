@@ -1,0 +1,64 @@
+/* Guardian kit (GUARDIAN_KIT): "Connect your app to Guardian". Colours come from the console tokens
+   (--green, --amber, --line, ...), so the block follows light and dark. No external file. */
+.gk { padding: 18px 20px 20px; max-width: 100%; }
+.gk h3 { margin: 0 0 4px; }
+.gk-head .hint { margin: 0 0 14px; max-width: 70ch; }
+.gk-h { margin: 22px 0 4px; font-size: 15px; }
+
+.gk-status { display: grid; grid-template-columns: auto 1fr; gap: 6px 22px; align-items: center;
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface-2); }
+.gk-state { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.gk-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.gk-pill { font-size: 16px; padding: 6px 14px; }
+.gk-meta p { margin: 0; }
+.gk-meta .hint { margin-top: 2px; }
+.gk-newer { margin: 6px 0 0; color: var(--amber); font-weight: 600; font-size: 13px; }
+.gk-tick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 3px; align-items: flex-end; min-height: 4px; }
+.gk-tick i { display: inline-block; width: 6px; height: 14px; border-radius: 1px; background: var(--line); }
+.gk-tick i.connected { background: var(--green); height: 18px; }
+.gk-tick i.missing, .gk-tick i.wrong_name, .gk-tick i.wrong_risk { background: var(--amber); height: 14px; }
+.gk-tick i.unknown { background: var(--line); height: 10px; }
+
+.gk-actions { margin: 14px 0 6px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.gk-actions .btn { text-decoration: none; }
+.gk .notice { margin: 10px 0; }
+.gk .tablewrap { margin-top: 14px; }
+.gk-table td { vertical-align: top; }
+.gk-table .hint { margin-top: 2px; font-size: 12px; }
+
+.gk-steps { list-style: none; counter-reset: gk; margin: 10px 0 0; padding: 0; display: grid; gap: 14px; }
+.gk-steps > li { counter-increment: gk; position: relative; padding: 0 0 0 42px; }
+.gk-steps > li::before { content: counter(gk); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: 13px; color: var(--ink-fg); background: var(--ink); }
+.gk-steps > li p { margin: 4px 0; }
+.gk-st { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; min-height: 28px; }
+.gk-who { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+
+.gk-snip { display: grid; gap: 4px; margin: 6px 0; }
+.gk-line { display: flex; gap: 8px; align-items: center; justify-content: space-between; min-width: 0;
+  padding: 4px 8px 4px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid transparent; }
+.gk-line.gk-hot { border-color: var(--line); }
+.gk-line code, .gk-line pre { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; min-width: 0; flex: 1 1 auto; margin: 0;
+  font-family: var(--f-mono); font-size: 13px; background: none; }
+.gk-copy { flex: none; font-size: 12px; padding: 3px 10px; }
+.gk-copy.done { color: var(--green); border-color: var(--green); }
+
+.gk-file { margin-top: 6px; }
+.gk-file summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.gk-pre { max-height: 420px; overflow: auto; margin: 8px 0 0; padding: 12px 14px; border-radius: var(--r-s);
+  background: var(--surface-2); border: 1px solid var(--line); font-family: var(--f-mono); font-size: 12px; line-height: 1.55;
+  white-space: pre; max-width: 100%; }
+
+@media (max-width: 640px) {
+  .gk { padding: 14px 14px 16px; }
+  .gk-status { grid-template-columns: 1fr; }
+  .gk-steps > li { padding-left: 38px; }
+  .gk-line { flex-wrap: wrap; justify-content: flex-end; padding: 6px 8px 6px 10px; }
+  .gk-line code, .gk-line pre { flex: 1 1 100%; white-space: pre-wrap; overflow-x: auto; overflow-wrap: normal; word-break: normal; padding-bottom: 2px; font-size: 12px; }
+  .gk .gk-table thead { display: none; }
+  .gk .gk-table, .gk .gk-table tbody { display: block; }
+  .gk .gk-table tr { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); background: none; }
+  .gk .gk-table td { display: block; padding: 0; border: 0; min-width: 0; overflow-wrap: anywhere; }
+  .gk .gk-table td[data-where] { font-size: 12px; color: var(--muted); }
+  .gk-actions .btn { flex: 1 1 100%; text-align: center; justify-content: center; }
+}

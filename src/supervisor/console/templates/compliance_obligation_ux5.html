@@ -6,21 +6,21 @@
 {% block content %}
 <link rel="stylesheet" href="/console/static/ux5_g3.css">
 {% set admin = me.has('admin') %}
-{% set actions %}{{ u5.disclaimer(t('cp_disclaimer')) }}{% endset %}
-<div class="g3-crumb"><a href="/console/compliance?lang={{ lang }}">{{ t('nav_compliance') }}</a> / <a href="/console/compliance/{{ agent }}?lang={{ lang }}&amp;tab=all&amp;instrument={{ ob.instrument_id }}">{{ agent }}</a></div>
+{% set actions %}{{ u5.disclaimer(t('cp_disclaimer'), t('b3_not_legal')) }}{% endset %}
+<div class="g3-crumb"><a href="/console/compliance?lang={{ lang }}">{{ t('nav_compliance') }}</a> / <a href="/console/compliance/{{ agent }}?lang={{ lang }}&amp;tab=all&amp;instrument={{ ob.instrument_id }}">{{ agent_name }}</a></div>
 {{ u5.page_head(ob.article_ref or ob.title_en, ob.title_en if ob.article_ref and ob.title_en != ob.article_ref else None, actions=actions) }}
 <p class="g3-meta"><span class="mono" data-oid="1">{{ ob.id }}</span></p>
 <div class="g3-two g3-two-wide">
   <section class="card" data-section="text">
-    <h3>{{ t('cp_text_vi') }}</h3>
-    <div data-text-vi="1" class="g3-vi">{% if ob.text_vi %}{{ ob.text_vi }}{% else %}<span class="muted">{{ t('cp_no_text_vi') }}</span>{% endif %}</div>
+    {% if ob.text_vi %}{# UI-116: no block for a text that is not stored #}<h3>{{ t('cp_text_vi') }}</h3>
+    <div data-text-vi="1" class="g3-vi">{{ ob.text_vi }}</div>{% endif %}
     <h3>{{ t('cp_summary_en') }}</h3>
     <div>{{ ob.summary_en }}</div>
     {% if ob.evidence_needed %}<h3>{{ t('cp_evidence_needed') }}</h3><div>{{ ob.evidence_needed|join('; ') }}</div>{% endif %}
     <p class="hint">{{ t('g3_instr_row', number=ob.number, issuer=ob.issuer, status=ob.status) }}{% if admin %} <span class="mono">{{ ob.instrument_id }}</span>{% endif %}</p>
   </section>
   <section class="card" data-section="product-status">
-    <h3>{{ t('cp_this_product') }}: {{ agent }}</h3>
+    <h3>{{ t('cp_this_product') }}: {{ agent_name }}</h3>
     <div>{{ u5.status_chip(status_kind.get(row.status, 'na'), cw('status.' ~ row.status)) }}
       <span class="g3-meta">{{ t('g3_ob_applies') if row.applies == 'yes' else (t('g3_ob_wait') if row.applies == 'needs_answer' else t('g3_ob_noapply')) }}</span></div>
     <p><b>{{ t('cp_status_reason') }}:</b> {{ evidence(row) }}</p>

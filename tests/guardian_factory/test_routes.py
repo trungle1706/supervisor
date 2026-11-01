@@ -276,7 +276,8 @@ def test_registry_page_and_fragment(gf: Any) -> None:
 
 def test_editor_page_new_and_existing(gf: Any) -> None:
     r = gf.get("/console/guardian-factory/new")
-    assert r.status_code == 200 and "Draft the artifact" in r.text and 'id="gf-editor"' in r.text
+    assert r.status_code == 200 and 'id="gf-editor"' in r.text
+    assert "Fill the form from my description" in r.text
     assert 'data-panel="benchmark"' in r.text and 'data-panel="shadow"' in r.text
     make(gf)
     r = gf.get("/console/guardian-factory/account-numbers", headers=HX)
@@ -374,7 +375,7 @@ def test_i18n_keys_exist_in_both_languages(gf: Any) -> None:
 
     assert GF and all(len(v) == 2 and v[0] and v[1] for v in GF.values())
     r = gf.get("/console/guardian-factory/new?lang=vi")
-    assert "Xưởng tạo guardian" in r.text and "Soạn bản nháp" in r.text
+    assert "Xưởng tạo bộ bảo vệ" in r.text and "Điền biểu mẫu từ mô tả của tôi" in r.text
 
 
 def test_live_guardian_page_is_read_only_with_new_version(gf: Any) -> None:

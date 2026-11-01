@@ -78,6 +78,8 @@ from supervisor.adapters.integrations.transport import (
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError
 from supervisor.core.ports import StateStore, TableStore
+from supervisor.core.rows import rows_by
+from supervisor.core.timeutil import parse_utc_strict
 
 log = logging.getLogger("supervisor.siem")
 
@@ -340,7 +342,7 @@ CEF_LABELS = {
 
 def _cef_value(d: Mapping[str, Any], field: str) -> Any:
     if field == "ts":  # ArcSight rt: milliseconds since the epoch
-        return int(datetime.fromisoformat(str(d["ts"]).replace("Z", "+00:00")).timestamp() * 1000)
+        return int(parse_utc_strict(d["ts"]).timestamp() * 1000)
     if field.startswith("attrs."):
         return (d.get("attrs") or {}).get(field[6:])
     return d.get(field)
@@ -560,7 +562,7 @@ class DeltaSiemSink:
         doc = to_ocsf_dict(event, self.src)
         return {
             "event_id": event.event_id,
-            "ts": datetime.fromisoformat(event.ts.replace("Z", "+00:00")),
+            "ts": parse_utc_strict(event.ts),
             "event_type": event.event_type,
             "severity": event.severity,
             "outcome": event.outcome,
@@ -631,6 +633,7 @@ def build_siem_sink(
 # --------------------------------------------------------------------------- feed
 
 MONITOR = "siem"
+ROOT_LANE = "root"
 MAX_EVENTS_PER_POLL = 2000
 
 
@@ -657,6 +660,10 @@ class ChainEventFeed:
         self.max_events = max_events
         self.cursor: dict[str, int] = {}
         self.anchor_cursor: tuple[str, str] = ("", "")  # (anchored_at, anchor_id) seen so far
+        self.lanes: set[str] = set()  # every lane seen so far (saved with the cursors)
+        self._saved_lanes: set[str] = set()
+        self._lanes_loaded = False
+        self._root_seq = -1
         self._loaded = False
 
     # -- cursor persistence ----------------------------------------------------------
@@ -672,6 +679,10 @@ class ChainEventFeed:
                 self.cursor[key[7:]] = int(value["seq"])
             elif key == "anchor":
                 self.anchor_cursor = (str(value["ts"]), str(value["id"]))
+            elif key == "lanes":
+                self.lanes = {str(x) for x in value.get("lanes", [])}
+                self._saved_lanes = set(self.lanes)
+                self._lanes_loaded = True
         self._loaded = True
 
     def _save(self, key: str, value: dict[str, Any]) -> None:
@@ -691,24 +702,105 @@ class ChainEventFeed:
         raise IntegrationError(f"SIEM cursor {key} could not be saved")
 
     # -- poll --------------------------------------------------------------------------
+    def _root_lanes(self) -> set[str]:
+        """The lanes named by the newest ``root_commit`` (it lists every lane head). Two reads,
+        and none when the root lane has no new entry since the last poll."""
+        rows = self.tables.query(
+            "chain_entry",
+            {"lane": ROOT_LANE, "record_type": "root_commit"},
+            order_by=["-seq"],
+            limit=1,
+        )
+        if not rows:
+            return set()
+        seq = int(rows[0]["seq"])
+        if self._root_seq == seq:
+            return set()  # already merged into self.lanes
+        for p in rows_by(self.tables, "chain_payload", "payload_hash", [rows[0]["payload_hash"]])[
+            rows[0]["payload_hash"]
+        ]:
+            if (p["lane"], int(p["seq"])) == (ROOT_LANE, seq):
+                try:
+                    lanes = json.loads(p["payload"]).get("lanes") or {}
+                except (TypeError, ValueError):
+                    lanes = {}
+                self._root_seq = seq
+                return {str(k) for k in lanes}
+        return set()
+
+    def _discover_lanes(self) -> set[str]:
+        """Every lane to look at. The first poll (no lane list saved yet) scans the table once;
+        after that the saved lanes, the lanes of the cursor and the newest root commit are
+        enough, so a poll no longer reads the whole chain (audit N11)."""
+        if not self._lanes_loaded:
+            self.lanes |= {str(e["lane"]) for e in self.tables.query("chain_entry")}
+            self._lanes_loaded = True
+        self.lanes |= set(self.cursor) | self._root_lanes()
+        self.lanes.add(ROOT_LANE)
+        return set(self.lanes)
+
+    def _lane_entries(self, lane: str, first: int, count: int) -> list[dict[str, Any]]:
+        """Entries ``first .. first+count-1`` of one lane (all columns), by seq."""
+        got = rows_by(
+            self.tables, "chain_entry", "seq", range(first, first + count), where={"lane": lane}
+        )
+        return [r for seq in sorted(got) for r in got[seq]]
+
+    def _payloads(self, entries: list[dict[str, Any]]) -> dict[tuple[str, int], str]:
+        """Payload text of each entry, matched by (lane, seq); one batch read by hash."""
+        by_hash = rows_by(
+            self.tables, "chain_payload", "payload_hash", [e["payload_hash"] for e in entries]
+        )
+        wanted = {(str(e["lane"]), int(e["seq"])) for e in entries}
+        out: dict[tuple[str, int], str] = {}
+        for rows in by_hash.values():
+            for r in rows:
+                key = (str(r["lane"]), int(r["seq"]))
+                if key in wanted and key not in out:
+                    out[key] = r["payload"]
+        return out
+
     def poll(self) -> int:
         self._load()
         events: list[SiemEvent] = []
         new_cursor = dict(self.cursor)
         full = False
-        for entry in self.tables.query("chain_entry", order_by=["lane", "seq"]):
-            lane, seq = str(entry["lane"]), int(entry["seq"])
-            if seq <= new_cursor.get(lane, -1):
-                continue
-            if len(events) >= self.max_events:
-                full = True
+        lanes = sorted(self._discover_lanes())
+        # The newest seq of every lane in one statement; only a lane with seq above its cursor
+        # is read, and only the entries after the cursor (no scan of the whole chain).
+        heads = rows_by(
+            self.tables,
+            "chain_entry",
+            "lane",
+            lanes,
+            columns=("lane", "seq"),
+            order_by=["-seq"],
+            per_key_limit=1,
+        )
+        for lane in lanes:
+            head = int(heads[lane][0]["seq"]) if heads.get(lane) else -1
+            pos = new_cursor.get(lane, -1) + 1
+            while pos <= head and not full:
+                remaining = self.max_events - len(events)
+                if remaining <= 0:  # one more new entry exists: the batch is full
+                    full = True
+                    break
+                count = min(head - pos + 1, remaining + 1)
+                entries = self._lane_entries(lane, pos, count)
+                payloads = self._payloads(entries)
+                for entry in entries:
+                    seq = int(entry["seq"])
+                    if len(events) >= self.max_events:
+                        full = True
+                        break
+                    text = payloads.get((lane, seq))
+                    ev = event_from_chain(entry, json.loads(text) if text else {})
+                    if ev is not None:
+                        events.append(ev)
+                    new_cursor[lane] = seq
+                pos += count
+            if full:
                 break
-            rows = self.tables.query("chain_payload", {"lane": lane, "seq": seq})
-            payload = json.loads(rows[0]["payload"]) if rows else {}
-            ev = event_from_chain(entry, payload)
-            if ev is not None:
-                events.append(ev)
-            new_cursor[lane] = seq
         new_anchor = self.anchor_cursor
         if not full:
             anchors = sorted(
@@ -728,6 +820,9 @@ class ChainEventFeed:
                 self._save(f"cursor:{lane}", {"seq": seq})
         if new_anchor != self.anchor_cursor:
             self._save("anchor", {"ts": new_anchor[0], "id": new_anchor[1]})
+        if self.lanes != self._saved_lanes:
+            self._save("lanes", {"lanes": sorted(self.lanes)})
+            self._saved_lanes = set(self.lanes)
         self.cursor = new_cursor
         self.anchor_cursor = new_anchor
         return n

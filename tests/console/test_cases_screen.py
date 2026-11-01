@@ -16,7 +16,7 @@ def test_cases_table_rows(console: Console) -> None:
     assert "src-gate" in row and ">gate<" in row
     assert 'class="clockcell"' in row and "h " in row and "left" in row
     assert "Refresh cases" in r.text
-    assert "The clocks come from the draft SBV circular" in r.text  # the why line
+    assert "Deadlines follow the draft SBV circular" in r.text  # the why line
 
 
 def test_case_filters_and_archive(console: Console) -> None:

@@ -49,7 +49,7 @@ def test_duties_one_group_per_framework_with_ticks_and_bulk_bar(ux: Console) -> 
     assert 'class="u5-ticks"' in html and "u5-legend" in html
     assert html.count('class="g2-bulk"') == 2
     assert "Re-evaluate" in html
-    assert "Re-run the matrix on the stored answers. Nothing is deleted." in html
+    assert "Check the duties again using the saved answers. Nothing is deleted." in html
     assert "Advisory, not legal advice" in html  # one disclaimer chip
     assert html.count('title="Advisory, not legal advice"') == 1
     for gone in (">Applies<", ">Closing control<", ">Due<", ">Coverage<"):
@@ -203,7 +203,10 @@ def test_empty_tabs_offer_link_an_agent(ux: Console) -> None:
 @pytest.mark.parametrize(
     ("url", "text"),
     [
-        ("/console/systems?lang=en", "AI systems of the bank, with owner, stage and risk level."),
+        (
+            "/console/systems?lang=en",
+            "AI systems: who owns each, which stage it is in, and its risk level.",
+        ),
         ("/console/tasks?lang=en", "Tasks per system and lifecycle stage."),
         ("/console/candidates?lang=en", "Workspace objects not yet registered as AI systems."),
         ("/console/onboard?lang=en", "Bring an agent under supervision in 6 steps."),
@@ -252,6 +255,6 @@ def test_g2_text_keys_have_en_and_vi() -> None:
         assert k in base, k
     assert all(k.startswith("g2_") for k in i18n_g2.G2)
     t_en, t_vi = i18n.translator("en", ux5=True), i18n.translator("vi", ux5=True)
-    assert t_en("sy_purpose").startswith("AI systems of the bank")
+    assert t_en("sy_purpose").startswith("The bank's AI systems")
     assert t_vi("sy_purpose").startswith("Các hệ thống AI")
-    assert i18n.translator("en")("sy_purpose").startswith("The AI systems of the bank: who owns")
+    assert i18n.translator("en")("sy_purpose").startswith("The bank's AI systems: who owns")

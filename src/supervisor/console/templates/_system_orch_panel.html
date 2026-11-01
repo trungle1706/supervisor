@@ -36,20 +36,20 @@
         <td>{{ (lab[1] if lang == 'vi' else lab[0]) if lab else i.dimension_id }}</td>
         <td class="mono">{{ i.agent }}</td>
         <td>{{ ui.pill(t('orch_it_' ~ i.status), o_kind.get(i.status, 'neutral')) }}
-          {% if not i.applies %}<span class="muted mono">{{ i.reason }}</span>{% endif %}
+          {% if not i.applies %}<span class="muted">{% set rk = 'orch_reason_' ~ i.reason %}{% set rt = t(rk) %}{{ rt if rt != rk else i.reason }}</span>{% endif %}
           {% if i.status in ('budget_exceeded', 'failed') %}<span class="muted">{{ i.note }}</span>{% endif %}</td>
         <td data-orch="verdict">{{ i.verdict or '-' }}{% if i.needs_person %} {{ ui.pill(t('orch_needs_person'), 'bad') }}{% endif %}</td>
-        <td class="mono" data-orch="stop">{{ i.stop_point or '-' }}</td>
+        <td data-orch="stop">{% if i.stop_point %}{% set sp = i.stop_point.split(':', 1) %}{% set sk = 'orch_stop_' ~ sp[0] %}{% set st = t(sk, ref=sp[1] if sp|length > 1 else '') %}{{ st if st != sk else i.stop_point }}{% else %}-{% endif %}</td>
         <td>{% if i.report_ref %}<a class="mono" href="/v1/orchestrate/{{ orch_run.run_id }}/reports/{{ i.dimension_id }}" data-orch="report">{{ i.report_ref }}</a>{% else %}-{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
   {% if not orch_run.running %}
-  <p><button class="btn sm" type="button" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-target="#tab-body" hx-swap="innerHTML" data-act="orch-reload">{{ t('orch_reload') }}</button></p>
+  <p><button class="btn sm" type="button" hx-get="{{ ob }}?tab=riskdim&amp;lang={{ lang }}" hx-target="#tab-body" hx-select="#tab-body > *" hx-swap="innerHTML" data-act="orch-reload">{{ t('orch_reload') }}</button></p>
   {% endif %}
   {% else %}
-  <p class="muted" data-orch="none">{{ t('orch_none') }}</p>
+  {% if orch_set_on %}<p class="muted" data-orch="none">{{ t('b1_orch_none_set', date=orch_set_on) }}</p>{% else %}<p class="muted" data-orch="none">{{ t('orch_none') }}</p>{% endif %}
   {% endif %}
   <p class="hint">{{ orch_banner }}</p>
 </section>

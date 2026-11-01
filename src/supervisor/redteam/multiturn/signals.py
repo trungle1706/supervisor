@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from supervisor.gateway.tier0b import RegexClassifier
-from supervisor.redteam.multiturn.text import cue_counts
 
 _CLASSIFIER = RegexClassifier()
 RISK_TOPIC_CUES = ("limit_talk", "policy_fake", "authority", "remember", "scope_creep")
@@ -77,7 +76,3 @@ class SessionMonitor:
             "risk_topics": self.risk_topic_turns,
             "tier0b": self.tier0b_hits,
         }
-
-
-def text_cues(text: str) -> dict[str, int]:
-    return cue_counts(text)

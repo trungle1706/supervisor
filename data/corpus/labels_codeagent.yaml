@@ -1,0 +1,444 @@
+# Gold labels for the NEW fields of the source analysis agent (docs/onboarding/code-agent.md).
+# The old fields (framework, tools, llm_calls, data_access, pii_fields, tracing, decision33,
+# autonomy, secrets, injections) stay in labels.yaml.
+#
+# Written by the lead agent by reading the code of each repo BEFORE the agent ran on it
+# (labels for the 21 existing repos and for the 6 new repos of data/corpus/repos_agent: 2026-10-30). Definitions: docs/onboarding/code-agent.md,
+# section "Labels for the new fields".
+#
+# Per repo:
+#   tools:      {tool name as the model sees it: {effect, irreversible, approval}}
+#   amount_args: ["tool.arg"]            the argument that holds the money amount
+#   tool_sinks:  ["tool direction sink"] data source / sink reached from the tool, also through
+#                                        helper functions it calls (sink: db|http|bank_api|file)
+#   egress_hosts: [host]                 every host of a URL in executable code or config
+#   secret_sources: [env|hardcoded|secret_store]  how credentials are obtained
+#   guardrails:  [amount_limit|allowlist|input_validation|output_filter|rate_limit|content_filter]
+#   logging_sinks: [log|trace_otel|trace_mlflow|audit_table]
+#   pii_logged:  true when a log or print call writes personal data
+#   pii_by_tool: ["tool:field"]          vocabulary identifiers in the tool function or its params
+#   entrypoints: ["kind:file"]           http|cli|mcp|notebook|mlflow
+#   pinned_models: [model id]            ids that hold a date or version
+version: 1
+split:
+  holdout:
+    - holdout_injection_secrets_savings
+    - holdout_langchain_ollama_loans
+    - holdout_llamaindex_anthropic_limits
+    - holdout_mcp_lowlevel_cards
+    - holdout_egress_kyc_vendor
+    - holdout_pii_logging_irreversible
+    - holdout_agent_loop_injection
+  # repos that a few-shot exemplar of the prompt is taken from (tuned split only); the report also
+  # gives the tuned score without them
+  exemplar:
+    - crewai_collections
+    - anthropic_dispute_helper
+    - pii_logging_support
+    - egress_enrichment_agent
+repos:
+  anthropic_dispute_helper:
+    tools:
+      doc_giao_dich: {effect: read, irreversible: false, approval: false}
+      mo_khieu_nai: {effect: write, irreversible: false, approval: true}
+      hoan_phi: {effect: money, irreversible: true, approval: true}
+    amount_args: []
+    tool_sinks: ["doc_giao_dich read db", "mo_khieu_nai write db", "hoan_phi write db"]
+    egress_hosts: []
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: [log]
+    pii_logged: false
+    pii_by_tool: ["doc_giao_dich:card_number", "mo_khieu_nai:customer_id", "hoan_phi:customer_id"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: [claude-sonnet-4-20250514]
+  approval_gate_transfer:
+    tools:
+      get_balance: {effect: read, irreversible: false, approval: false}
+      make_transfer: {effect: money, irreversible: true, approval: true}
+    amount_args: ["make_transfer.amount"]
+    tool_sinks: ["get_balance read bank_api", "make_transfer write bank_api", "make_transfer read bank_api"]
+    egress_hosts: [llm.nganhang.internal, approvals.nganhang.internal, core.nganhang.internal]
+    secret_sources: []
+    guardrails: []
+    logging_sinks: [log, trace_otel]
+    pii_logged: false
+    pii_by_tool: ["get_balance:account_number", "make_transfer:account_number"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  crewai_collections:
+    tools:
+      tra_cuu_khoan_vay: {effect: read, irreversible: false, approval: false}
+      gui_nhac_no_sms: {effect: message, irreversible: true, approval: false}
+      ghi_nhan_ke_hoach_tra_no: {effect: credit, irreversible: true, approval: false}
+    amount_args: ["ghi_nhan_ke_hoach_tra_no.installment_vnd"]
+    tool_sinks: ["tra_cuu_khoan_vay read db", "gui_nhac_no_sms write http", "ghi_nhan_ke_hoach_tra_no write db"]
+    egress_hosts: [sms.example.vn]
+    secret_sources: []
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_khoan_vay:customer_id", "tra_cuu_khoan_vay:ho_ten", "tra_cuu_khoan_vay:so_dien_thoai", "gui_nhac_no_sms:so_dien_thoai", "ghi_nhan_ke_hoach_tra_no:customer_id"]
+    entrypoints: ["cli:main.py"]
+    pinned_models: [anthropic/claude-3-5-sonnet-20241022]
+  dynamic_registry_ops:
+    tools:
+      tra_cuu_ho_so_khach_hang: {effect: read, irreversible: false, approval: false}
+      dong_bang_tai_khoan: {effect: write, irreversible: false, approval: false}
+      raise_card_limit: {effect: credit, irreversible: true, approval: false}
+    amount_args: ["raise_card_limit.new_limit"]
+    tool_sinks: ["tra_cuu_ho_so_khach_hang read db", "dong_bang_tai_khoan write bank_api", "raise_card_limit write bank_api"]
+    egress_hosts: [core.nganhang.internal, llm.example.vn]
+    secret_sources: []
+    guardrails: [amount_limit]
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_ho_so_khach_hang:customer_id", "tra_cuu_ho_so_khach_hang:ho_ten", "tra_cuu_ho_so_khach_hang:so_dien_thoai", "tra_cuu_ho_so_khach_hang:dia_chi", "dong_bang_tai_khoan:account_number", "raise_card_limit:card_number", "raise_card_limit:monthly_income"]
+    entrypoints: []
+    pinned_models: []
+  fastapi_deepagents_credit_toy:
+    tools:
+      read_facility: {effect: read, irreversible: false, approval: false}
+      fetch_financials: {effect: read, irreversible: false, approval: false}
+      compute_dscr: {effect: read, irreversible: false, approval: false}
+      search_policy: {effect: read, irreversible: false, approval: false}
+      draft_section: {effect: read, irreversible: false, approval: false}
+      save_memo_draft: {effect: write, irreversible: false, approval: false}
+    amount_args: []
+    tool_sinks: ["read_facility read db", "fetch_financials read db", "search_policy read file", "save_memo_draft write db"]
+    egress_hosts: []
+    secret_sources: []
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["read_facility:customer_id", "fetch_financials:customer_id", "save_memo_draft:customer_id"]
+    entrypoints: ["http:main.py"]
+    pinned_models: []
+  fastapi_toolserver_remit:
+    tools:
+      quote_fee: {effect: read, irreversible: false, approval: false}
+      check_watchlist: {effect: read, irreversible: false, approval: false}
+      send_remittance: {effect: money, irreversible: true, approval: false}
+    amount_args: ["send_remittance.amount"]
+    tool_sinks: ["check_watchlist read file", "send_remittance write bank_api"]
+    egress_hosts: [toolserver.example.vn, llm.nganhang.internal, core.nganhang.internal]
+    secret_sources: [env]
+    guardrails: [input_validation, allowlist]
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["check_watchlist:full_name", "send_remittance:customer_id", "send_remittance:payee_name", "send_remittance:phone"]
+    entrypoints: ["http:server.py"]
+    pinned_models: []
+  fastmcp_account_tools:
+    tools:
+      get_balance: {effect: read, irreversible: false, approval: false}
+      list_accounts: {effect: read, irreversible: false, approval: false}
+      tra_cuu_giao_dich: {effect: read, irreversible: false, approval: false}
+      transfer_to_beneficiary: {effect: money, irreversible: true, approval: false}
+    amount_args: ["transfer_to_beneficiary.amount"]
+    tool_sinks: ["get_balance read db", "list_accounts read db", "tra_cuu_giao_dich read db", "transfer_to_beneficiary read db", "transfer_to_beneficiary write db"]
+    egress_hosts: [otel.example.vn]
+    secret_sources: [env]
+    guardrails: [allowlist]
+    logging_sinks: [trace_otel]
+    pii_logged: false
+    pii_by_tool: ["get_balance:account_number", "list_accounts:customer_id", "list_accounts:account_number", "list_accounts:account_id", "tra_cuu_giao_dich:account_id", "transfer_to_beneficiary:customer_id", "transfer_to_beneficiary:full_name", "transfer_to_beneficiary:account_number"]
+    entrypoints: ["mcp:server.py", "cli:server.py"]
+    pinned_models: []
+  holdout_injection_secrets_savings:
+    tools:
+      tra_cuu_so_du: {effect: read, irreversible: false, approval: false}
+      tinh_lai_tiet_kiem: {effect: read, irreversible: false, approval: false}
+      nap_tiet_kiem: {effect: money, irreversible: true, approval: false}
+    amount_args: ["nap_tiet_kiem.so_tien"]
+    tool_sinks: ["tra_cuu_so_du read bank_api", "nap_tiet_kiem write bank_api"]
+    egress_hosts: [savings.nganhang.internal]
+    secret_sources: [hardcoded]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_so_du:so_tai_khoan", "tra_cuu_so_du:ho_ten", "nap_tiet_kiem:so_tai_khoan"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: [claude-sonnet-4-20250514]
+  holdout_langchain_ollama_loans:
+    tools:
+      tra_cuu_khoan_vay: {effect: read, irreversible: false, approval: false}
+      tinh_tien_tra_gop: {effect: read, irreversible: false, approval: false}
+      giai_ngan_khoan_vay: {effect: money, irreversible: true, approval: false}
+    amount_args: ["giai_ngan_khoan_vay.so_tien"]
+    tool_sinks: ["tra_cuu_khoan_vay read db", "giai_ngan_khoan_vay write bank_api"]
+    egress_hosts: [ollama.example.vn, lending.nganhang.internal]
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_khoan_vay:ho_ten", "tra_cuu_khoan_vay:so_dien_thoai"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  holdout_llamaindex_anthropic_limits:
+    tools:
+      doc_su_dung_the: {effect: read, irreversible: false, approval: false}
+      de_xuat_han_muc: {effect: read, irreversible: false, approval: false}
+      ap_dung_han_muc: {effect: credit, irreversible: true, approval: true}
+    amount_args: ["ap_dung_han_muc.han_muc_moi"]
+    tool_sinks: ["doc_su_dung_the read db", "ap_dung_han_muc write db"]
+    egress_hosts: []
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: [trace_otel]
+    pii_logged: false
+    pii_by_tool: ["doc_su_dung_the:customer_id", "doc_su_dung_the:card_number", "doc_su_dung_the:thu_nhap", "ap_dung_han_muc:customer_id"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  holdout_mcp_lowlevel_cards:
+    tools:
+      tra_trang_thai_the: {effect: read, irreversible: false, approval: false}
+      khoa_the: {effect: write, irreversible: false, approval: false}
+    amount_args: []
+    tool_sinks: ["tra_trang_thai_the read bank_api", "khoa_the write bank_api", "khoa_the write file"]
+    egress_hosts: [cards.nganhang.internal]
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: [audit_table]
+    pii_logged: false
+    pii_by_tool: ["tra_trang_thai_the:card_number", "khoa_the:card_number", "khoa_the:customer_id"]
+    entrypoints: ["mcp:server.py", "cli:server.py", "cli:client_agent.py"]
+    pinned_models: []
+  injection_bill_pay:
+    tools:
+      list_bills: {effect: read, irreversible: false, approval: false}
+      pay_bill: {effect: money, irreversible: true, approval: false}
+      save_payee: {effect: write, irreversible: false, approval: false}
+    amount_args: ["pay_bill.amount"]
+    tool_sinks: ["list_bills read db", "pay_bill write bank_api", "save_payee write db"]
+    egress_hosts: [payments.nganhang.internal]
+    secret_sources: []
+    guardrails: []
+    logging_sinks: [log]
+    pii_logged: false
+    pii_by_tool: ["list_bills:customer_id", "save_payee:payee_name"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  langchain_card_support:
+    tools:
+      tra_cuu_the: {effect: read, irreversible: false, approval: false}
+      lay_han_muc_the: {effect: read, irreversible: false, approval: false}
+      khoa_the_tam_thoi: {effect: write, irreversible: false, approval: false}
+    amount_args: []
+    tool_sinks: ["tra_cuu_the read bank_api", "lay_han_muc_the read bank_api", "khoa_the_tam_thoi write bank_api"]
+    egress_hosts: [cards.nganhang.internal]
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_the:customer_id", "khoa_the_tam_thoi:card_number"]
+    entrypoints: ["cli:main.py"]
+    pinned_models: []
+  langgraph_loan_triage:
+    tools:
+      read_loan_application: {effect: read, irreversible: false, approval: false}
+      get_bureau_score: {effect: read, irreversible: false, approval: false}
+      record_preapproval_decision: {effect: credit, irreversible: true, approval: false}
+    amount_args: ["record_preapproval_decision.approved_limit_vnd"]
+    tool_sinks: ["read_loan_application read db", "get_bureau_score read db", "record_preapproval_decision write db"]
+    egress_hosts: []
+    secret_sources: []
+    guardrails: [input_validation]
+    logging_sinks: [trace_otel]
+    pii_logged: false
+    pii_by_tool: ["read_loan_application:customer_id", "read_loan_application:ho_ten", "read_loan_application:monthly_income", "get_bureau_score:customer_id"]
+    entrypoints: ["cli:main.py"]
+    pinned_models: []
+  langgraph_supervisor_multi:
+    tools:
+      get_card_limit: {effect: read, irreversible: false, approval: false}
+      get_spending_summary: {effect: read, irreversible: false, approval: false}
+      export_statement: {effect: write, irreversible: false, approval: false}
+    amount_args: []
+    tool_sinks: ["get_card_limit read db", "get_spending_summary read db", "export_statement read db", "export_statement write file"]
+    egress_hosts: []
+    secret_sources: []
+    guardrails: [allowlist]
+    logging_sinks: [trace_mlflow]
+    pii_logged: false
+    pii_by_tool: ["get_card_limit:card_number", "get_spending_summary:card_number", "export_statement:account_number"]
+    entrypoints: ["cli:graph.py"]
+    pinned_models: [claude-3-5-haiku-20241022]
+  llamaindex_policy_qa:
+    tools:
+      chinh_sach_noi_bo: {effect: read, irreversible: false, approval: false}
+      tra_cuu_phi_the: {effect: read, irreversible: false, approval: false}
+      tinh_ngay_hieu_luc: {effect: read, irreversible: false, approval: false}
+    amount_args: []
+    tool_sinks: ["chinh_sach_noi_bo read file", "tra_cuu_phi_the read file"]
+    egress_hosts: []
+    secret_sources: []
+    guardrails: []
+    logging_sinks: [trace_mlflow]
+    pii_logged: false
+    pii_by_tool: []
+    entrypoints: ["cli:main.py"]
+    pinned_models: []
+  mlflow_chatagent_savings:
+    tools:
+      tra_cuu_lai_suat: {effect: read, irreversible: false, approval: false}
+      mo_tiet_kiem: {effect: money, irreversible: true, approval: false}
+    amount_args: ["mo_tiet_kiem.amount"]
+    tool_sinks: ["tra_cuu_lai_suat read db", "mo_tiet_kiem write db"]
+    egress_hosts: []
+    secret_sources: []
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["mo_tiet_kiem:customer_id", "mo_tiet_kiem:so_tai_khoan"]
+    entrypoints: ["mlflow:agent.py"]
+    pinned_models: []
+  notebook_kyc_review:
+    tools:
+      doc_ho_so_kyc: {effect: read, irreversible: false, approval: false}
+      kiem_tra_cccd: {effect: read, irreversible: false, approval: false}
+      cap_nhat_trang_thai_kyc: {effect: write, irreversible: false, approval: false}
+    amount_args: []
+    tool_sinks: ["doc_ho_so_kyc read db", "kiem_tra_cccd read file", "cap_nhat_trang_thai_kyc write db"]
+    egress_hosts: []
+    secret_sources: []
+    guardrails: []
+    logging_sinks: [trace_mlflow]
+    pii_logged: false
+    pii_by_tool: ["doc_ho_so_kyc:customer_id", "doc_ho_so_kyc:ho_ten", "doc_ho_so_kyc:so_cccd", "doc_ho_so_kyc:ngay_sinh", "doc_ho_so_kyc:dia_chi", "kiem_tra_cccd:so_cccd", "cap_nhat_trang_thai_kyc:customer_id"]
+    entrypoints: ["notebook:kyc_review.py"]
+    pinned_models: []
+  openai_fx_quotes:
+    tools:
+      lay_ty_gia: {effect: read, irreversible: false, approval: false}
+      dat_bao_gia: {effect: write, irreversible: false, approval: false}
+      chuyen_tien_ngoai_te: {effect: money, irreversible: true, approval: false}
+    amount_args: ["chuyen_tien_ngoai_te.amount"]
+    tool_sinks: ["lay_ty_gia read bank_api", "dat_bao_gia write db", "chuyen_tien_ngoai_te write bank_api"]
+    egress_hosts: [fx.nganhang.internal]
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["dat_bao_gia:customer_id", "chuyen_tien_ngoai_te:so_tai_khoan", "chuyen_tien_ngoai_te:payee_name"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: [gpt-4o-2024-08-06]
+  planted_secrets_payroll:
+    tools:
+      tra_cuu_phieu_luong: {effect: read, irreversible: false, approval: false}
+      ung_luong: {effect: money, irreversible: true, approval: false}
+    amount_args: ["ung_luong.so_tien"]
+    tool_sinks: ["tra_cuu_phieu_luong read db", "ung_luong write bank_api", "ung_luong write db"]
+    egress_hosts: [core.nganhang.internal, adb-demo.example.com]
+    secret_sources: [hardcoded]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_phieu_luong:ho_ten", "tra_cuu_phieu_luong:thu_nhap", "ung_luong:so_tai_khoan"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  vi_comments_insurance:
+    tools:
+      tra_cuu_hop_dong: {effect: read, irreversible: false, approval: false}
+      tinh_phi_bao_hiem: {effect: read, irreversible: false, approval: false}
+      gui_email_tu_van: {effect: message, irreversible: true, approval: false}
+    amount_args: []
+    tool_sinks: ["tra_cuu_hop_dong read db", "gui_email_tu_van write http"]
+    egress_hosts: [mail.example.vn]
+    secret_sources: [env]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["tra_cuu_hop_dong:so_cccd", "tra_cuu_hop_dong:ho_ten", "tinh_phi_bao_hiem:ngay_sinh", "tinh_phi_bao_hiem:thu_nhap", "gui_email_tu_van:email", "gui_email_tu_van:ho_ten"]
+    entrypoints: []
+    pinned_models: []
+  egress_enrichment_agent:
+    tools:
+      lookup_company: {effect: read, irreversible: false, approval: false}
+      notify_partner: {effect: message, irreversible: true, approval: false}
+    amount_args: []
+    tool_sinks: ["lookup_company read http", "notify_partner write http"]
+    egress_hosts: [api.companyinfo.example.com, hooks.partner.example.com, llm.nganhang.internal]
+    secret_sources: [secret_store]
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["lookup_company:tax_code", "notify_partner:customer_id", "notify_partner:ho_ten"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  writeoff_no_approval:
+    tools:
+      xem_du_no: {effect: read, irreversible: false, approval: false}
+      gia_han_no: {effect: credit, irreversible: true, approval: true}
+      xoa_no: {effect: credit, irreversible: true, approval: false}
+      xoa_ghi_chu: {effect: delete, irreversible: true, approval: false}
+    amount_args: ["xoa_no.amount_vnd"]
+    tool_sinks: ["xem_du_no read db", "gia_han_no write bank_api", "gia_han_no read bank_api", "xoa_no write db", "xoa_ghi_chu write db"]
+    egress_hosts: [core.nganhang.internal, approvals.nganhang.internal, llm.nganhang.internal]
+    secret_sources: []
+    guardrails: [amount_limit]
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["xem_du_no:customer_id"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  pii_logging_support:
+    tools:
+      tra_cuu_khach_hang: {effect: read, irreversible: false, approval: false}
+      cap_nhat_dia_chi: {effect: write, irreversible: false, approval: false}
+      gui_otp: {effect: message, irreversible: true, approval: false}
+    amount_args: []
+    tool_sinks: ["tra_cuu_khach_hang read db", "cap_nhat_dia_chi write db", "gui_otp write http"]
+    egress_hosts: [sms.example.vn]
+    secret_sources: []
+    guardrails: []
+    logging_sinks: [log, audit_table]
+    pii_logged: true
+    pii_by_tool: ["tra_cuu_khach_hang:so_dien_thoai", "tra_cuu_khach_hang:ho_ten", "tra_cuu_khach_hang:customer_id", "tra_cuu_khach_hang:dia_chi", "cap_nhat_dia_chi:customer_id", "cap_nhat_dia_chi:dia_chi", "gui_otp:so_dien_thoai"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: [claude-3-5-haiku-20241022]
+  holdout_egress_kyc_vendor:
+    tools:
+      xac_minh_danh_tinh: {effect: read, irreversible: false, approval: false}
+      tra_cuu_trang_thai: {effect: read, irreversible: false, approval: false}
+      ghi_ket_qua_kyc: {effect: write, irreversible: false, approval: true}
+    amount_args: []
+    tool_sinks: ["xac_minh_danh_tinh write http", "tra_cuu_trang_thai read db", "ghi_ket_qua_kyc write db", "ghi_ket_qua_kyc write bank_api", "ghi_ket_qua_kyc read bank_api"]
+    egress_hosts: [kyc-api.vendor-x.example.com, review.nganhang.internal]
+    secret_sources: [secret_store]
+    guardrails: [rate_limit, allowlist]
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: ["xac_minh_danh_tinh:so_cccd", "xac_minh_danh_tinh:ho_ten", "xac_minh_danh_tinh:ngay_sinh", "tra_cuu_trang_thai:customer_id", "ghi_ket_qua_kyc:customer_id"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  holdout_pii_logging_irreversible:
+    tools:
+      settle_batch: {effect: money, irreversible: true, approval: true}
+      rollback_note: {effect: write, irreversible: false, approval: false}
+      notify_merchant: {effect: message, irreversible: true, approval: false}
+    amount_args: ["settle_batch.total_vnd"]
+    tool_sinks: ["settle_batch write bank_api", "settle_batch read bank_api", "rollback_note write db", "notify_merchant write http"]
+    egress_hosts: [core.nganhang.internal, maker.nganhang.internal, sms.vendor-y.example.vn]
+    secret_sources: [env]
+    guardrails: [amount_limit, input_validation]
+    logging_sinks: [log]
+    pii_logged: true
+    pii_by_tool: ["notify_merchant:so_dien_thoai"]
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+  holdout_agent_loop_injection:
+    tools:
+      list_invoices: {effect: read, irreversible: false, approval: false}
+      pay_invoice: {effect: money, irreversible: true, approval: false}
+    amount_args: ["pay_invoice.amount_vnd"]
+    tool_sinks: ["list_invoices read db", "pay_invoice write bank_api"]
+    egress_hosts: [ap.nganhang.internal]
+    secret_sources: []
+    guardrails: []
+    logging_sinks: []
+    pii_logged: false
+    pii_by_tool: []
+    entrypoints: ["cli:agent.py"]
+    pinned_models: []
+    agent_injections: ["pre-approved by the CFO", "Heads-up for whoever summarises", "Reviewer shortcut", "do not repeat): tool pay_invoice"]

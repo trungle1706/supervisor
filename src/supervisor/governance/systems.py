@@ -25,6 +25,8 @@ from typing import Any
 from supervisor.controls.model import actor_ref
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, NotFoundError
+from supervisor.core.flags import truthy as _on
+from supervisor.core.people import is_system_owner, same_person
 from supervisor.governance.model import (
     EDITABLE,
     INVENTORY_TO_SYSTEM,
@@ -83,12 +85,6 @@ ALL = _All()
 Scope = frozenset[str] | _All
 
 FILTERS = ("status", "owner_team", "lifecycle_stage", "risk", "system_type", "q")
-
-
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
 
 
 def _plain(value: Any) -> Any:
@@ -426,10 +422,7 @@ class SystemService:
             raise SystemsError("reason is required: 10 to 500 characters")
         if rank(level) >= rank(cur["risk_level"]):
             raise SystemsError("this call only lowers the risk level")
-        if by == cur["owner_user"] or any(
-            m["user_id"] == by and m["team_role"] == "system_owner"
-            for m in self._team_rows(system_id)
-        ):
+        if is_system_owner(cur, self._team_rows(system_id), by):
             raise SegregationOfDuties(
                 "segregation of duties: the owner of the system cannot lower its risk level"
             )
@@ -479,7 +472,7 @@ class SystemService:
     def _check_owner(self, system_id: str, user_id: str) -> None:
         """The new owner must not be the reviewer or oversight manager of the system."""
         for m in self._team_rows(system_id):
-            if m["user_id"] == user_id and m["team_role"] in SOD_ROLES:
+            if same_person(m["user_id"], user_id) and m["team_role"] in SOD_ROLES:
                 raise SegregationOfDuties(
                     f"segregation of duties: {user_id} is {m['team_role']} of this system "
                     "and cannot also be its owner"
@@ -529,14 +522,14 @@ class SystemService:
         cur = next((m for m in team if m["user_id"] == user_id), None)
         if cur is None and len(team) >= MAX_MEMBERS:
             raise SystemsError(f"a system can have at most {MAX_MEMBERS} team members")
-        is_owner = user_id == sys_row["owner_user"] or (cur and cur["team_role"] == "system_owner")
+        is_owner = is_system_owner(sys_row, team, user_id)
         if team_role in SOD_ROLES and is_owner:
             raise SegregationOfDuties(
                 f"segregation of duties: {user_id} owns this system and cannot be its {team_role}"
             )
         if team_role == "system_owner":
             self._check_owner(system_id, user_id)
-        if user_id == sys_row["owner_user"] and team_role != "system_owner":
+        if same_person(user_id, sys_row["owner_user"]) and team_role != "system_owner":
             raise SystemsError(
                 "the owner of the system keeps the system_owner role; change the owner first"
             )
@@ -553,7 +546,7 @@ class SystemService:
         check_user(actor, "actor")
         sys_row = self._need_open(system_id)
         check_user(user_id)
-        if user_id == sys_row["owner_user"]:
+        if same_person(user_id, sys_row["owner_user"]):
             raise SystemsError("the owner of the system cannot be removed; change the owner first")
         cur = self.state.get("system_team", {"system_id": system_id, "user_id": user_id})
         if cur is None or not _on(cur["active"]):

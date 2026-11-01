@@ -37,7 +37,6 @@ import argparse
 import datetime as dt
 import hashlib
 import json
-import math
 import sys
 import tempfile
 import time
@@ -45,31 +44,17 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
+from supervisor.core.stats import wilson_bp_full as wilson_bp
 from supervisor.inventory.graph import Graph
 from supervisor.inventory.model import Edge, Node, node_id_for
+from supervisor.jobs._cli_common import print_verdicts, write_baseline
 from supervisor.risk import evidence as ev
 from supervisor.risk import inherit
 from supervisor.risk.model import RiskConfig, RiskError, Thresholds, band_of, score_of
 from supervisor.risk.refs import RefCatalogue, build_catalogue
 
 THRESHOLDS_BP = {"golden": 10000, "starters": 10000, "adversarial": 10000, "determinism": 10000}
-Z95 = 1.959964
 BASE_COMMIT = "3aed7f9"
-
-
-def wilson_bp(successes: int, n: int) -> tuple[int, int]:
-    """Wilson 95 percent interval of a proportion, in integer basis points."""
-    if n <= 0:
-        return (0, 10000)
-    p = successes / n
-    z2 = Z95 * Z95
-    denom = 1 + z2 / n
-    centre = (p + z2 / (2 * n)) / denom
-    half = Z95 * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / denom
-    return (
-        max(0, math.floor((centre - half) * 10000)),
-        min(10000, math.ceil((centre + half) * 10000)),
-    )
 
 
 def _bp(part: int, whole: int) -> int:
@@ -665,27 +650,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     st = res["starters"]
     print(f"[starters] risks={st['risks']} links={st['links']} problems={st['problems']}")  # noqa: T201
     print(f"[determinism] {res['determinism']['bp']}bp")  # noqa: T201
-    bad = 0
-    for name, v in res["verdicts"].items():
-        print(f"    {name}: {v}")  # noqa: T201
-        bad += v != "GO"
+    bad = print_verdicts(res["verdicts"])
     if args.write_baseline:
-        (fixtures / "baseline.json").write_text(
-            json.dumps(
-                {
-                    "note": "Recorded by `python -m supervisor.risk.harness --write-baseline`. "
-                    "tests/risk/test_harness.py fails if a metric drops below this.",
-                    "date": dt.date.today().isoformat(),
-                    "base_commit": BASE_COMMIT,
-                    "branch": "wp29-risk-register",
-                    "results": _baseline_view(res),
-                },
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n",
-            encoding="utf-8",
-            newline="\n",
+        write_baseline(
+            fixtures / "baseline.json",
+            {
+                "note": "Recorded by `python -m supervisor.risk.harness --write-baseline`. "
+                "tests/risk/test_harness.py fails if a metric drops below this.",
+                "date": dt.date.today().isoformat(),
+                "base_commit": BASE_COMMIT,
+                "branch": "wp29-risk-register",
+                "results": _baseline_view(res),
+            },
         )
         print("[OK] wrote baseline.json")  # noqa: T201
     print("[OK] all GO" if not bad else f"[FAIL] {bad} NO-GO verdict(s)")  # noqa: T201

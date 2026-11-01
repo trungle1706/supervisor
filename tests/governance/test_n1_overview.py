@@ -106,9 +106,9 @@ def test_page_layout_en(v4: Console) -> None:
         "data-cards",
     ):
         assert part in html or part == "data-cards", part
-    assert "How are we doing" in html and "Registration pipeline" in html
+    assert "How we are doing" in html and "Registration pipeline" in html
     assert "Assessment completion" in html and "Risk classification by autonomy level" in html
-    assert "Your action items" in html and "Top candidates to register" in html
+    assert "Your actions" in html and "Register these first" in html
     assert "My systems and agents" in html
     stages = re.findall(r'data-stage="(\w+)"', html)
     assert stages == list(overview_v4.STAGES)
@@ -119,10 +119,10 @@ def test_page_layout_en(v4: Console) -> None:
 def test_page_vi(v4: Console) -> None:
     html = main(v4.get("/console/?lang=vi").text)
     assert "Tình hình hiện nay" in html and "Quy trình đăng ký" in html
-    assert "Ứng viên nên đăng ký trước" in html and "Mức hoàn thành đánh giá" in html
+    assert "Nên đăng ký trước" in html and "Mức hoàn thành đánh giá" in html
     assert "Databricks App loan-copilot" in html  # description built from facts, in Vietnamese
     assert "truy cập bảng khách hàng" in html
-    assert "How are we doing" not in html
+    assert "How we are doing" not in html
 
 
 def test_banner_is_attention_with_a_high_score_candidate(v4: Console) -> None:
@@ -216,7 +216,7 @@ def test_inventory_off_says_so_on_the_page_and_the_tab(
 ) -> None:
     monkeypatch.setattr(v4.ctx.settings, "inventory_enabled", False)
     html = main(v4.get("/console/?lang=en").text)
-    assert "The inventory is off" in html and "data-candidate=" not in html
+    assert "Inventory is switched off" in html and "data-candidate=" not in html
     r = v4.get("/console/candidates")
     assert r.status_code == 400 and "INVENTORY_ENABLED=1" in r.text
 
@@ -316,7 +316,7 @@ def test_drawer(v4: Console) -> None:
         "Signals",
         "Evidence",
         "workspace:system/app:loan-copilot",
-        "Register now",
+        "Register",  # UI-021: one label; the recommendation is the reason line
         f"/console/systems/new?from={nid}",
     ):
         assert part in r.text, part

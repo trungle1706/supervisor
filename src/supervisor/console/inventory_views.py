@@ -5,7 +5,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from supervisor.console.listing import paginate, parse_int, parse_sort, query_string, sort_rows
+from supervisor.console.listing import (
+    paginate_query,
+    parse_sort,
+    query_string,
+    sort_rows,
+)
 from supervisor.inventory.api import InventoryInputError
 from supervisor.inventory.service import InventoryService
 
@@ -21,7 +26,7 @@ def unmanaged_view(
     ListingError (HTTP 400)."""
     col, direction = parse_sort(query.get("sort"), query.get("dir"), UNMANAGED_COLUMNS, "kind")
     rows = sort_rows(items, col, direction)
-    pg = paginate(rows, parse_int(query.get("page"), "page", 1), UNMANAGED_PAGE)
+    pg = paginate_query(rows, query, UNMANAGED_PAGE)
     base = {"agent": agent or ""}
     return {
         "um_page": pg,
@@ -45,7 +50,11 @@ def page(ctx: Any, agent: str | None) -> dict[str, Any]:
             raise InventoryInputError("invalid agent id")
         if agent not in agents:
             raise InventoryInputError(f"agent {agent} is not in the inventory")
-    chosen = agent or (agents[0] if agents else "")
+    # UI-092: the "Open the agent page" link needs a registered agent. An inventory node is not one
+    # (a workspace app, a job): such a node is shown, its link is off, and the first registered
+    # agent is the default choice.
+    registered = {str(a["agent_id"]) for a in ctx.state.query("agent")}
+    chosen = agent or next((a for a in agents if a in registered), agents[0] if agents else "")
     view = svc.agent_view(chosen) if chosen else None
     rows = []
     if view:
@@ -63,6 +72,7 @@ def page(ctx: Any, agent: str | None) -> dict[str, Any]:
     return {
         "agents": agents,
         "agent": chosen,
+        "agent_registered": chosen in registered,
         "tree": view["tree"] if view else "",
         "node_rows": rows,
         "unmanaged": svc.unmanaged(),

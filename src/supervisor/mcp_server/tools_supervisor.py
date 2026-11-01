@@ -14,12 +14,27 @@ import time
 from typing import Any
 
 from supervisor.core.errors import SupervisorError
+from supervisor.core.rows import rows_by
+from supervisor.core.timeutil import parse_utc, parse_utc_strict
 from supervisor.mcp_server.common import LIMIT_SPEC, limit_of, pick, plain, visible_agent
 from supervisor.mcp_server.registry import Registry, Tool
 
 STOP_ACTIONS = ("block", "pause")
 SCAN_CAP = 2000
 RATIONALE_CHARS = 300
+_VERDICT_COLS = (
+    "event_id",
+    "verdict_id",
+    "ts",
+    "tier",
+    "action",
+    "advisory",
+    "rule_id",
+    "rationale_masked",
+    "checker_id",
+    "label",
+    "is_mock",
+)
 
 
 def _since(a: dict[str, Any]) -> dt.datetime | None:
@@ -27,24 +42,15 @@ def _since(a: dict[str, Any]) -> dt.datetime | None:
     if not raw:
         return None
     try:
-        out = dt.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        return parse_utc_strict(raw)
     except ValueError:
         raise SupervisorError(
             "since must be an RFC 3339 time, for example 2026-10-22T00:00:00Z"
         ) from None
-    return out if out.tzinfo else out.replace(tzinfo=dt.UTC)
 
 
 def _ts(value: Any) -> dt.datetime | None:
-    if isinstance(value, dt.datetime):
-        return value if value.tzinfo else value.replace(tzinfo=dt.UTC)
-    if isinstance(value, str) and value:
-        try:
-            out = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return None
-        return out if out.tzinfo else out.replace(tzinfo=dt.UTC)
-    return None
+    return parse_utc(value)
 
 
 def gate_state(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
@@ -68,12 +74,28 @@ def decisions(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
         order_by=("-ts",),
         limit=SCAN_CAP,
     )
-    out = []
+    # Candidates are the events inside the window, in order; each one adds exactly one item,
+    # so only the first `limit` of them need their verdicts: one batch read for all of them.
+    limit = limit_of(a)
+    cand = []
     for e in events:
         ts = _ts(e["ts"])
         if since is not None and (ts is None or ts < since):
             continue
-        verdicts = tables.query("verdict", {"event_id": e["event_id"]})
+        cand.append(e)
+        if len(cand) >= limit:
+            break
+    by_event = rows_by(
+        tables,
+        "verdict",
+        "event_id",
+        [e["event_id"] for e in cand],
+        columns=_VERDICT_COLS,
+        order_by=("ts", "verdict_id"),
+    )
+    out = []
+    for e in cand:
+        verdicts = by_event.get(e["event_id"], [])
         stops = [
             v
             for v in verdicts
@@ -103,8 +125,6 @@ def decisions(call: Any, a: dict[str, Any], apply: bool) -> dict[str, Any]:
                 ][:5],
             }
         )
-        if len(out) >= limit_of(a):
-            break
     return {"agent_id": agent, "count": len(out), "items": out}
 
 

@@ -28,7 +28,7 @@ from supervisor.console import (
     tools_views,
     transparency_views,
 )
-from supervisor.core import rbac
+from supervisor.console.authz import may as can
 from supervisor.core.errors import SupervisorError
 from supervisor.inventory.api import InventoryInputError
 
@@ -52,6 +52,7 @@ TABS = (
     "predeploy",  # WP-O3 (ONBOARD_PREDEPLOY)
     "attach",  # WP-O4 (ONBOARD_ATTACH_VIEW)
     "postdeploy",  # WP-O5 (ONBOARD_POSTDEPLOY)
+    "analysis",  # source analysis agent (CODE_AGENT_ENABLED)
 )
 TRACE_LIMIT = 20  # traces shown on the Traces tab
 CASE_LIMIT = 50
@@ -124,6 +125,12 @@ GATED: dict[str, tuple[str, str, str, str]] = {
         "ONBOARD_FACTS",
         "POST /v1/facts/<agent id>/<attempt n> (needs a stored source, see the Source tab)",
     ),
+    "analysis": (
+        "code_agent_enabled",
+        "systems.view",
+        "CODE_AGENT_ENABLED",
+        "POST /v1/code-analysis/<agent id>/run (needs a stored source, see the Source tab)",
+    ),
     "predeploy": (
         "onboard_predeploy",
         "systems.view",
@@ -155,14 +162,6 @@ class AgentDetailError(SupervisorError):
     """Unknown agent, unknown tab or a tab that is switched off (HTTP 400)."""
 
 
-def can(me: Any, permission: str) -> bool:
-    """True when ``me`` may use ``permission``: a person by role, any other principal only for
-    the read-only views in ``rbac.NON_USER_OK`` (the same rule as ``needs()``)."""
-    if getattr(me, "kind", "user") == "user":
-        return rbac.allowed(me.roles, permission)
-    return permission in rbac.NON_USER_OK
-
-
 def visible_tabs(ctx: Any, me: Any) -> list[str]:
     """Tabs whose flag is on and that ``me`` may read, in page order."""
     out = []
@@ -173,6 +172,15 @@ def visible_tabs(ctx: Any, me: Any) -> list[str]:
         elif getattr(ctx.settings, gate[0], False) and can(me, gate[1]):
             out.append(tab)
     return out
+
+
+def tabs_for(ctx: Any, me: Any, card: Mapping[str, Any]) -> list[str]:
+    """The tabs of the page of ``card``. An agent that only the policy file knows has the
+    Register and Guardians tabs only; the others answer HTTP 400 "agent is not registered"."""
+    tabs = visible_tabs(ctx, me)
+    if card.get("kind") == "policy_only":
+        return [t for t in tabs if t in POLICY_TABS]
+    return tabs
 
 
 def check_tab(ctx: Any, me: Any, tab: str) -> str:
@@ -446,6 +454,12 @@ def _facts(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> 
     return facts_routes.panel_data(ctx, me, card["agent_id"])
 
 
+def _analysis(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
+    from supervisor.console import code_agent_routes  # late: it imports this module
+
+    return code_agent_routes.panel_data(ctx, me, card["agent_id"])
+
+
 def _predeploy(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
     from supervisor.console import predeploy_routes  # late: it imports this module
 
@@ -459,9 +473,12 @@ def _attach(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) ->
 
 
 def _postdeploy(ctx: Any, me: Any, card: Mapping[str, Any], q: Mapping[str, str]) -> dict[str, Any]:
-    from supervisor.console import postdeploy_routes  # late: it imports this module
+    from supervisor.console import postdeploy_routes, stability_view  # late: import this module
 
-    return postdeploy_routes.panel_data(ctx, me, card["agent_id"], q.get("days"))
+    return {
+        **postdeploy_routes.panel_data(ctx, me, card["agent_id"], q.get("days")),
+        "stab_link": stability_view.agent_link(ctx, me, card["agent_id"]),
+    }
 
 
 _BUILDERS = {
@@ -481,6 +498,7 @@ _BUILDERS = {
     "transparency": _transparency,
     "source": _source,
     "facts": _facts,
+    "analysis": _analysis,
     "predeploy": _predeploy,
     "attach": _attach,
     "postdeploy": _postdeploy,

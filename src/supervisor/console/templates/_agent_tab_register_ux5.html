@@ -20,11 +20,9 @@
 <div class="g4-two">
 <section class="card" data-section="registry">
   <h3>{{ t('mya_reg_registry') if not policy_only else t('mya_reg_manifest') }}</h3>
+  {# UI-100: name, risk and gate state are in the page header chips #}
   {{ ui.kv([
-    (t('agent'), reg.name),
     (t('mya_reg_team'), reg.owner_team),
-    (t('risk'), t(reg.risk_tier) if reg.risk_tier else None),
-    (t('state'), reg.state),
     (t('mya_reg_since'), (reg.since|ict) if reg.since else None),
   ]) }}
 </section>

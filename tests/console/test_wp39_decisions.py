@@ -83,7 +83,7 @@ def test_detections_one_row_per_finding_and_per_not_executed(v2console: Console)
         ]
     )
     assert "9500 / 8000" in body  # score and threshold in bp
-    assert "a detector timed out" in body and "payload too large" in body
+    assert "a detector timed out" in body and "content too large" in body
 
 
 def test_metadata_latency_split_and_links(v2console: Console) -> None:
@@ -145,7 +145,7 @@ def test_response_tab_status_decision_rules_and_payload(v2console: Console) -> N
         if e["verdict_status"] == "block"
     )
     body = _body(v2console.get(f"/console/decisions/{blk['event_id']}/drawer?tab=response").text)
-    assert "Block" in body and "denied" in body and "The payload was not changed." in body
+    assert "Block" in body and "denied" in body and "The content was not changed." in body
 
 
 def test_not_evaluated_badge_on_row_and_in_drawer(v2console: Console) -> None:
@@ -153,9 +153,9 @@ def test_not_evaluated_badge_on_row_and_in_drawer(v2console: Console) -> None:
     ok = add_decision(v2console)
     lst = v2console.get("/console/decisions?noteval=1").text
     assert f'data-row="{bad}"' in lst and f'data-row="{ok}"' not in lst
-    assert "ne-badge" in lst and "Not evaluated" in lst
+    assert "ne-badge" in lst and "Not assessed" in lst
     d = v2console.get(f"/console/decisions/{bad}/drawer").text
-    assert "ne-badge" in d and "payload too large" in d and "a detector timed out" in d
+    assert "ne-badge" in d and "content too large" in d and "a detector timed out" in d
     d_ok = v2console.get(f"/console/decisions/{ok}/drawer").text
     assert "ne-badge" not in d_ok
 
@@ -307,7 +307,7 @@ def test_export_permission_and_columns(v2console: Console) -> None:
         == 403
     )
     r = _export(v2console)
-    assert r.status_code == 200 and "CSV built" in r.text and "truncated" not in r.text
+    assert r.status_code == 200 and "CSV ready" in r.text and "truncated" not in r.text
     rows = _csv_of(v2console, r)
     assert tuple(rows[0]) == decisions_v2.EXPORT_COLUMNS
     assert len(rows) > 5
@@ -352,7 +352,7 @@ def test_export_cap_with_ascii_truncated_notice(
     tables.append("agent_event", rows)
     r = _export(v2console)
     assert r.status_code == 200
-    assert 'data-export="truncated"' in r.text and "truncated: 5000 of " in r.text
+    assert 'data-export="truncated"' in r.text and "Only 5000 of " in r.text
     assert r.text.isascii() or "truncated" in r.text
     out = _csv_of(v2console, r)
     assert len(out) == 5000 + 1

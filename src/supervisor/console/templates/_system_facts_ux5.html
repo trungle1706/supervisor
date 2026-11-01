@@ -2,17 +2,15 @@
    owner only in the team table, empty values listed once as missing information. Variable: s. #}
 {% import "_ux5.html" as u5 with context %}
 {% set eff = s.effective_risk %}
+{# UI-064: owner team, stage and status are in the page header; the owner is in the team table #}
 {% set identity = [
   (t('sy_f_purpose'), s.purpose),
-  (t('sy_col_team'), s.owner_team),
   (t('sy_f_business_owner'), s.business_owner),
   (t('sy_f_system_type'), t('sy_system_type_' ~ s.system_type)),
-  (t('sy_col_stage'), t('sy_stage_' ~ s.lifecycle_stage)),
-  (t('status'), t('sy_st_' ~ s.status)),
 ] %}
 {% set risk = [
-  (t('g2_sy_risk_level'), t('sy_risk_' ~ eff.level) ~ ' (' ~ t('g2_sy_risk_detail', manual=t('sy_risk_' ~ eff.manual_level), inherited=t('sy_risk_' ~ eff.inherited_level)) ~ ')'),
-  (t('sy_f_risk_justification'), s.risk_justification),
+  (t('g2_sy_risk_level'), t('sy_risk_' ~ eff.level) if (eff.manual_level == eff.inherited_level) else (t('sy_risk_' ~ eff.level) ~ ' (' ~ t('g2_sy_risk_detail', manual=t('sy_risk_' ~ eff.manual_level), inherited=t('sy_risk_' ~ eff.inherited_level)) ~ ')')),
+  (t('sy_f_risk_justification'), demo(s.risk_justification) if s.risk_justification else none),
   (t('sy_f_decision33_class'), t('sy_d33_' ~ s.decision33_class)),
   (t('sy_f_business_impact'), t('sy_impact_' ~ s.business_impact)),
   (t('sy_f_autonomy_level'), t('sy_autonomy_level_' ~ (s.autonomy_level or 'unspecified'))),

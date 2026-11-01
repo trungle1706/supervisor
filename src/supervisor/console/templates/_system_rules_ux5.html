@@ -18,7 +18,7 @@
   {% if floor %}
   <div class="tablewrap flat"><table>
     <thead><tr><th scope="col">{{ t('nv3_guardians') }}</th><th scope="col">{{ t('g2_rules_reason') }}</th></tr></thead>
-    <tbody>{% for f in floor %}<tr><td><code>{{ f.slug }}</code></td><td>{% for r in f.rules %}<span class="u5-chip na"><span class="u5-dot"></span>{{ r }}</span> {% endfor %}</td></tr>
+    <tbody>{% for f in floor %}<tr><td>{{ label_for('guardian', f.slug) }}</td><td>{% for r in f.rules %}<span class="u5-chip na"><span class="u5-dot"></span>{{ label_for('rule', r) }}</span> {% endfor %}</td></tr>
     {% endfor %}</tbody>
   </table></div>
   {% else %}<p class="hint">{{ t('sy_rules_floor_none') }}</p>{% endif %}
@@ -30,15 +30,15 @@
   {% for g in rule_groups %}
   <details class="g2-rulegroup" data-rule-group="{{ g.rules|join(',') }}">
     <summary>
-      <b class="mono">{{ g.rules|join(', ') }}</b>
-      <span>{{ t('g2_rules_count', n=g.n) }}</span>
-      <span class="muted">{% for k, n in g.kinds.items() %}{{ n }} {{ t('sy_kind_' ~ k)|lower }}{{ ', ' if not loop.last }}{% endfor %}</span>
-      {% if g.fields %}<span class="muted">{{ t('g2_rules_on') }}: {{ g.fields|join(', ') }}</span>{% endif %}
+      <b>{% for r in g.rules %}{{ label_for('rule', r) }}{{ ', ' if not loop.last }}{% endfor %}</b>
+      <span>{{ plural('g2_rules_count', g.n) }}</span>
+      <span class="muted">{% for k, n in g.kinds.items() %}{{ plural('b3_kindn_' ~ k, n) }}{{ ', ' if not loop.last }}{% endfor %}</span>
+      {% if g.fields %}<span class="muted">{{ t('g2_rules_on') }}: {% for f in g.fields %}{{ label_text('field', f) }}{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}
       {{ u5.status_chip('ok' if g.active == g.n else 'na', t('sy_rule_active') ~ ' ' ~ g.active) }}
     </summary>
     <div class="tablewrap flat"><table>
       <thead><tr><th scope="col">{{ t('sy_rule_col_kind') }}</th><th scope="col">{{ t('sy_rule_col_ref') }}</th><th scope="col">{{ t('sy_rule_col_status') }}</th></tr></thead>
-      <tbody>{% for i in g['items'] %}<tr><td>{{ t('sy_kind_' ~ i.kind) }}</td><td class="mono">{{ i.ref_id }}</td><td>{{ t('sy_rule_active') if i.active else t('sy_rule_inactive') }}</td></tr>
+      <tbody>{% for i in g['items'] %}<tr><td>{{ t('sy_kind_' ~ i.kind) }}</td><td{% if i.kind not in ('task', 'guardian') %} class="mono"{% endif %}>{% if i.kind == 'task' %}{{ label_for('task', i.ref_id) }}{% elif i.kind == 'guardian' %}{{ label_for('guardian', i.ref_id) }}{% else %}{{ i.ref_id }}{% endif %}</td><td>{{ t('sy_rule_active') if i.active else t('sy_rule_inactive') }}</td></tr>
       {% endfor %}</tbody>
     </table></div>
   </details>

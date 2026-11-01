@@ -23,7 +23,8 @@ from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
 from supervisor.console import agent_detail, attach_view
 from supervisor.console.context import ConsoleContext, get_context
-from supervisor.console.routes import _call, _htmx_only, audited, message_html, render
+from supervisor.console.htmx import append_message
+from supervisor.console.routes import _call, _htmx_only, audited, render
 from supervisor.core.errors import SupervisorError
 from supervisor.onboard import agent_log, intake
 
@@ -178,6 +179,4 @@ async def attach_check(
     )
     resp = render(request, ctx, me, _panel(ctx), **data)
     note = f"{node_id}: checked now, {counts['lit']} of {counts['total']} guardians have evidence"
-    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
+    return append_message(resp, note)

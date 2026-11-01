@@ -33,8 +33,9 @@
   <p class="hint" data-empty="regkb-internal">{{ t('ri_none') }}</p>
   {% endif %}
   {% if ri.can_upload %}
-  <details {% if not ri.docs %}open{% endif %} class="intake-form">
-    <summary class="btn{% if not ri.docs %} primary{% endif %}" data-action="upload">{{ t('ri_upload') }}</summary>
+  {# UI-121: with no document yet, the form is open and its one submit button is the only button #}
+  <{{ 'details' if ri.docs else 'div' }} class="intake-form">
+    {% if ri.docs %}<summary class="btn" data-action="upload">{{ t('ri_upload') }}</summary>{% endif %}
     {% if ux5 %}<p class="hint">{{ t('ri_hint', mb=ri.max_mb) }}</p>{% endif %}
     <form hx-post="/console/regkb/internal?lang={{ lang }}" hx-encoding="multipart/form-data" hx-target="#regkb-internal-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
       <label>{{ t('ri_file') }} <input type="file" name="file" accept=".txt,.md,.pdf" aria-label="{{ t('ri_file') }}"></label>
@@ -43,7 +44,7 @@
       <label>{{ t('ri_f_version') }} <input type="text" name="version_label" maxlength="200" size="10" aria-label="{{ t('ri_f_version') }}"></label>
       <button type="submit" class="btn primary">{{ t('ri_send') }}</button>
     </form>
-  </details>
+  </{{ 'details' if ri.docs else 'div' }}>
   {% else %}
   <p class="hint">{{ t('ri_view_only') }}</p>
   {% endif %}

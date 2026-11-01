@@ -16,9 +16,12 @@ def test_onboard_page_off_by_default(console: Console) -> None:
     assert console.ctx.settings.console_onboard_enabled is False
     r = console.get("/console/onboard")
     assert r.status_code == 200
-    assert 'data-onboard-off="1"' in r.text and "CONSOLE_ONBOARD_ENABLED=1" in r.text
+    assert 'data-onboard-off="1"' in r.text
+    assert "CONSOLE_ONBOARD_ENABLED" not in r.text  # UI-331: no flag name for a reviewer
+    admin = console.get("/console/onboard", user="admin.chi")
+    assert 'title="CONSOLE_ONBOARD_ENABLED"' in admin.text  # an admin gets it as a tooltip
     assert r.text.count('class="wstep') == 6
-    assert "No onboarding run yet." in r.text
+    assert "No onboarding yet." in r.text
     s = console.post("/console/onboard/start", {"target": "src/supervisor_agents/payments"})
     assert s.status_code == 400 and "Onboard from the console is off" in s.text
 
@@ -56,7 +59,7 @@ def test_onboard_start_mock_run(console: Console, monkeypatch: pytest.MonkeyPatc
     page = console.get("/console/onboard")
     assert 'data-run="credit_prequal"' in page.text
     assert "Last run · credit_prequal" in page.text
-    assert ("GO" in page.text) and "red-team cases caught" in page.text
+    assert ("GO" in page.text) and "red-team attacks caught" in page.text
     assert 'data-human-gate="' in page.text and "Decision 33" in page.text
     assert "/console/onboard/files/credit_prequal/profile.json" in page.text
     f = console.get("/console/onboard/files/credit_prequal/launch_report.json")

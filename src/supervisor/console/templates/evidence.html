@@ -6,8 +6,8 @@
 {% import "_ux5.html" as u5 with context %}
 <link rel="stylesheet" href="/console/static/ux5_g6.css">
 {% set c = chain %}
-{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_evidence'), None)]) }}
-{{ u5.page_head(t('nav_evidence'), t('ev_purpose_lead'), about=t('ev_why')) }}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('nv3_t_evidence'), None)]) }}
+{{ u5.page_head(t('nv3_t_evidence'), t('ev_purpose_lead'), about=t('ev_why')) }}
 
 <section class="card">
   <h3>{{ t('chain_status') }}</h3>
@@ -26,6 +26,12 @@
     {% if c.anchor %} · {{ t('last_anchor') }} <b>{{ c.anchor.anchored_at|hhmmss }}</b>{% else %} · {{ t('not_anchored') }}{% endif %}</p>
 </section>
 
+{# UI-202: an empty chain with no export shows the status card and one empty line, not four near-empty blocks #}
+{% set quiet = (not c.entries) and (not packs) and (not lanes) and (not q) %}
+{% if quiet %}
+{{ ui.empty(t('no_chain')) }}
+{% else %}
+{% if packs %}
 <section class="card" style="margin-top:16px">
   <h3>{{ t('download') }}</h3>
   {% for p in packs[:5] %}
@@ -37,6 +43,7 @@
   {% else %}<p class="muted">{{ t('no_packs') }}</p>{% endfor %}
   {% if packs|length > 5 %}{{ u5.view_all(5, packs|length, '/console/evidence?lang=' ~ lang) }}{% endif %}
 </section>
+{% endif %}
 
 <section class="card" style="margin-top:16px">
   <h3>{{ t('lanes') }}</h3>
@@ -69,6 +76,7 @@
   </div>
   <div class="hint">{{ t('u6_lanes_hint', cap=60) }}</div>
 </section>
+{% endif %}
 
 {% if me.has('admin', 'auditor') %}
 {% set pname = offline_pack %}
@@ -83,8 +91,8 @@ python -m supervisor.evidence.verify {{ pname[:-4] }}\chain</pre>
 {% endif %}
 {% else %}
 {% set c = chain %}
-{{ ui.crumbs([(t('nav_g_prove'), None), (t('nav_evidence'), None)]) }}
-{{ ui.pagehead(t('nav_evidence')) }}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('nv3_t_evidence'), None)]) }}
+{{ ui.pagehead(t('nv3_t_evidence')) }}
 <div class="purpose">
   <p><strong>{{ t('ev_purpose_lead') }}</strong> {{ t('ev_purpose_rest') }}</p>
   <p class="why">{{ t('ev_why') }}</p>

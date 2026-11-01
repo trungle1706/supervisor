@@ -26,6 +26,7 @@ import yaml
 from supervisor.controls.model import actor_ref
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import NotFoundError
+from supervisor.core.flags import truthy as _on
 from supervisor.governance import rules as R
 from supervisor.governance.conditions import RulesError
 from supervisor.governance.model import check_system_id, check_user, ensure_on
@@ -45,12 +46,6 @@ TRIGGERS: tuple[str, ...] = (
     "archive",
     "manual",
 )
-
-
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
 
 
 def assignment_id(system_id: str, kind: str, ref_id: str) -> str:

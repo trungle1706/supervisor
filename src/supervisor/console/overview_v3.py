@@ -16,6 +16,7 @@ from typing import Any
 from supervisor.console import catalog_view, readmodels, views
 from supervisor.core import rbac
 from supervisor.core.errors import SupervisorError
+from supervisor.core.timeutil import parse_utc
 
 SCOPES = ("my", "team", "all")
 DAY = dt.timedelta(hours=24)
@@ -178,6 +179,13 @@ def open_actions(ctx: Any, me: Any, own_ids: set[str]) -> dict[str, Any]:
             )
     n_task = 0
     if ctx.settings.controls_enabled:
+        # UI-001: the Tasks page may be off (CONSOLE_CONTROLS_ENABLED); point at a live page then
+        pages = readmodels.ux3_pages(ctx.settings)
+        task_href = (
+            "/console/tasks"
+            if pages.get("tasks")
+            else ("/console/systems" if pages.get("systems") else "/console/cases")
+        )
         try:
             rows = ctx.tasks.list_tasks()
         except Exception:  # noqa: BLE001
@@ -193,7 +201,7 @@ def open_actions(ctx: Any, me: Any, own_ids: set[str]) -> dict[str, Any]:
                     {
                         "kind": "task",
                         "text": str(r["title"]),
-                        "href": "/console/tasks",
+                        "href": task_href,
                         "due": r.get("due_at"),
                     }
                 )
@@ -446,14 +454,9 @@ def governance_overview(
 def _oldest_days(rows: list[Mapping[str, Any]], now: dt.datetime) -> int | None:
     dues = []
     for r in rows:
-        due = r.get("due_at")
-        if isinstance(due, str):
-            try:
-                due = dt.datetime.fromisoformat(due.replace("Z", "+00:00"))
-            except ValueError:
-                due = None
-        if isinstance(due, dt.datetime):
-            dues.append(due if due.tzinfo else due.replace(tzinfo=dt.UTC))
+        due = parse_utc(r.get("due_at"))
+        if due is not None:
+            dues.append(due)
     return (now - min(dues)).days if dues else None
 
 

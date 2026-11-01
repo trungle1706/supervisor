@@ -1,0 +1,11 @@
+{# Guardian kit block as a full page (GUARDIAN_KIT), the no-JavaScript link. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('gk_title') }}{% endblock %}
+{% block content %}
+{{ ui.crumbs([(t('nv3_systems'), '/console/systems?lang=' ~ lang), (t('gk_title'), None)]) }}
+{{ ui.pagehead(t('gk_title')) }}
+<link rel="stylesheet" href="/console/static/gkit.css">
+<script src="/console/static/gkit.js" defer></script>
+{% include "_guardian_kit_panel.html" %}
+{% endblock %}

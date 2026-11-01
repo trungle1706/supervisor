@@ -1,0 +1,118 @@
+{# Source analysis panel (CODE_AGENT_ENABLED): status, summary cards, findings with evidence links,
+   disagreements, coverage, Run analysis, Use in assessment. Variable: ca. #}
+{% import "_ui.html" as ui with context %}
+{% set st = ca.status %}
+{% set rep = ca.report %}
+{% set cd = ca.cards %}
+<section class="card" id="code-agent-panel" data-section="code-agent" data-node="{{ ca.node_id }}"
+  {% if ca.polling %}hx-get="/console/code-analysis/{{ ca.node_id|urlencode }}?lang={{ lang }}{% if ca.compact %}&amp;compact=1{% endif %}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  <h3>{{ t('ca_title') }} {% if rep %}<span class="k">{{ rep.findings|length }}</span>{% endif %}</h3>
+  <p class="hint">{{ t('ca_hint') }}</p>
+  {% if st %}
+  <p class="idline" data-ca-state="{{ st.state }}">
+    {% set sl = {'none': 'neutral', 'queued': 'warn', 'running': 'warn', 'done': 'ok', 'failed': 'bad'}[st.state] %}
+    {{ ui.pill(t('ca_state_running', i=st.step, m=st.steps) if st.state == 'running' else t('ca_state_' ~ st.state), sl, True) }}
+    {% if rep %}
+      {{ ui.pill(t('ca_mode_agent', m=rep.model.model_id) if rep.mode == 'agent' else t('ca_mode_deterministic'), 'teal' if rep.mode == 'agent' else 'neutral') }}
+      {{ ui.pill(t('ca_conf') ~ ': ' ~ t('ca_conf_' ~ rep.confidence) ~ ' (' ~ (rep.confidence_bp // 100) ~ '%)', {'high': 'ok', 'medium': 'warn', 'low': 'bad'}[rep.confidence]) }}
+      <span data-ca-attempt="{{ rep.attempt_n }}">{{ t('ca_from_attempt', n=rep.attempt_n) }}</span>
+      {% if st.newer_attempt %}<span data-newer="1">{{ ui.pill(t('ca_newer', n=st.latest_attempt), 'warn') }}</span>{% endif %}
+    {% endif %}
+  </p>
+  {% if st.error %}<p class="hint" data-ca-error="1">{{ t('ca_error', e=st.error) }}</p>{% endif %}
+  {% endif %}
+
+  {% if not rep %}
+  {% if not ca.polling %}<p class="hint" data-empty="code-agent">{{ t('ca_none') }}</p>{% endif %}
+  {% else %}
+  {% if rep.mode != 'agent' %}<p class="hint" data-det="1">{{ t('ca_det_note') }}</p>{% endif %}
+
+  <div class="statgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin:10px 0" data-ca="cards">
+    {{ ui.stat(t('ca_card_framework'), cd.framework, '', 'framework') }}
+    {{ ui.stat(t('ca_card_models'), (cd.models|length), cd.models[0] if cd.models else t('ca_none_found'), 'models') }}
+    {{ ui.stat(t('ca_card_tools'), cd.tools, t('ca_card_tools_sub', i=cd.tools_irreversible, u=cd.tools_unguarded), 'tools') }}
+    {{ ui.stat(t('ca_card_data'), cd.flows, t('ca_card_data_sub', f=cd.flows, p=cd.pii), 'data') }}
+    {{ ui.stat(t('ca_card_egress'), cd.egress, t('ca_card_egress_sub', e=cd.egress_external), 'egress') }}
+    {{ ui.stat(t('ca_card_guard'), cd.guardrails|length, (cd.guardrails|join(', ')) or t('ca_none_found'), 'guardrails') }}
+    {{ ui.stat(t('ca_card_hitl'), cd.hitl, (cd.hitl_modes|join(', ')) or t('ca_none_found'), 'hitl') }}
+    {{ ui.stat(t('ca_card_secrets'), cd.secrets|length, (cd.secrets|join(', ')) or t('ca_none_found'), 'secrets') }}
+    {{ ui.stat(t('ca_card_logging'), cd.logging|length, ((cd.logging|join(', ')) or t('ca_none_found')) ~ (' · ' ~ t('ca_card_logging_pii') if cd.logging_pii else ''), 'logging') }}
+  </div>
+
+  {% if ca.compact %}
+  <p class="hint" data-ca="coverage">{{ t('ca_cov') }}: {{ t('ca_cov_files', r=rep.coverage.files_read, t=rep.coverage.files_total) }}</p>
+  <p><a class="btn" data-action="open-full" href="/console/code-analysis/{{ ca.node_id|urlencode }}?lang={{ lang }}">{{ t('ca_open_full') }}</a></p>
+  {% else %}
+  {% if cd.tool_rows %}
+  <div class="tablewrap flat"><table class="queue" data-table="ca-tools">
+    <thead><tr><th scope="col">{{ t('ca_card_tools') }}</th><th scope="col">effect</th><th scope="col">irreversible</th><th scope="col">{{ t('ca_card_hitl') }}</th></tr></thead>
+    <tbody>{% for r in cd.tool_rows %}
+      <tr class="row"><td class="mono">{{ r.name }}</td><td>{{ r.effect }}</td>
+      <td>{% if r.irreversible is none %}-{% else %}{{ ui.pill('yes' if r.irreversible else 'no', 'bad' if r.irreversible else 'neutral') }}{% endif %}</td>
+      <td>{% if r.approval is none %}-{% else %}{{ ui.pill('yes' if r.approval else 'no', 'ok' if r.approval else ('warn' if r.irreversible else 'neutral')) }}{% endif %}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% endif %}
+
+  <p class="hint" data-ca="coverage">{{ t('ca_cov') }}: {{ t('ca_cov_files', r=rep.coverage.files_read, t=rep.coverage.files_total) }} · {{ t('ca_cov_lines', r=rep.coverage.lines_read, t=rep.coverage.lines_total) }}
+    {% if rep.mode == 'agent' %}· {{ t('ca_stop', s=t('ca_stop_' ~ rep.stats.stop_reason)) }} · {{ t('ca_claims', k=rep.stats.kept, p=rep.stats.proposed, r=rep.stats.rejected) }} · {{ t('ca_cost', c=rep.stats.llm_calls, t=rep.stats.tokens_estimated, s=rep.stats.seconds|round|int) }}{% endif %}</p>
+
+  <h4>{{ t('ca_findings') }}</h4>
+  {% for g in ca.groups %}
+  <h4 data-kind="{{ g.kind }}">{{ t('ca_k_' ~ g.kind) }} <span class="k">{{ g.rows|length }}</span></h4>
+  <div class="tablewrap flat"><table class="queue" data-table="ca-{{ g.kind }}">
+    <thead><tr><th scope="col">{{ t('ca_c_name') }}</th><th scope="col">{{ t('ca_c_attrs') }}</th><th scope="col">{{ t('ca_c_evidence') }}</th><th scope="col">{{ t('ca_c_source') }}</th><th scope="col">{{ t('ca_c_conf') }}</th></tr></thead>
+    <tbody>{% for r in g.rows %}
+      <tr class="row">
+        <td class="wrap mono" style="min-width:12em;overflow-wrap:anywhere">{{ r.name }}</td>
+        <td class="idline wrap">{{ r.attrs or '-' }}</td>
+        <td class="wrap">{% for e in r.evidence %}<div><a class="mono" data-pointer="1" href="/console/code-analysis/{{ ca.node_id|urlencode }}/file?n={{ rep.attempt_n }}&amp;path={{ e.file|urlencode }}&amp;line={{ e.line }}&amp;lang={{ lang }}#L{{ e.line }}">{{ e.ref }}</a> <span class="idline mono">{{ e.quote[:90] }}</span></div>{% endfor %}</td>
+        <td>{{ ui.pill(t('ca_src_' ~ r.source), 'neutral' if r.source == 'deterministic' else 'teal') }}{% if r.corroborated and r.source == 'agent' %} <span class="idline">{{ t('ca_corroborated') }}</span>{% endif %}</td>
+        <td class="mono">{{ r.conf }}%</td>
+      </tr>{% endfor %}</tbody></table></div>
+  {% endfor %}
+
+  <h4 data-ca="disagreements">{{ t('ca_dis_title') }} <span class="k">{{ rep.disagreements|length }}</span></h4>
+  {% if rep.disagreements %}
+  <p class="hint">{{ t('ca_dis_hint') }}</p>
+  <div class="tablewrap flat"><table class="queue" data-table="ca-disagreements">
+    <thead><tr><th scope="col">{{ t('ca_dis_c_item') }}</th><th scope="col">{{ t('ca_dis_c_attr') }}</th><th scope="col">{{ t('ca_dis_c_rules') }}</th><th scope="col">{{ t('ca_dis_c_agent') }}</th><th scope="col">{{ t('ca_dis_c_kept') }}</th></tr></thead>
+    <tbody>{% for d in rep.disagreements %}
+      <tr class="row"><td class="mono wrap">{{ d.kind }}: {{ d.name }}</td><td>{{ d.attr }}</td><td>{{ d.deterministic }}</td><td>{{ d.agent }}</td>
+      <td>{{ ui.pill(t('ca_dis_applied_' ~ d.applied), 'neutral' if d.applied == 'deterministic' else 'teal') }}<div class="idline">{{ d.reason }}</div></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="hint">{{ t('ca_dis_none') }}</p>{% endif %}
+
+  {% if ca.rejected %}
+  <h4 data-ca="rejected">{{ t('ca_rej_title') }} <span class="k">{{ rep.rejected|length }}</span></h4>
+  <p class="hint">{{ t('ca_rej_hint') }}</p>
+  <p class="idline">{% for k, v in ca.rejected.items() %}<span>{{ label_for('kind', k) }}: {{ v }}</span>{{ ' · ' if not loop.last }}{% endfor %}</p>
+  {% endif %}
+
+  <h4 data-ca="use">{{ t('ca_use_title') }}</h4>
+  <p class="hint">{{ t('ca_use_hint') }}</p>
+  {% if ca.downstream %}
+  <p class="idline">{{ t('ca_use_fills', n=ca.downstream|sum(attribute='count')) }}</p>
+  <div class="tablewrap flat"><table class="queue" data-table="ca-downstream">
+    <thead><tr><th scope="col">{{ t('ca_use_kind') }}</th><th scope="col">#</th><th scope="col">{{ t('ca_c_name') }}</th><th scope="col">{{ t('ca_use_feeds') }}</th></tr></thead>
+    <tbody>{% for g in ca.downstream %}
+      <tr class="row"><td class="mono">{{ g.kind }}</td><td>{{ g.count }}</td><td class="idline wrap">{{ g.examples|join('; ') }}</td><td class="idline wrap">{{ t('ca_feed_' ~ g.kind) if g.kind in ca.feeds else '-' }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% if st.applied %}<p class="idline" data-applied="{{ st.applied }}">{{ t('ca_use_done', n=st.applied) }}</p>{% endif %}
+  {% if ca.can_edit and rep.mode == 'agent' %}
+  <form hx-post="/console/code-analysis/{{ ca.node_id|urlencode }}/apply" hx-target="#code-agent-panel" hx-swap="outerHTML" class="btnrow">
+    <button type="submit" class="btn primary" data-action="apply">{{ t('ca_use_btn') }}</button>
+  </form>
+  {% endif %}
+  {% else %}<p class="hint">{{ t('ca_use_nothing') }}</p>{% endif %}
+  {% endif %}{# compact #}
+  {% endif %}{# rep #}
+
+  {% if ca.can_edit %}
+  <form hx-post="/console/code-analysis/{{ ca.node_id|urlencode }}/run{% if ca.compact %}?compact=1{% endif %}" hx-target="#code-agent-panel" hx-swap="outerHTML" class="btnrow" style="margin-top:8px">
+    <button type="submit" class="btn{% if not rep or (st and st.newer_attempt) %} primary{% endif %}" data-action="run"{% if ca.polling %} disabled{% endif %}>{{ t('ca_run_again') if rep else t('ca_run') }}</button>
+    <span class="hint">{{ t('ca_run_hint') }}</span>
+  </form>
+  {% else %}
+  <p class="hint">{{ t('ca_view_only') }}</p>
+  {% endif %}
+</section>

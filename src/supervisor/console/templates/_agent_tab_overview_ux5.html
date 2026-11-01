@@ -17,9 +17,7 @@
   <p class="g4-line" data-section="lane">
     <span>{{ t('g4_audit_trail', n=lane.entries) }}</span>
     {{ ui.verify_pill(lane.verify) }}
-    <a href="/console/evidence?lang={{ lang }}">{{ t('nav_evidence') }}</a>
-    <span aria-hidden="true">&middot;</span>
-    <a href="/console/agents/{{ a.agent_id }}?tab=register&amp;lang={{ lang }}">{{ t('atab_register') }}</a>
+    {# UI-101: no footer links to the Evidence page and the Register tab: both are in the nav and the tab strip #}
   </p>
   {% if open_cases %}
   <section class="card" data-section="open-cases" aria-label="{{ t('open_cases') }}">

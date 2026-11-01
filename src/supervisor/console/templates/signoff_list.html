@@ -4,7 +4,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('signoff') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nav_g_act'), None), (t('signoff'), None)]) }}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('nv3_t_approvals'), None)]) }}
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}
 {{ u5.page_head(t('signoff'), t('so_purpose'), about=t('signoff_rule')) }}
 {% else %}

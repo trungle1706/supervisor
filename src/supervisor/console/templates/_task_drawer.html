@@ -15,7 +15,7 @@
 {% set next_hx = ('/console/tasks/' ~ drawer.next_id ~ '/drawer?tab=' ~ tab ~ ('&' ~ qs if qs else '') ~ '&lang=' ~ lang) if drawer.next_id else None %}
 {% call dr.drawer(r.template_id, pills, tabs_html, drawer.json_text, prev_href, prev_hx, next_href, next_hx) %}
   {% if tab == 'details' %}
-    <p style="margin:0 0 10px"><strong>{{ r.title }}</strong></p>
+    <p style="margin:0 0 10px"><strong>{{ label_text('task', r.template_id, r.title) }}</strong></p>
     {{ ui.kv([
       (t('agent'), r.agent_id, True),
       (t('tk_col_stage'), t('tk_stage_' ~ r.stage)),

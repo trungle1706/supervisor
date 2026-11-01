@@ -27,6 +27,7 @@ from supervisor.core.canonical import format_ts, parse_ts
 from supervisor.core.errors import DuplicateKeyError
 from supervisor.core.models import AgentEvent
 from supervisor.core.ports import TableStore
+from supervisor.core.rows import rows_by
 from supervisor.recorder.normalise import Normalised
 
 EVENT_TABLE = "agent_event"
@@ -107,7 +108,9 @@ class EventWriter:
 
     def _existing(self, table: str, ids: Iterable[str]) -> set[str]:
         key = "coverage_id" if table == COVERAGE_TABLE else "event_id"
-        return {i for i in ids if self.tables.query(table, {key: i}, limit=1)}
+        # one batch read for all ids (a replay of a big batch was one query per event)
+        found = rows_by(self.tables, table, key, ids, columns=[key], per_key_limit=1)
+        return {i for i, rows in found.items() if rows}
 
     def _append_new(self, table: str, rows: Sequence[Any], key: Any) -> tuple[int, int]:
         """Append rows not yet stored. Returns (written, duplicates)."""

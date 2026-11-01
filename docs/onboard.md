@@ -235,6 +235,18 @@ Limits: the stored tree lives on the local disk (see Intake), so after a restart
 a build needs a new upload first; the fact rows and the edges (Delta) stay. New table: run
 `python -m supervisor.jobs.bootstrap_schema` (or the smoke notebook) before the new version.
 
+## Source analysis agent (`CODE_AGENT_ENABLED`)
+
+Off by default. Windows cmd: `set CODE_AGENT_ENABLED=1`. A bounded, read-only tool loop over the
+stored scrubbed tree of an intake attempt (needs `ONBOARD_INTAKE`). It adds findings to the facts the
+rules produce (effect and irreversibility per tool, approval points, guardrails, hosts called, data
+flows, secret handling, logging, personal data per tool), each with file:line and a quote that the
+server checks again; the rule facts stay ground truth and every disagreement is listed. Tab **Source
+analysis** on the agent page, a panel in the Candidates drawer, a second tab on step 2 of the register
+workflow; **Use in assessment** writes the verified findings into the Facts card. Design, labels, tuning
+protocol and eval: `docs/onboarding/code-agent.md`. Review of the analyser before it:
+`docs/onboarding/code-analysis-review.md`.
+
 ## Pre-deploy assessment (WP-O3, phase 9, `ONBOARD_PREDEPLOY`)
 
 One report that says whether the code of a candidate is ready to go to Launch. It reads the same

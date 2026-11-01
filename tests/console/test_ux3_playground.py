@@ -78,7 +78,7 @@ def test_dry_run_leaves_store_chain_and_state_byte_identical(pg: Console) -> Non
 def test_would_pause_is_shown_and_the_agent_stays_running(pg: Console) -> None:
     gw = pg.ctx.gateway
     r = post(pg, "customer_service", "reply", {"text": "hi"})
-    assert r.status_code == 200 and "dry run" in r.text.lower()
+    assert r.status_code == 200 and "test run" in r.text.lower()
     r = post(pg, "payments", "ext_transfer_api", {"amount_minor": 5})
     assert "PAY-07" in r.text and "would pause" in r.text.lower()
     assert (

@@ -46,7 +46,7 @@ def test_guardians_tab_shows_the_panel_and_the_propose_button(
     sid = _ready(c, "high_self", money_movement=True)
     tab = c.get(f"/console/systems/{sid}?tab=guardians&lang=en").text
     assert 'id="sg-panel"' in tab and 'data-act="sg-propose"' in tab
-    assert "No proposal yet." in tab and "Not legal advice" in tab
+    assert "No suggestion yet." in tab and "Not legal advice" in tab
 
 
 def test_propose_fragment_groups_lines_with_why_and_rule(sgon: Console) -> None:
@@ -56,10 +56,10 @@ def test_propose_fragment_groups_lines_with_why_and_rule(sgon: Console) -> None:
     r = _post(c, sid)
     assert r.status_code == 200, r.text[:300]
     html = r.text
-    assert 'id="sg-panel"' in html and "Proposal made." in html
+    assert 'id="sg-panel"' in html and "Suggestion created." in html
     for g in ("guardian_set", "thresholds", "autonomy_limits", "floor"):
         assert f'data-sg-group="{g}"' in html, g
-    assert "Floor (cannot be removed)" in html
+    assert "Minimum (cannot be removed)" in html
     ids = _lines(html)
     assert len(ids) >= 6
     # every line row shows a why pointer and a rule id
@@ -143,9 +143,9 @@ def test_predeploy_button_in_an_accepted_panel(
     first = re.findall(r'data-line="(ln_[0-9a-f]{10})" data-state="proposed"', html)
     assert first
     done = _post(c, sid, "/accept", {f"sel_{first[0]}": "1"}).text
-    assert "Proof of the fit" in done
+    assert "Evidence of fit" in done
     assert 'data-act="sg-predeploy"' in done and 'hx-post="/console/predeploy/n1?lang=en"' in done
-    assert "Run pre-deploy now" in done
+    assert "Run pre-deployment test" in done
 
 
 def test_reject_needs_a_reason_in_the_form(sgon: Console) -> None:
@@ -155,7 +155,7 @@ def test_reject_needs_a_reason_in_the_form(sgon: Console) -> None:
     r = _post(c, sid, "/reject", {"reason": "short"})
     assert r.status_code == 400 and "reason_too_short" in r.text
     r = _post(c, sid, "/reject", {"reason": "The limits are wrong for this team."})
-    assert r.status_code == 200 and "Proposal rejected." in r.text
+    assert r.status_code == 200 and "Suggestion rejected." in r.text
     assert "Rejected" in r.text and "The limits are wrong for this team." in r.text
     assert 'data-act="sg-accept"' not in r.text
 
@@ -164,7 +164,7 @@ def test_vietnamese_labels(sgon: Console) -> None:
     c = sgon
     sid = _ready(c, "medium")
     r = _post(c, sid, lang="vi")
-    assert "Bộ guardian" in r.text and "Mức sàn" in r.text
+    assert "Bộ bảo vệ" in r.text and "Mức tối thiểu" in r.text
     assert c.get(f"/console/systems/{sid}/guardian-proposal?lang=vi").status_code == 200
 
 

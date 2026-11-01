@@ -28,6 +28,9 @@ from supervisor.controls.model import actor_ref
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import NotFoundError
+from supervisor.core.flags import truthy as _on
+from supervisor.core.people import is_system_owner, same_person
+from supervisor.core.timeutil import parse_utc as _to_dt
 from supervisor.governance import classification_tree as ct
 from supervisor.governance import decision33 as d33
 from supervisor.governance.conditions import RulesError
@@ -67,26 +70,8 @@ def require_on(settings: Any) -> None:
     ensure_on(settings)
 
 
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
-
-
 def _stamp(value: Any) -> Any:
     return format_ts(value) if hasattr(value, "isoformat") else value
-
-
-def _to_dt(value: Any) -> dt.datetime | None:
-    if isinstance(value, dt.datetime):
-        return value if value.tzinfo else value.replace(tzinfo=dt.UTC)
-    if isinstance(value, str) and value:
-        try:
-            parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return None
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=dt.UTC)
-    return None
 
 
 def record_id(system_id: str, n: int) -> str:
@@ -179,12 +164,8 @@ class ClassificationV2Service:
 
     def _is_owner(self, system_id: str, uid: str) -> bool:
         row = self.state.get("ai_system", {"system_id": system_id})
-        if row is not None and row.get("owner_user") == uid:
-            return True
-        return any(
-            _on(m["active"]) and m["team_role"] == "system_owner"
-            for m in self.state.query("system_team", {"system_id": system_id, "user_id": uid})
-        )
+        team = self.state.query("system_team", {"system_id": system_id})
+        return is_system_owner(row, team, uid)
 
     def _systems(self) -> Any:
         from supervisor.governance.systems import SystemService
@@ -378,7 +359,7 @@ class ClassificationV2Service:
         row = rows[-1]
         if row["approved_by"]:
             raise V2Error("already_approved", "the newest classification is already approved")
-        if row["decided_by"] == actor:
+        if same_person(row["decided_by"], actor):
             raise V2Error(
                 "same_person",
                 f"{actor} decided this classification; another person approves it",

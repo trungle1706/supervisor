@@ -35,7 +35,7 @@ import json
 import re
 import unicodedata
 import zlib
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from supervisor.detectors.injection_classifier import concepts as C
@@ -372,16 +372,6 @@ def features(window: str, surface: str = "args") -> tuple[int, ...]:
     return _FEATURE_CACHE(window, surface)
 
 
-def unit_feature_sets(text: str, surface: str = "args") -> list[tuple[int, ...]]:
-    """Feature lists of every window of every variant of ``text`` (training uses the variant
-    structure: ``prepare`` then ``windows`` then ``features``)."""
-    out: list[tuple[int, ...]] = []
-    for v in prepare(text):
-        for w in windows(v):
-            out.append(features(w, surface))
-    return out
-
-
 def variant_feature_sets(
     text: str, surface: str = "args", rank: Callable[[str], int] | None = None
 ) -> list[list[tuple[int, ...]]]:
@@ -391,8 +381,3 @@ def variant_feature_sets(
 
 def usable(text: str) -> bool:
     return len(text.strip()) >= MIN_TEXT_CHARS
-
-
-def join_leaves(leaves: Iterable[str]) -> str:
-    """The text of a payload part: its string leaves in order, one per line."""
-    return "\n".join(x for x in leaves if x)

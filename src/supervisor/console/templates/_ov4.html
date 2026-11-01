@@ -11,4 +11,4 @@
 {% macro score_pill(r) %}<span class="pill {{ {'high': 'bad', 'medium': 'warn', 'low': 'neutral'}[r.band] }}">{{ r.score }}</span>{% endmacro %}
 
 {# The recommended action of a system or agent card: a sentence and, when there is one, a link. #}
-{% macro rec(x) %}{% if x.key == 'none' %}<span class="muted">{{ t('ov4_na_none') }}</span>{% elif x.href %}<a href="{{ x.href }}{{ '&' if '?' in x.href else '?' }}lang={{ lang }}">{{ t('ov4_na_' ~ x.key, arg=x.arg) }}</a>{% else %}{{ t('ov4_na_' ~ x.key, arg=x.arg) }}{% endif %}{% endmacro %}
+{% macro rec(x) %}{% if x.key == 'none' %}<span class="muted">{{ t('ov4_na_none') }}</span>{% elif x.href %}<a href="{{ x.href }}{{ '&' if '?' in x.href else '?' }}lang={{ lang }}">{{ t('ov4_na_' ~ x.key, arg=(label_text('task', x.code, x.arg) if x.get('code') else x.arg)) }}</a>{% else %}{{ t('ov4_na_' ~ x.key, arg=(label_text('task', x.code, x.arg) if x.get('code') else x.arg)) }}{% endif %}{% endmacro %}

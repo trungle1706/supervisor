@@ -136,7 +136,8 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, validation_alias="SUPERVISOR_PORT")
     log_level: str = "INFO"
 
-    # Network
+    # Network. Not read from Settings: bootstrap.py and preflight.py read SSL_OS_TRUSTSTORE from
+    # the environment, because the truststore must be injected before settings load.
     ssl_os_truststore: bool = False
 
     # SQL backend: auto = sqlite for laptop/dev, databricks_rest for databricks_app
@@ -155,6 +156,9 @@ class Settings(BaseSettings):
     databricks_warehouse_name: str | None = None
     databricks_catalog: str | None = None
     databricks_schema: str | None = None
+    # Deprecated: nothing reads this field. REST (Statement Execution API) is the only transport,
+    # so "rest" is the only legal value. Kept so that a deployed app.yaml or env file that sets
+    # DATABRICKS_SQL_TRANSPORT=rest (the bank guide names it) still validates.
     databricks_sql_transport: Literal["rest"] = "rest"
     databricks_retry_timeout_s: int = Field(default=90, ge=60, le=120)
     databricks_statement_deadline_s: int = Field(default=120, ge=10, le=600)
@@ -318,6 +322,7 @@ class Settings(BaseSettings):
     notify_webhook_url: str = ""  # stub: notices are queued, never sent (bank ITSM, WP11)
     # Monitors and in-process scheduler (WP7, ADR D09/D10). Every monitor is off by
     # default. SCHEDULER_ENABLED unset = on in laptop mode, off in other modes.
+    # Tri-state: read the effective value through ``scheduler_on`` (None = mode default).
     scheduler_enabled: bool | None = None
     scheduler_lease_ttl_s: int = Field(default=180, ge=10)
     scheduler_lock_path: Path | None = None  # default: <data_dir>/scheduler.lock (laptop)
@@ -332,11 +337,13 @@ class Settings(BaseSettings):
     sched_quality_s: int = Field(default=900, ge=1)
     regkb_internal_dir: str = ""  # WP13: RegKB internal rules dir (empty = off)
     drift_enabled: bool = False
-    drift_window_s: int = Field(default=86400, ge=60)
+    drift_window_s: int = Field(default=86400, ge=10)  # below 60 only with SHOWCASE_ENABLED
     drift_baseline_windows: int = Field(default=7, ge=2)
     drift_k: int = Field(default=3, ge=1)
     drift_consecutive: int = Field(default=3, ge=1)
     drift_min_n: int = Field(default=20, ge=1)
+    drift_settle_s: int = Field(default=600, ge=0)  # W8: a short demo window needs a short settle
+    stability_tab: bool = False  # W8: the Stability tab of the system page (read only)
     fairness_enabled: bool = False
     fairness_config: Path = Path("config/fairness.yaml")
     metrics_enabled: bool = False
@@ -374,7 +381,9 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = Field(default=120, ge=1)  # per principal (else client IP)
     rate_limit_burst: int = Field(default=30, ge=1)
     api_rbac_enabled: bool = False  # role matrix on agent-facing /gate read routes only (new: off)
-    console_audit_enabled: bool = True  # console_action row for every mutating action
+    # Writes a console_action row for every mutating action. The page that shows the rows is
+    # CONSOLE_AUDITLOG_ENABLED (a different switch, clean-up audit G5).
+    console_audit_enabled: bool = True
     retention_enabled: bool = False  # PDPL retention job (ADR D13; new: off)
     retention_raw_days: int = Field(default=90, ge=1)  # agent_event_raw args/result
     retention_masked_days: int = Field(default=365, ge=1)  # masked excerpts
@@ -414,6 +423,11 @@ class Settings(BaseSettings):
     # regkb_changed. Off = HTTP 400 change_loop_off, no override loaded, no event. A person
     # with regkb.confirm applies a change; nothing is applied automatically.
     regkb_change_loop: bool = False
+    # Regulation graph. KBGRAPH_ENABLED=1 (needs GOVERNANCE_ENABLED) turns on the page
+    # /console/regkb/graph (tab "Regulation graph" in Risks & controls) and GET /v1/regkb/graph:
+    # instrument -> obligation -> AI system, links from obligation_status coloured by coverage.
+    # Read only. Off = HTTP 400 kbgraph_off and no tab.
+    kbgraph_enabled: bool = False
     # WP17 assurance eval packs. Bank-supplied datasets live under ASSURANCE_DATA_DIR/<pack>/;
     # OSV_DB_PATH is a local OSV vulnerability dump. All new features default off.
     assurance_data_dir: Path | None = None
@@ -530,6 +544,9 @@ class Settings(BaseSettings):
     # to the pill header; the second flag shows the links of pages that WP-UX3 has not built yet
     # (they open a "coming in WP-UX3" page).
     console_nav: Literal["sidebar", "top"] = "sidebar"
+    # Nav flags (G5): console_nav_sections, console_nav_v3 and console_nav_placeholders all steer
+    # the sidebar; the production app.yaml sets sections and v3 together. They collapse when the
+    # owner retires the old sidebar (clean-up audit R2).
     console_nav_placeholders: bool = False
     # UX5 redesign foundation (new: off; off = the console as before): links ux5.css, adds the
     # ux5 class on <html>, and applies the i18n_ux5_* text overrides. See docs/console-ux5.md.
@@ -544,8 +561,6 @@ class Settings(BaseSettings):
     # GET /v1/candidates (new: off; off = today's My overview page; needs CONSOLE_NAV_V3,
     # GOVERNANCE_ENABLED and, for the candidate table, INVENTORY_ENABLED).
     console_overview_v4: bool = False
-    # WP-N2 (route built by another work package): the "My agents" tab. Only the tab is gated here.
-    console_my_agents: bool = False
     console_catalog_enabled: bool = False  # /console/catalog: guardian capabilities, on or off
     # WP-N2: My agents tab (/console/my/agents) and the Register and Guardians tabs of the agent
     # page (new: off; off = no tab, the routes answer 400; needs CONSOLE_NAV_V3).
@@ -561,7 +576,8 @@ class Settings(BaseSettings):
     console_policies_enabled: bool = False  # /console/policies (read-only)
     console_credentials_enabled: bool = False  # /console/credentials (metadata, never a secret)
     console_users_enabled: bool = False  # /console/users (read-only role map)
-    console_auditlog_enabled: bool = False  # /console/audit (console_action rows)
+    # /console/audit shows the console_action rows. CONSOLE_AUDIT_ENABLED writes them.
+    console_auditlog_enabled: bool = False
     console_integrations_enabled: bool = False  # /console/integrations (status, read-only)
     # Newest rows a list page reads before it filters in Python (decisions, audit log; the
     # traces list reads CONSOLE_TRACE_SCAN events). A capped list says so. Pilot sizes.
@@ -595,6 +611,8 @@ class Settings(BaseSettings):
     # off). MCP_TOOL_LOCK: inside the proxy, hold new or changed tools for two-person review
     # (default on; the lock is deterministic and safe). MCP_LOCK_REFRESH_S: how long the proxy
     # trusts one tools/list view before it asks the upstream server again.
+    # Not the same flag as MCP_SERVER_ENABLED: this is the MCP gateway PROXY (tool locking for the
+    # agent's own MCP servers); mcp_server_enabled serves Supervisor's tools to others.
     mcp_http_enabled: bool = False
     mcp_tool_lock: bool = True
     mcp_lock_refresh_s: int = Field(default=60, ge=1, le=3600)
@@ -625,6 +643,13 @@ class Settings(BaseSettings):
     redteam_attacker_model: str = Field(default="", pattern=r"^[A-Za-z0-9_.:/@-]*$")
     redteam_llm_max_conversations: int = Field(default=60, ge=1, le=60)  # hard cap, live runs
     redteam_langs: str = Field(default="vi", pattern=r"^(vi|en|vi,en)$")
+    # W7 (v0.11.2): run the multi-turn red team on one AI system before deployment, from the
+    # registration flow (step Guardians) and the system tab "Red team"; a live panel, then a full
+    # report (docs/redteam-multiturn.md "Red team in the registration flow"). The sandbox agent is
+    # simulated; the gate and rules are real. Off: the panel renders nothing and the routes answer
+    # HTTP 400 redteam_tab_off. REDTEAM_TAB_PACE_MS: demo pause after each conversation (0 = none).
+    redteam_tab: bool = False
+    redteam_tab_pace_ms: int = Field(default=0, ge=0, le=2000)
 
     # --- WP29 --- risk register (ADR D26, docs/risk-register.md). All off by default.
     # RISK_REGISTER_ENABLED: /v1/risks routes, the scheduler job risk_evidence and the CLI.
@@ -738,6 +763,19 @@ class Settings(BaseSettings):
     # onboard_facts rows and feed the inventory graph. Needs ONBOARD_INTAKE for the source. Off =
     # POST /v1/facts and the Facts tab and panel answer HTTP 400 with the flag name (new: off).
     onboard_facts: bool = False
+    # --- source analysis agent (docs/onboarding/code-agent.md) --- a bounded tool loop over the
+    # stored, scrubbed intake tree: list_files, read_file, grep, ast_outline, find_references.
+    # It never runs candidate code. Every claim it makes is kept only when its file:line holds
+    # the quoted text. Deterministic code facts stay ground truth; disagreements are listed.
+    # Needs ONBOARD_INTAKE for the source. Off = POST /v1/code-analysis and the Source analysis tab
+    # answer HTTP 400 code_agent_off (new: off). The limits cap one run.
+    code_agent_enabled: bool = False
+    code_agent_max_steps: int = Field(default=14, ge=1, le=60)
+    code_agent_max_tokens: int = Field(
+        default=40_000, ge=1_000, le=400_000
+    )  # prompt+reply, all steps
+    code_agent_max_seconds: int = Field(default=900, ge=10, le=7200)
+    code_agent_max_read_lines: int = Field(default=4_000, ge=100, le=100_000)
     # --- WP-O3 (phase 9) --- pre-deploy assessment (docs/onboard.md "Pre-deploy assessment"): one
     # report per intake attempt (facts, readiness, required assurance packs in the launch sandbox,
     # the multi-turn red-team pack, the duties matrix). Needs ONBOARD_INTAKE for the source. Off =
@@ -748,6 +786,11 @@ class Settings(BaseSettings):
     # evidence of each and the How to attach env lines. Read only. Off = GET /console/attach/{id}
     # answers HTTP 400 attach_off and the tab and panel are absent (new: off).
     onboard_attach_view: bool = False
+    # --- Guardian kit --- the "Connect your app to Guardian" block of the Guardians step and the
+    # Guardians tab: a how-to, the one file guardian_client.py, and a code check that turns the
+    # status Not ready into Ready. Needs ONBOARD_INTAKE for the source. Off
+    # = the block is absent and every route answers HTTP 400 guardian_kit_off (new: off).
+    guardian_kit: bool = False
     # --- WP-O3b (phase 9) --- packs against the running candidate (docs/assurance.md "HTTP target
     # (WP-O3b)"): the pre-deploy packs that need a running agent send synthetic turns to the
     # candidate's HTTP chat endpoint. Off (default): WP-O3 behaves as before. The allow list is a
@@ -806,6 +849,46 @@ class Settings(BaseSettings):
     # Needs GOVERNANCE_ENABLED, RISK_DIMENSIONS and CLASSIFICATION_V2 (ONBOARD_FACTS adds facts v1).
     # Off: routes answer HTTP 400 orchestrator_off, no table read, the Risk tab is unchanged.
     onboard_orchestrator: bool = False
+    # --- demo --- the assessment (and the smart guardian) take the newest SAVED classification
+    # while its second-person approval waits; the approval stays on the system page. Off: an
+    # approved classification is needed (plan_blocked classification_required). Demos only.
+    assess_pending_class: bool = False
+    # --- W3 (v0.11.2) --- executive findings of the risk assessment (docs/orchestrator.md).
+    # ORCH_EXEC_FINDINGS (off): after each risk type's report the run stores <type>.exec.json next
+    # to it (what it means for the bank, why, what to do, who acts), made by rules from the report
+    # and the code-scan facts; the summary page shows a Bottom line and Key findings. Off: nothing
+    # is written and the summary shows the raw findings as before.
+    orch_exec_findings: bool = False
+    # ORCH_EXEC_LLM (off; needs ORCH_EXEC_FINDINGS and LLM_BASE_URL): one model call per risk type
+    # rewords the rule-made text in executive English and Vietnamese. A reworded line is kept only
+    # when it adds no number, name, file or claim. Advisory: status, severity, rating never change.
+    orch_exec_llm: bool = False
+    # --- demo --- a pause before each risk type of a run, in ms (0 = none, max 5000), so the
+    # live progress bar of the Risk assessment panel can be seen when the rule runner answers at
+    # once. Demos only; the pause counts against the time budget of the run.
+    orch_demo_pace_ms: int = Field(default=0, ge=0, le=5000)
+    # --- W1 (v0.11.2) --- real-model assessment runs (docs/orchestrator.md, docs/factory.md).
+    # ORCH_RUN_DRAFT_AGENTS (demo only, off): when a risk type has no live agent, the run uses the
+    # newest DRAFT version of the agent for that type (shown as "Draft agent, not tested"). Off:
+    # only live agents run; every other type keeps the rule proposal.
+    orch_run_draft_agents: bool = False
+    # ORCH_AGENT_SECONDS / ORCH_TOTAL_SECONDS: time limit of one live or draft agent and of the
+    # whole run, in seconds (the rule runner keeps its own 30 s). One model call has its own
+    # limit, FACTORY_CALL_TIMEOUT_S.
+    orch_agent_seconds: int = Field(default=120, ge=10, le=3600)
+    orch_total_seconds: int = Field(default=900, ge=30, le=14400)
+    # FACTORY_PARALLEL_CALLS: how many group calls of one pass an agent run sends to the model at
+    # the same time. 1 = one after another (the behaviour before W1). Range 1..8.
+    factory_parallel_calls: int = Field(default=1, ge=1, le=8)
+    # FACTORY_SKIP_UNSOURCED (default on): an item with no source it accepts (a test with no result,
+    # a document nobody supplied) is answered "question" in plain words without a model call. Off:
+    # every item goes to the model.
+    factory_skip_unsourced: bool = True
+    # FACTORY_REASK_OPEN (default on = the loop of before): in loop mode an item the model
+    # answered "question" is asked again in the next iteration. Off: it is not, because the prompt
+    # would be the same; only items the verifier rejected, whose call failed or that got no
+    # answer are asked again.
+    factory_reask_open: bool = True
     # --- WP-G4 (phase 12C) --- the smart guardian (docs/smart-guardian.md): from the assessment
     # reports, the facts and the risk statuses it PROPOSES a guardian set, thresholds and autonomy
     # limits for one AI system, each line with its why pointer; a person accepts. Deterministic
@@ -838,6 +921,17 @@ class Settings(BaseSettings):
     # config/factory_agents/ as drafts, for each id the catalogue does not have yet (golden sets
     # included). `python -m supervisor.factory seed` does the same by hand. Off: nothing is seeded.
     factory_seed_starters: bool = False
+    # --- W4 (v0.11.2) --- run one risk assessment agent over the whole AI inventory
+    # (docs/factory.md "Inventory run"): every active AI system where the risk type of the agent
+    # applies, with the gateway model; a progress bar, then a dashboard (top risks, heat table,
+    # CSV). A simulation: it never promotes a version and never writes a risk assessment. Needs
+    # AGENT_FACTORY, GOVERNANCE_ENABLED and LLM_BASE_URL. Off: the routes answer
+    # HTTP 400 factory_inventory_off. FACTORY_INVENTORY_PARALLEL: systems at a time (1..16,
+    # other values are clamped).
+    # FACTORY_INVENTORY_MAX: at most this many systems per run, 0 = all.
+    factory_inventory_run: bool = False
+    factory_inventory_parallel: int = 4
+    factory_inventory_max: int = 0
     # --- WP-L4 (phase 8) --- evidence per duty and the regulator pack (docs/regulator-pack.md):
     # live counts per control for the duties of a system, auto-close of a full-coverage duty whose
     # mapped controls all work, the group task closes with its last row, the Refresh evidence
@@ -910,6 +1004,8 @@ class Settings(BaseSettings):
     # MCP_SERVER_ENABLED: POST /mcp (streamable HTTP, JSON-RPC 2.0), /v1/mcp/apps, /v1/kpis and
     # the KPI block of the Governance overview. `python -m supervisor.mcp_server` serves the
     # same router alone on MCP_SERVER_HOST:MCP_SERVER_PORT (loopback unless you change it).
+    # Not the same flag as MCP_HTTP_ENABLED (the gateway proxy). Env names stay: a deployed
+    # app.yaml sets them (clean-up audit G5).
     mcp_server_enabled: bool = False
     mcp_server_host: str = "127.0.0.1"
     mcp_server_port: int = Field(default=8765, ge=1, le=65535)
@@ -1050,6 +1146,14 @@ class Settings(BaseSettings):
         if "://" not in value:
             value = "https://" + value
         return value
+
+    @model_validator(mode="after")
+    def _drift_window_floor(self) -> Settings:
+        """W8: a drift window of 10 to 59 seconds is for the recorded demo only; production keeps
+        the floor of 60 seconds."""
+        if self.drift_window_s < 60 and not self.showcase_enabled:
+            raise ValueError("DRIFT_WINDOW_S below 60 needs SHOWCASE_ENABLED=1 (demo only)")
+        return self
 
     @model_validator(mode="after")
     def _rules(self) -> Settings:

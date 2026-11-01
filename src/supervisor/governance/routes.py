@@ -42,6 +42,7 @@ from supervisor.cases.service import PermissionDenied
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.routes import audited
 from supervisor.core.errors import NotFoundError
+from supervisor.core.people import same_person
 from supervisor.governance.model import SystemsError, check_system_id, check_user, ensure_on
 from supervisor.governance.systems import ALL, SystemService
 
@@ -105,7 +106,7 @@ async def register_system(
     actor = _actor(me)
     data = await _body(request)
     data.setdefault("owner_user", actor)
-    if svc.scope_for(me) is not ALL and data.get("owner_user") != actor:
+    if svc.scope_for(me) is not ALL and not same_person(data.get("owner_user"), actor):
         raise SystemsError("you can register a system only with yourself as owner_user")
     out = svc.register(data, actor, for_user=me)
     request.state.audit_detail = "create"

@@ -23,12 +23,12 @@
   <div class="g2-meta">{{ s.owner_team }}{% if s.owner_user %} · {{ s.owner_user }}{% endif %}</div>
   <details class="u5-about g2-why"><summary>{{ t('g2_sy_why_sum') }}</summary><div>{{ t('sy_why') }}</div></details>
 </header>
-{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'risks': t('nav_risks'), 'controls': t('nav_controls'), 'policies': t('nv3_t_obligations'), 'guardians': t('nv3_guardians'), 'reports': t('ux4b_tab_reports'), 'duties': t('du_tab'), 'riskdim': t('rd_tab'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification')} %}
-{% set tab_groups = [(None, ['overview']), ('g2_grp_risk', ['classification', 'riskdim', 'risks', 'controls']), ('g2_grp_comp', ['duties', 'rules', 'policies']), ('g2_grp_ops', ['components', 'guardians', 'tasks', 'reviews', 'reports'])] %}
+{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'risks': t('nav_risks'), 'controls': t('nav_controls'), 'policies': t('nv3_t_obligations'), 'guardians': t('nv3_guardians'), 'reports': t('ux4b_tab_reports'), 'duties': t('du_tab'), 'riskdim': t('rd_tab'), 'stability': t('st_tab'), 'redteam': t('rt_tab'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification')} %}
+{% set tab_groups = [(None, ['overview']), ('g2_grp_risk', ['classification', 'riskdim', 'risks', 'controls']), ('g2_grp_comp', ['duties', 'rules', 'policies']), ('g2_grp_ops', ['components', 'guardians', 'stability', 'redteam', 'tasks', 'reviews', 'reports'])] %}
 <nav class="g2-sysnav" aria-label="{{ t('tabs_label') }}">
 {% for gl, gkeys in tab_groups %}{% set present = gkeys|select('in', tabs)|list %}{% if present %}
   <div class="g2-tg">{% if gl %}<span class="g2-tg-l">{{ t(gl) }}</span>{% endif %}
-    <div class="tabs" role="tablist">{% for k in present %}<a role="tab" data-tab="{{ k }}" class="{{ 'on' if k == tab else '' }}" id="tab-body-tab-{{ k }}" aria-controls="tab-body" aria-selected="{{ 'true' if k == tab else 'false' }}" tabindex="{{ '0' if k == tab else '-1' }}" href="/console/systems/{{ s.system_id }}?tab={{ k }}&amp;lang={{ lang }}" hx-get="/console/systems/{{ s.system_id }}?tab={{ k }}&amp;lang={{ lang }}" hx-target="#tab-body" hx-select="#tab-body" hx-swap="outerHTML" hx-push-url="false">{{ labels[k] }}{% if k in ('tasks', 'risks', 'duties', 'components', 'riskdim') and tab_counts.get(k) is not none %} <span class="k">{{ tab_counts[k] }}</span>{% endif %}</a>{% endfor %}</div></div>
+    <div class="tabs" role="tablist">{% for k in present %}<a role="tab" data-tab="{{ k }}" class="{{ 'on' if k == tab else '' }}" id="tab-body-tab-{{ k }}" aria-controls="tab-body" aria-selected="{{ 'true' if k == tab else 'false' }}" tabindex="{{ '0' if k == tab else '-1' }}" href="/console/systems/{{ s.system_id }}?tab={{ k }}&amp;lang={{ lang }}" hx-get="/console/systems/{{ s.system_id }}?tab={{ k }}&amp;lang={{ lang }}" hx-target="#tab-body" hx-select="#tab-body" hx-swap="outerHTML" hx-push-url="false">{{ labels[k] }}{% if k in ('tasks', 'risks', 'duties', 'components', 'riskdim') and tab_counts.get(k) is not none %} <span class="k"{% if k in ('tasks', 'duties') %} title="{{ t('b1_badge_' ~ k) }}"{% endif %}>{{ tab_counts[k] }}</span>{% endif %}</a>{% endfor %}</div></div>
 {% endif %}{% endfor %}
 </nav>
 {% else %}
@@ -36,7 +36,7 @@
 {% set pills %}{{ ui.pill(t('sy_st_' ~ s.status), 'ok' if s.status == 'active' else 'neutral') }} {{ ui.pill(t('sy_risk_' ~ s.effective_risk.level), {'prohibited': 'crit', 'high': 'bad', 'medium': 'warn'}.get(s.effective_risk.level, 'neutral')) }}{% if duty_score is defined and duty_score.pct is not none %} <a href="/console/systems/{{ s.system_id }}?tab=duties&lang={{ lang }}" data-du="pill">{{ ui.pill(t('du_pill', pct=duty_score.pct), 'ok' if duty_score.pct >= 100 else 'warn') }}</a>{% endif %}{% if duty_score is defined and rp_pack is defined and rp_pack %} <a class="btn sm" href="/v1/systems/{{ s.system_id }}/regulator-pack.html" data-act="regulator-pack">{{ t('du_pack') }}</a>{% endif %}{% endset %}
 {{ ui.pagehead(s.name, pills) }}
 {{ ui.purpose(t('sy_purpose'), t('sy_why')) }}
-{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'risks': t('nav_risks'), 'controls': t('nav_controls'), 'policies': t('nv3_t_obligations'), 'guardians': t('nv3_guardians'), 'reports': t('ux4b_tab_reports'), 'duties': t('du_tab'), 'riskdim': t('rd_tab'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification')} %}
+{% set labels = {'overview': t('sy_tab_overview'), 'components': t('sy_tab_components'), 'tasks': t('sy_tab_tasks'), 'reviews': t('sy_tab_reviews'), 'risks': t('nav_risks'), 'controls': t('nav_controls'), 'policies': t('nv3_t_obligations'), 'guardians': t('nv3_guardians'), 'reports': t('ux4b_tab_reports'), 'duties': t('du_tab'), 'riskdim': t('rd_tab'), 'stability': t('st_tab'), 'redteam': t('rt_tab'), 'rules': t('sy_tab_rules'), 'classification': t('sy_tab_classification')} %}
 {{ ui.tabs(tabs, tab, labels, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, '/console/systems/' ~ s.system_id ~ '?tab={tab}&lang=' ~ lang, target='#tab-body', counts=tab_counts, panel='tab-body', select='#tab-body') }}
 {% endif %}
 <div id="tab-body" class="tabpanel" role="tabpanel">
@@ -62,6 +62,10 @@
   {% include "_system_guardians.html" %}
 {% elif tab == 'reports' and rp_rows is defined %}
   {% include "_system_reports.html" %}
+{% elif tab == 'stability' %}
+  {% include "_system_stability_ux5.html" %}
+{% elif tab == 'redteam' %}
+  {% include "_system_redteam_ux5.html" %}
 {% elif tab == 'rules' %}
   {% include "_system_rules.html" %}
 {% elif tab == 'classification' %}

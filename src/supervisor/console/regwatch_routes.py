@@ -30,7 +30,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
-from supervisor.cases.service import PermissionDenied
+from supervisor.console.authz import person
 from supervisor.console.context import ConsoleContext, get_context
 from supervisor.console.intake_routes import _same_site, parse_multipart
 from supervisor.console.routes import _call, audited, render
@@ -52,9 +52,7 @@ def require_on(settings: Any) -> None:
 
 
 def _actor(me: AuthPrincipal) -> str:
-    if me.kind != "user":
-        raise PermissionDenied("this step needs a signed-in person")
-    return str(me.user_id)
+    return person(me, "this step needs a signed-in person")
 
 
 def trusted_key(ctx: ConsoleContext) -> Any:

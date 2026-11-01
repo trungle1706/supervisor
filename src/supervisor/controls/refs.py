@@ -96,13 +96,6 @@ class ControlRefs:
             )
             raise ControlError(f"{kind} {target!r} does not exist{hint}")
 
-    def rule_applies(self, rule_id: str, agent_id: str) -> bool:
-        """True when the rule is in scope for the agent (or its scope is unknown)."""
-        scope = self.scopes().get(rule_id)
-        if scope in (None, "*"):
-            return True
-        return agent_id.lower() in {str(a).lower() for a in scope}
-
 
 def build_refs(state: Any, settings: Any) -> ControlRefs:
     """The catalogue over the live store and the repo files (lazy: nothing is read until used)."""

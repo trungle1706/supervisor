@@ -16,7 +16,7 @@ import yaml
 from supervisor.console import ux3
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -162,7 +162,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     p = parse_params(query)
     rules, classes, versions = _snapshot(ctx)
     shown, col, direction = ordered(rules, p)
-    page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(shown, p, PAGE_SIZE)
     agents = sorted(a["agent_id"] for a in ctx.state.query("agent"))
     base = {k: p[k] for k in ("agent", "action", "severity", "risk", "q")}
     return {

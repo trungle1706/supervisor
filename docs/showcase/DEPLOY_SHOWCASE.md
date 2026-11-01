@@ -136,6 +136,26 @@ set SHOWCASE_ENABLED=1
 
 Laptop result: 300 systems, 22,231 rows, 5 seconds. On Delta expect minutes (batched `INSERT`).
 
+**Synthetic code-scan facts (optional, with `ONBOARD_FACTS=1`).** The portfolio has no source code,
+so the facts card is empty and a risk assessment can only say "not known". This step writes
+synthetic facts for the 152 agent nodes and for the 78 systems in validation or deployment (an
+application node), 230 systems in all (about 2,900 fact rows and 230 intake rows). The rows have the
+shape of a real code scan, derive from each system record, and plant mismatches at fixed rates
+(about 11% money tool without an approval step, 8% personal data fields while the record says none,
+15% model family unknown, 30% no tracing, 3% hard-coded secret, 25% external address, 3% Decision 33
+high risk while the record says low or medium). The run prints how many systems carry each finding
+key. Same seed, same facts; a second run adds nothing. Every row has `model_id` = `synthetic` and the
+summary row says `SYNTHETIC DEMO FACTS`; paths are invented and no personal data value is written.
+
+```
+set SHOWCASE_ENABLED=1
+.venv\Scripts\python.exe -m supervisor.demo.showcase_facts --dry-run
+.venv\Scripts\python.exe -m supervisor.demo.showcase_facts --seed 7
+```
+
+Add `--agents-only` to skip the application nodes. `--reset` removes exactly these rows (run it
+before `showcase portfolio --remove`). It never touches another node, such as a real use case.
+
 ### 7.2 Stop the App
 
 ```
@@ -249,6 +269,7 @@ the check fails.
 |---|---|
 | Journey rows | `run("journeys", "--reset")` (App stopped) |
 | Factory rows | `run("factory", "--reset")` (App stopped) |
+| Synthetic code-scan facts | `showcase_facts --reset` (before the portfolio rows) |
 | Portfolio rows | `showcase portfolio --remove` (laptop) |
 | What stays | the evidence chain and the gate decision rows (append only, by design). Every row is tagged `demo:showcase` or has the prefix `shw_` |
 | Switch off | `SHOWCASE_ENABLED` to `"0"` in `app.yaml`, redeploy |

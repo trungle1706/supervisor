@@ -42,10 +42,10 @@ footer { margin-top: 3rem; border-top: 1px solid #888; padding-top: .5rem; font-
 <div class="clock{% if cf.sbv.report_overdue or cf.sbv.remediation_overdue %} overdue{% endif %}">
 <p>Phát hiện sự cố / Incident detected:
 <code>{{ cf.sbv.incident_detected_at | utc }}</code> | {{ cf.sbv.incident_detected_at | ict }}</p>
-<p>Hạn báo cáo / Report due (24 h):
+<p>Hạn báo cáo (đồng hồ NHNN 24 giờ) / Report due (SBV 24 h clock, from detection):
 <code>{{ cf.sbv.report_due_at | utc }}</code> | {{ cf.sbv.report_due_at | ict }}
 {% if cf.sbv.report_overdue %}- QUÁ HẠN / OVERDUE{% endif %}</p>
-<p>Hạn khắc phục (5 ngày) / Remediation due (5 days, {{ cf.sbv.remediation_basis }}):
+<p>Hạn khắc phục (5 ngày) / Remediation due (5 days, {{ cf.sbv.remediation_basis | basis }}):
 <code>{{ cf.sbv.remediation_due_at | utc }}</code> | {{ cf.sbv.remediation_due_at | ict }}
 {% if cf.sbv.remediation_overdue %}- QUÁ HẠN / OVERDUE{% endif %}</p>
 <p class="note">Câu hỏi mở / Open question: 5 ngày có thể là ngày làm việc /
@@ -53,7 +53,7 @@ footer { margin-top: 3rem; border-top: 1px solid #888; padding-top: .5rem; font-
 </div>
 
 <h2>Phân loại theo Quyết định 33 / Decision 33 classification</h2>
-<p>{{ cf.decision33_classification }}</p>
+<p>{{ cf.decision33_classification | d33 }}</p>
 
 <h2>Dòng thời gian / Timeline</h2>
 <table>

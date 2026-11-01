@@ -67,7 +67,10 @@ def test_cases_row_drawer_and_no_js_fallback(console: Console) -> None:
     cid = _cases(console.get("/console/cases").text)[0]
     d = console.get(f"/console/cases/{cid}/drawer", headers=HX)
     assert d.status_code == 200 and "<html" not in d.text and 'id="drawer-title"' in d.text
-    assert cid in d.text and f"/console/cases/{cid}?lang=en" in d.text and "Copy JSON" in d.text
+    assert cid in d.text and f"/console/cases/{cid}?lang=en" in d.text
+    assert "Copy JSON" not in d.text  # UI-331: a developer button, for admins only
+    admin = console.get(f"/console/cases/{cid}/drawer", headers=HX, user="admin.chi")
+    assert "Copy JSON" in admin.text
     full = console.get(f"/console/cases?drawer={cid}")
     tail = full.text.split('id="drawer"', 1)[1]
     assert cid in tail and "hidden>" not in tail.split(">", 1)[0] + ">"

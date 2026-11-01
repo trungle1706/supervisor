@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from supervisor.evidence.casefile.builder import CaseFile
+from supervisor.evidence.casefile.builder import CaseFile, basis_label, decision33_display
 from supervisor.evidence.casefile.render_html import fmt_ict, fmt_utc, render_html
 
 FONT_CANDIDATES: tuple[str, ...] = (
@@ -53,19 +53,19 @@ def _lines(cf: CaseFile) -> list[tuple[str, str]]:
         ("p", f"   {fmt_ict(s.incident_detected_at)}"),
         (
             "p",
-            f"Hạn báo cáo / Report due (24 h): {fmt_utc(s.report_due_at)}"
-            + (" - QUÁ HẠN / OVERDUE" if s.report_overdue else ""),
+            "Hạn báo cáo (đồng hồ NHNN 24 giờ) / Report due (SBV 24 h clock, from detection): "
+            f"{fmt_utc(s.report_due_at)}" + (" - QUÁ HẠN / OVERDUE" if s.report_overdue else ""),
         ),
         ("p", f"   {fmt_ict(s.report_due_at)}"),
         (
             "p",
-            f"Hạn khắc phục (5 ngày) / Remediation due (5 days, {s.remediation_basis}): "
-            f"{fmt_utc(s.remediation_due_at)}"
+            "Hạn khắc phục (5 ngày) / Remediation due "
+            f"(5 days, {basis_label(s.remediation_basis)}): {fmt_utc(s.remediation_due_at)}"
             + (" - QUÁ HẠN / OVERDUE" if s.remediation_overdue else ""),
         ),
         ("p", f"   {fmt_ict(s.remediation_due_at)}"),
         ("h2", "Phân loại theo Quyết định 33 / Decision 33 classification"),
-        ("p", cf.decision33_classification),
+        ("p", decision33_display(cf.decision33_classification)),
         ("h2", "Dòng thời gian / Timeline"),
     ]
     out += [

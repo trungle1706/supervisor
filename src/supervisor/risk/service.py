@@ -15,9 +15,7 @@ Extension points for later work packages (see docs/risk-register.md, "For other 
 
 from __future__ import annotations
 
-import csv
 import datetime as dt
-import io
 import json
 import logging
 import uuid
@@ -29,7 +27,9 @@ from typing import Any
 import yaml
 
 from supervisor.core.canonical import format_ts, sha256_hex
+from supervisor.core.csvsafe import csv_cell, write_csv  # noqa: F401  (public name kept)
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, NotFoundError
+from supervisor.core.rows import rows_by
 from supervisor.inventory.graph import Graph
 from supervisor.inventory.model import node_id_for
 from supervisor.inventory.store import InventoryStore
@@ -84,12 +84,6 @@ RISK_CSV = (
 LINK_CSV = ("risk_id", "kind", "target")
 
 
-def csv_cell(value: Any) -> str:
-    """A CSV cell safe to open in a spreadsheet (no formula injection)."""
-    text = "" if value is None else str(value)
-    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
-
-
 def _on(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in ("1", "true")
@@ -117,14 +111,6 @@ class ImportResult:
 
     def as_dict(self) -> dict[str, Any]:
         return dict(self.__dict__)
-
-
-def _date_str(value: Any) -> str | None:
-    if isinstance(value, dt.datetime):
-        return value.date().isoformat()
-    if isinstance(value, dt.date):
-        return value.isoformat()
-    return None if value in (None, "") else str(value)[:10]
 
 
 class RiskService:
@@ -300,12 +286,11 @@ class RiskService:
             if risk_id
             else [str(r["risk_id"]) for r in self.state.query("risk", order_by=("risk_id",))]
         )
-        out: dict[str, dict[str, Any]] = {}
-        for rid in ids:
-            rows = self.tables.query("risk_evidence", {"risk_id": rid}, order_by=("-ts",), limit=1)
-            if rows:
-                out[rid] = dict(rows[0])
-        return out
+        # one statement for all risks (newest row of each), not one per risk
+        newest = rows_by(
+            self.tables, "risk_evidence", "risk_id", ids, order_by=("-ts",), per_key_limit=1
+        )
+        return {rid: dict(newest[rid][0]) for rid in ids if newest.get(rid)}
 
     def _row_for_basis(self, risk_id: str, basis: str) -> dict[str, Any] | None:
         """The newest recent evidence row of the risk that was computed for ``basis`` and is not
@@ -609,13 +594,26 @@ class RiskService:
         rows, g = self._all()
         col = self.collector()
         out = {"risks": 0, "written": 0, "repeat": 0, "working": 0, "failing": 0, "no_evidence": 0}
+        plan = []
         for row in rows:
             if row["status"] != "active":
                 continue
-            out["risks"] += 1
             controls = self.control_links(row["risk_id"])
-            eid = ev.evidence_id(row["risk_id"], w, ev.evidence_basis(row, controls))
-            if self.tables.query("risk_evidence", {"evidence_id": eid}, limit=1):
+            plan.append(
+                (row, controls, ev.evidence_id(row["risk_id"], w, ev.evidence_basis(row, controls)))
+            )
+        # one statement for all evidence ids: which ones this window already has
+        have = rows_by(
+            self.tables,
+            "risk_evidence",
+            "evidence_id",
+            [eid for _, _, eid in plan],
+            columns=["evidence_id"],
+            per_key_limit=1,
+        )
+        for row, controls, eid in plan:
+            out["risks"] += 1
+            if have.get(eid):
                 out["repeat"] += 1
                 continue
             agents = inherit.agents_reached_by(
@@ -844,20 +842,15 @@ class RiskService:
     def export_csv(self) -> tuple[str, str]:
         """(risks.csv, risk_links.csv)."""
         risks = self.list_risks()
-        rb = io.StringIO()
-        w = csv.writer(rb, lineterminator="\n")
-        w.writerow(RISK_CSV)
-        for r in risks:
-            w.writerow(
-                [csv_cell("|".join(r["agents"]) if k == "agents" else r.get(k)) for k in RISK_CSV]
-            )
-        lb = io.StringIO()
-        w = csv.writer(lb, lineterminator="\n")
-        w.writerow(LINK_CSV)
-        for r in risks:
-            for lk in self.links(r["risk_id"]):
-                w.writerow([csv_cell(r["risk_id"]), csv_cell(lk["kind"]), csv_cell(lk["target"])])
-        return rb.getvalue(), lb.getvalue()
+        risk_rows = [
+            ["|".join(r["agents"]) if k == "agents" else r.get(k) for k in RISK_CSV] for r in risks
+        ]
+        link_rows = [
+            [r["risk_id"], lk["kind"], lk["target"]]
+            for r in risks
+            for lk in self.links(r["risk_id"])
+        ]
+        return write_csv(RISK_CSV, risk_rows), write_csv(LINK_CSV, link_rows)
 
     def write_exports(self, out_dir: Path, fmt: str = "both") -> list[Path]:
         out_dir.mkdir(parents=True, exist_ok=True)

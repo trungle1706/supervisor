@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -35,25 +34,11 @@ from typing import Any
 from supervisor.alerts.engine import FiredAlert, evaluate
 from supervisor.alerts.rules import RuleSet, load_rules
 from supervisor.alerts.signals import read_jsonl
+from supervisor.core.stats import wilson_bp_full as wilson_bp
+from supervisor.jobs._cli_common import print_verdicts, write_baseline
 
 # ILLUSTRATIVE go / no-go thresholds in basis points (the fixture is small and synthetic).
 THRESHOLDS_BP = {"precision": 10000, "recall": 10000, "dedupe_exact": 10000, "triage": 10000}
-Z95 = 1.959964
-
-
-def wilson_bp(successes: int, n: int) -> tuple[int, int]:
-    """Wilson 95 percent interval of a proportion, in integer basis points."""
-    if n <= 0:
-        return (0, 10000)
-    p = successes / n
-    z2 = Z95 * Z95
-    denom = 1 + z2 / n
-    centre = (p + z2 / (2 * n)) / denom
-    half = Z95 * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / denom
-    return (
-        max(0, math.floor((centre - half) * 10000)),
-        min(10000, math.ceil((centre + half) * 10000)),
-    )
 
 
 def _bp(part: int, whole: int) -> int:
@@ -194,26 +179,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"dedupe_exact={m['dedupe_exact_bp']}bp triage={m['triage_complete_bp']}bp "
             f"flood_ratio_x100={m['flood_ratio_x100']}"
         )
-        for name, v in r["verdicts"].items():
-            print(f"    {name}: {v}")
-            bad += v != "GO"
+        bad += print_verdicts(r["verdicts"])
     if args.write_baseline:
-        (fixtures / "baseline.json").write_text(
-            json.dumps(
-                {
-                    "note": "Recorded by `python -m supervisor.alerts.harness --write-baseline`. "
-                    "tests/alerts/test_harness.py fails if a metric drops below this.",
-                    "date": "2026-10-20",
-                    "base_commit": "bf3a23a",
-                    "branch": "WP21",
-                    "results": results,
-                },
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n",
-            encoding="utf-8",
-            newline="\n",
+        write_baseline(
+            fixtures / "baseline.json",
+            {
+                "note": "Recorded by `python -m supervisor.alerts.harness --write-baseline`. "
+                "tests/alerts/test_harness.py fails if a metric drops below this.",
+                "date": "2026-10-20",
+                "base_commit": "bf3a23a",
+                "branch": "WP21",
+                "results": results,
+            },
         )
         print("[OK] wrote baseline.json")
     if not args.no_drills:  # WP39: fire, quiet, suppress, SIEM correlation id, rate sweeps, storm

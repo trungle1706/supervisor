@@ -1,0 +1,17 @@
+{# The progress panel of a running inventory run (W4). Polled every 2 s; the poll route sends the
+   browser to the dashboard when the run has ended. Variables: agent, run, can_cancel. #}
+{% set r = run %}
+<section class="card" id="finv-progress" data-progress="{{ r.done }}/{{ r.total }}" data-status="{{ r.status }}"
+  hx-get="/console/factory/{{ agent.id }}/inventory/{{ r.run_id }}/progress" hx-trigger="every 2s" hx-swap="outerHTML">
+  <h2>{{ t('finv_running_h') }}</h2>
+  <div class="finv-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ r.total }}" aria-valuenow="{{ r.done }}" aria-label="{{ t('finv_progress') }}"><i style="width:{{ r.percent }}%"></i></div>
+  <p class="finv-progress-line">
+    <span><b>{{ t('finv_progress_n', done=r.done, total=r.total) }}</b></span>
+    <span>{{ t('finv_progress_need', n=r.needs_action) }}</span>
+    <span>{{ t('finv_t_calls') }}: {{ r.model_calls }}</span>
+    <span>{{ t('finv_t_time') }}: {{ (r.seconds ~ ' s') if r.seconds < 60 else dur(r.seconds) }}</span>
+  </p>
+  <p class="hint">{{ t('finv_running_hint') }}</p>
+  {% if r.cancel_requested %}<p class="hint" data-cancelling="1">{{ t('finv_cancelling') }}</p>
+  {% elif can_cancel %}<form hx-post="/console/factory/{{ agent.id }}/inventory/{{ r.run_id }}/cancel" hx-target="#finv-progress" hx-swap="outerHTML" method="post"><button class="btn" data-act="cancel-inventory">{{ t('finv_cancel') }}</button></form>{% endif %}
+</section>

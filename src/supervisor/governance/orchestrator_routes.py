@@ -55,7 +55,9 @@ async def post_orchestrate(
         sid = _visible(_service(ctx), me, system_id)
     except NotFoundError as exc:
         return _not_found(exc)
-    run = orch.start(ctx, sid, actor)
+    from supervisor.factory import catalog as factory_catalog  # live factory agents
+
+    run = orch.start(ctx, sid, actor, catalog=factory_catalog.for_console(ctx))
     request.state.audit_detail = audit_note(run)
     return JSONResponse(status_code=202, content=run.to_dict())
 

@@ -24,16 +24,13 @@ import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from supervisor.core.errors import SupervisorError  # noqa: E402
+from supervisor.jobs._cli_common import say  # noqa: E402
 from supervisor.transparency.model import (  # noqa: E402
     FORMATS,
     LANGS,
     VARIANTS,
     TransparencyError,
 )
-
-
-def _say(text: str) -> None:
-    print(text.encode("ascii", "replace").decode("ascii"))  # noqa: T201
 
 
 def _write(out: Path, name: str, data: bytes) -> Path:
@@ -74,7 +71,7 @@ def _build(args: argparse.Namespace) -> int:
                         f"transparency-{args.agent}-{variant}.json",
                         render.render_json(report),
                     )
-                    _say(f"[OK] {path}")
+                    say(f"[OK] {path}")
                     continue
                 for lang in langs:
                     name = f"transparency-{args.agent}-{variant}.{lang}"
@@ -83,10 +80,10 @@ def _build(args: argparse.Namespace) -> int:
                     else:
                         res = render.render_pdf(report, lang, font_path=svc.pdf_font)
                         if res.fmt != "pdf":
-                            _say(f"[SKIP] {name}.pdf: {res.notice}")
+                            say(f"[SKIP] {name}.pdf: {res.notice}")
                             continue
                         path = _write(args.out, name + ".pdf", res.data)
-                    _say(f"[OK] {path}")
+                    say(f"[OK] {path}")
     finally:
         adapters.close()
     return 0
@@ -106,7 +103,7 @@ def _generate(args: argparse.Namespace) -> int:
                 extra = (
                     f" diff_changed={len(r['diff']['changed'])}" if r["status"] == "made" else ""
                 )
-                _say(f"[OK] {agent} {r['variant']}: {r['status']} v{r['version']}{extra}")
+                say(f"[OK] {agent} {r['variant']}: {r['status']} v{r['version']}{extra}")
     return 0
 
 
@@ -128,7 +125,7 @@ def _list(_args: argparse.Namespace) -> int:
             cells = [
                 f"{v}=v{x['version']}" if (x := row["variants"][v]) else f"{v}=-" for v in VARIANTS
             ]
-            _say(f"{row['agent_id']:<24} {row['status']:<10} " + " ".join(cells))
+            say(f"{row['agent_id']:<24} {row['status']:<10} " + " ".join(cells))
     finally:
         adapters.close()
     return 0
@@ -155,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return {"build": _build, "generate": _generate, "list": _list}[args.cmd](args)
     except SupervisorError as exc:
-        _say(f"[FAIL] {exc}")
+        say(f"[FAIL] {exc}")
         return 1
 
 

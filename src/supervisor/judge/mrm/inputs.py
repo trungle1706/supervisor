@@ -22,6 +22,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from supervisor.core.flags import truthy as _truthy
+
 _REQUIRED = ("pack_id", "metric", "value_bp", "threshold_bp", "passed")
 _ALLOWED = (*_REQUIRED, "op", "source")
 OPS = (">=", "<=")
@@ -160,12 +162,6 @@ def _json(value: Any) -> dict[str, Any]:
         except ValueError:
             return {}
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _truthy(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("true", "1")
-    return bool(value)
 
 
 class EvalResultPacks:

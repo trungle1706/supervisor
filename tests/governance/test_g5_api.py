@@ -254,7 +254,7 @@ def test_incidents_tab_lists_filters_and_opens_the_drawer(g5: Console) -> None:
     b = make(g5, "verdict:v1", kind="gate_stop", severity="medium", rule="")
     html = g5.get("/console/incidents?lang=en").text
     assert "Incidents" in html and a in html and b in html
-    assert "Alert" in html and "Gate stop on a risky tool" in html
+    assert "Alert" in html and "Risky tool call stopped at the gate" in html
     rows = g5.get("/console/incidents/rows?severity=critical", headers=HX).text
     assert a in rows and b not in rows
     rows = g5.get("/console/incidents/rows?kind=gate_stop&status=all", headers=HX).text

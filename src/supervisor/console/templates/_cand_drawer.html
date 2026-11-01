@@ -5,12 +5,10 @@
 {% set c = drawer.c %}
 {% set pills %}{{ ov.score_pill(c) }} <span class="pill neutral">{{ t('tri_kind_' ~ c.kind) }}</span>{% endset %}
 {% call dr.drawer(c.name, pills, '', drawer.json_text) %}
-  <p style="margin:0 0 10px">{{ ov.cand_desc(c) }}</p>
   {{ ui.kv([
     (t('tri_c_impact'), c.impact),
     (t('tri_c_autonomy'), t('sy_autonomy_level_' ~ c.autonomy)),
     (t('tri_c_complexity'), c.complexity),
-    (t('tri_c_score'), c.score),
     (t('tri_c_group'), c.owner_group),
   ]) }}
   <h3 class="sec">{{ t('tri_c_signals') }}</h3>
@@ -18,7 +16,7 @@
   <h3 class="sec">{{ t('tri_evidence') }}</h3>
   {% if c.evidence %}<ul class="cand-list">{% for e in c.evidence %}<li><code>{{ e.source }}</code> <span class="mono">{{ e.ref }}</span></li>{% endfor %}</ul>{% else %}<p class="hint">-</p>{% endif %}
   <h3 class="sec">{{ t('tri_c_action') }}</h3>
-  <p><strong>{{ t('tri_act_' ~ c.recommended_action) }}</strong><br><span class="hint">{{ t('tri_reason_' ~ c.recommended_action) }}</span></p>
+  <p class="hint">{{ t('tri_reason_' ~ c.recommended_action) }}</p>
   <p class="btnrow">
     {% if drawer.register %}<a class="btn primary" href="{{ drawer.reg_base }}?from={{ c.node_id|urlencode }}&amp;lang={{ lang }}">{{ t('tri_register') }}</a>{% else %}<span class="hint">{{ t('tri_register_off') }}</span>{% endif %}
   </p>
@@ -29,6 +27,10 @@
   {% if drawer.facts %}
   <h3 class="sec">{{ t('fk_title') }}</h3>
   <div id="facts-slot" hx-get="/console/facts/{{ c.node_id|urlencode }}?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/facts/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('fk_open_page') }}</a></p></div>
+  {% endif %}
+  {% if drawer.analysis %}
+  <h3 class="sec">{{ t('ca_title') }}</h3>
+  <div id="analysis-slot" hx-get="/console/code-analysis/{{ c.node_id|urlencode }}?lang={{ lang }}&amp;compact=1" hx-trigger="load" hx-swap="innerHTML"><p class="hint"><a href="/console/code-analysis/{{ c.node_id|urlencode }}?lang={{ lang }}">{{ t('ca_title') }}</a></p></div>
   {% endif %}
   {% if drawer.predeploy %}
   <h3 class="sec">{{ t('pd_title') }}</h3>

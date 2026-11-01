@@ -32,10 +32,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from supervisor.adapters.auth import AuthPrincipal, current_principal
 from supervisor.adapters.auth.authz import needs
-from supervisor.cases.service import PermissionDenied
+from supervisor.console.authz import person
 from supervisor.console.context import ConsoleContext, get_context
+from supervisor.console.htmx import append_message
 from supervisor.console.intake_routes import _same_site, parse_multipart
-from supervisor.console.routes import _call, _htmx_only, audited, message_html, render
+from supervisor.console.routes import _call, _htmx_only, audited, render, request_translator
 from supervisor.core import rbac
 from supervisor.regkb import internal
 
@@ -47,9 +48,7 @@ FORM_SLACK = 256 * 1024  # multipart overhead on top of the file limit
 
 
 def _actor(me: AuthPrincipal) -> str:
-    if me.kind != "user":
-        raise PermissionDenied("this step needs a signed-in person")
-    return str(me.user_id)
+    return person(me, "this step needs a signed-in person")
 
 
 async def _read_body(request: Request, ctx: ConsoleContext) -> bytes:
@@ -166,12 +165,6 @@ async def internal_page(
     return render(request, ctx, me, "regkb_internal.html", section="regkb_internal", **data)
 
 
-def _with_note(resp: Response, note: str) -> Response:
-    resp.body = bytes(resp.body) + message_html(note, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
-
-
 @router.post(
     "/regkb/internal", response_class=HTMLResponse, dependencies=[Depends(needs("regkb.upload"))]
 )
@@ -190,14 +183,11 @@ async def internal_upload(
     data = await _call(panel_data, ctx, me)
     resp = render(request, ctx, me, "_regkb_internal_panel.html", **data)
     note = ctx_t(request, ctx, "ri_uploaded_note", id=doc["instrument_id"], n=doc["section_count"])
-    return _with_note(resp, note)
+    return append_message(resp, note)
 
 
 def ctx_t(request: Request, ctx: ConsoleContext, key: str, **kw: Any) -> str:
-    from supervisor.console.i18n import translator
-    from supervisor.console.routes import _lang
-
-    return str(translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))(key, **kw))
+    return str(request_translator(request, ctx)(key, **kw))
 
 
 @router.post(
@@ -225,4 +215,4 @@ async def internal_draft(
         dropped=summary.dropped,
         nodut=summary.no_duty,
     )
-    return _with_note(resp, note)
+    return append_message(resp, note)

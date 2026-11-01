@@ -134,7 +134,7 @@ def test_bar_has_one_plus_five_plus_six_items(v3all: Console) -> None:
     side = _v3_side(v3all.get("/console/?lang=en").text)
     assert _labels(side) == [
         "My overview",
-        "Overview", "Systems", "Catalogues", "Risks & controls", "Workflows",
+        "Overview", "Systems", "Catalogues", "Risk & compliance", "Workflows",
         "Overview", "Activity", "Guardians", "Cases & alerts", "Analytics", "Playground",
     ]  # fmt: skip
     kickers = re.findall(r'<span class="side-k">([^<]+)</span><span class="side-t">([^<]+)<', side)
@@ -153,7 +153,7 @@ def test_bar_in_vietnamese(v3all: Console) -> None:
 
 def test_items_hide_when_the_page_flag_is_off(v3: Console) -> None:
     labels = _labels(_v3_side(v3.get("/console/?lang=en").text))
-    assert "Playground" not in labels and "Risks & controls" not in labels
+    assert "Playground" not in labels and "Risk & compliance" not in labels
     assert "Activity" not in labels
     assert {"Catalogues", "Guardians", "Cases & alerts", "Analytics"} <= set(labels)
 
@@ -214,7 +214,8 @@ def test_each_new_page_renders(v3all: Console, path: str, lang: str) -> None:
 def test_section_routes_redirect_to_the_tab_page(v3all: Console, path: str, target: str) -> None:
     sep = "&" if "?" in path else "?"
     r = v3all.get(f"{path}{sep}lang=vi", follow_redirects=False)
-    assert r.status_code == 302 and r.headers["location"] == f"{target}?lang=vi"
+    # UI-310: a section root is a second URL for its first tab, so it redirects with 303
+    assert r.status_code == 303 and r.headers["location"] == f"{target}?lang=vi"
     assert v3all.get(path).status_code == 200  # followed to the page
 
 
@@ -260,17 +261,16 @@ def test_old_urls_keep_working_with_v3_on(v3all: Console) -> None:
         ("/console/cases", "Cases & alerts", "Cases"),
         ("/console/alerts", "Cases & alerts", "Alerts"),
         ("/console/signoff", "Cases & alerts", "Approvals"),
-        ("/console/evidence", "Analytics", "Evidence chain"),
+        ("/console/evidence", "Analytics", "Evidence"),
         ("/console/analytics", "Analytics", "Analytics"),
         ("/console/agents", "Catalogues", "Agents"),
-        ("/console/inventory", "Catalogues", "Unmanaged"),
+        ("/console/inventory", "Catalogues", "Inventory"),
         ("/console/decisions", "Activity", "Gate decisions"),
-        ("/console/catalog", "Guardians", "Library"),
+        ("/console/catalog", "Guardians", "Catalog"),
         ("/console/policies", "Guardians", "Rules"),
         ("/console/assurance", "Guardians", "Packs"),
-        ("/console/risks", "Risks & controls", "Risks"),
-        ("/console/compliance", "Risks & controls", "Compliance"),
-        ("/console/onboard", "Systems", "Onboard"),
+        ("/console/risks", "Risk & compliance", "Risks"),
+        ("/console/compliance", "Risk & compliance", "Compliance"),
     ],
 )
 def test_section_tab_strip_marks_the_open_tab(
@@ -278,9 +278,22 @@ def test_section_tab_strip_marks_the_open_tab(
 ) -> None:
     html = v3all.get(path + "?lang=en").text
     strip = html.split('<nav class="subtabs sec-tabs"', 1)[1].split("</nav>", 1)[0]
-    assert f'<span class="sec-tabs-t">{section}</span>' in htmllib.unescape(strip)
+    first = re.search(r"<a [^>]*>([^<]+)</a>", strip).group(1)  # type: ignore[union-attr]
+    title = f'<span class="sec-tabs-t">{section}</span>'
+    # UI-302: no strip title when it repeats the first tab (Systems, Analytics)
+    assert (title in htmllib.unescape(strip)) == (first != section)
     assert re.findall(r'class="on" aria-current="page">([^<]+)<', strip) == [tab]
     assert strip.count("<a ") >= 2
+
+
+def test_onboard_tab_needs_its_flag(v3all: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    # UI-080: with CONSOLE_ONBOARD_ENABLED off the page is a dead end (its button is greyed out)
+    html = v3all.get("/console/systems?lang=en").text
+    assert "/console/onboard" not in html
+    monkeypatch.setattr(v3all.ctx.settings, "console_onboard_enabled", True)
+    html = v3all.get("/console/onboard?lang=en").text
+    strip = html.split('<nav class="subtabs sec-tabs"', 1)[1].split("</nav>", 1)[0]
+    assert re.findall(r'class="on" aria-current="page">([^<]+)<', strip) == ["Onboard"]
 
 
 def test_analytics_strip_has_the_evidence_tab(v3all: Console) -> None:
@@ -346,7 +359,7 @@ def test_open_actions_count_assigned_cases_and_match_the_badge(v3all: Console) -
 def test_governance_na_when_controls_and_risks_are_off(v3: Console) -> None:
     html = v3.get("/console/governance?lang=en").text
     assert html.count("not available") >= 3
-    assert "CONTROLS_ENABLED=1" in html and "RISK_REGISTER_ENABLED=1" in html
+    assert "Controls are switched off." in html and "The risk register is switched off." in html
     assert "<h3>Control readiness</h3>" in html
 
 
@@ -383,7 +396,7 @@ def test_supervisor_overview_counts_the_last_24_hours(v3all: Console) -> None:
     since = v3all.ctx.clock.now() - dt.timedelta(hours=24)
     assert int(m.group(1)) == sum(1 for e in events if e["ts"] >= since)
     assert 'data-num="stopped"' in main and 'data-num="cases"' in main
-    assert "Health per agent" in main and "Alerts fired 7 d" in main
+    assert "Health per agent" in main and "Alerts, last 7 days" in main
 
 
 def test_judges_without_a_model_are_labelled_mock(
@@ -404,7 +417,8 @@ def test_guardian_coverage_follows_the_detector_file(
     s = v3all.ctx.settings
     monkeypatch.setattr(s, "detectors_enabled", False)
     off = v3all.get("/console/supervisor?scope=all&lang=en").text
-    assert "DETECTORS_ENABLED=1" in off and "below floor" in off
+    assert "Detectors are switched off, so no agent is covered." in off
+    assert "below the minimum" in off
     monkeypatch.setattr(s, "detectors_enabled", True)
     on = v3all.get("/console/supervisor?scope=all&lang=en").text
     n = len(v3all.ctx.state.query("agent"))
@@ -414,8 +428,8 @@ def test_guardian_coverage_follows_the_detector_file(
 def test_workflows_is_read_only_and_honest_without_a_scheduler(v3all: Console) -> None:
     main = _main(v3all.get("/console/workflows?lang=en").text)
     assert "<form" not in main and "<button" not in main
-    assert "not running in this process" in main
-    assert "Case sign-off" in main and "SIEM export" in main
+    assert "not running here" in main
+    assert "Case approval" in main and "SIEM export" in main
 
 
 def test_catalogue_asset_tabs_read_inventory_nodes(v3all: Console) -> None:
@@ -472,7 +486,7 @@ def test_systems_item_follows_the_systems_page_rules(v3all: Console) -> None:
         return [i["key"] for g in b["groups"] for i in g["items"]]
 
     off = {"pages": {"systems": False}, "inventory_n": 0, "assurance": True}
-    on = {"pages": {"systems": True}, "inventory_n": 0, "assurance": True}
+    on = {"pages": {"systems": True}, "inventory_n": 0, "assurance": True, "onboard_on": True}
     assert "systems" not in keys(nav_v3.bar(off, {"reviewer"}, active="", **kw))
     assert "systems" not in keys(nav_v3.bar(on, set(), active="", **kw))  # no systems.view
     shown = nav_v3.bar(on, {"reviewer"}, active=nav_v3.active_item("systems"), **kw)
@@ -521,7 +535,12 @@ def test_guardian_coverage_ignores_a_fail_closed_that_is_not_approved(
 
 def test_workflow_and_catalogue_words_are_translated(v3all: Console) -> None:
     html = v3all.get("/console/workflows?lang=vi").text
-    assert "Bộ lập lịch" in html and "tác vụ định kỳ" in html and ">scheduler job<" not in html
+    assert (
+        "Bộ lập lịch" in html
+        and "tác vụ theo lịch" in html
+        and ">scheduled job<" not in html
+        and ">scheduler job<" not in html
+    )
     assert ">on<" not in html.split("<tbody>")[1]
 
 
@@ -549,7 +568,7 @@ def test_factory_entries_show_with_their_flags(
     labels = _labels(side)
     assert labels.index("Factory") < labels.index("Guardian factory")
     assert 'href="/console/guardian-factory?lang=en"' in side
-    assert "Xưởng guardian" in _v3_side(v3all.get("/console/?lang=vi").text)
+    assert "Xưởng bộ bảo vệ" in _v3_side(v3all.get("/console/?lang=vi").text)
 
 
 def test_factory_pages_mark_their_item_active(

@@ -7,21 +7,21 @@ from __future__ import annotations
 
 UX5: dict[str, tuple[str, str]] = {
     "sy_purpose": (
-        "AI systems of the bank, with owner, stage and risk level.",
-        "Các hệ thống AI của ngân hàng, kèm đơn vị sở hữu, giai đoạn và mức rủi ro.",
+        "The bank's AI systems: who owns each, which stage it is in, and its risk level.",
+        "Các hệ thống AI của ngân hàng: ai sở hữu, đang ở giai đoạn nào và mức rủi ro.",
     ),
     "sy_rules_intro": (
-        "Rules that assign guardians and duties to this system. The same inputs always give the same list.",
-        "Các quy tắc gán bộ bảo vệ và nghĩa vụ cho hệ thống này. Cùng đầu vào luôn cho cùng danh sách.",
+        "Rules that assign guardians and duties to this AI system. The same facts always give the same result.",
+        "Các quy tắc gán bộ bảo vệ và nghĩa vụ cho hệ thống AI này. Cùng dữ kiện luôn cho cùng kết quả.",
     ),
     "sy_cls_intro": (
-        "Answer the 4 Decision 33 questions. Some answers fill from the system record. Nothing applies until a person applies it.",
-        "Trả lời 4 câu hỏi theo Quyết định 33. Một số câu tự điền từ hồ sơ hệ thống. Không có gì được áp dụng cho đến khi một người áp dụng.",
+        "Answer the 4 Decision 33 questions. Some are filled in from the AI system details. Nothing takes effect until you apply it.",
+        "Trả lời 4 câu hỏi theo Quyết định 33. Một số câu được điền sẵn từ thông tin hệ thống AI. Chưa có gì có hiệu lực cho đến khi bạn áp dụng.",
     ),
     "sy_cls_why_min": ("Reason ({n}+ characters)", "Lý do (từ {n} ký tự)"),
     "rd_intro": (
-        "Rules propose a status. A person confirms it. Pass needs evidence. A waiver needs a reason and a second person.",
-        "Quy tắc đề xuất trạng thái. Một người xác nhận. Đạt cần bằng chứng. Miễn trừ cần lý do và người thứ hai.",
+        "Rules suggest a status. You confirm it. Pass needs evidence. A waiver needs a reason and a second approver.",
+        "Quy tắc gợi ý trạng thái. Bạn xác nhận. Đạt cần bằng chứng. Miễn trừ cần lý do và người phê duyệt thứ hai.",
     ),
     "rk_illustrative_short": ("Illustrative bands", "Mức điểm minh họa"),
     "ux4b_risks_none": (
@@ -32,20 +32,20 @@ UX5: dict[str, tuple[str, str]] = {
         "{active} active risks ({inherited} inherited)",
         "{active} rủi ro đang áp dụng ({inherited} kế thừa)",
     ),
-    "ux4b_policies_sum": ("Obligations that apply", "Nghĩa vụ áp dụng"),
-    "ux4b_policies_none": ("No obligation applies yet.", "Chưa có nghĩa vụ nào áp dụng."),
+    "ux4b_policies_sum": ("Duties that apply", "Nghĩa vụ áp dụng"),
+    "ux4b_policies_none": ("No duty applies yet.", "Chưa có nghĩa vụ nào áp dụng."),
     "ux4b_na_transparency_off": (
         "Transparency reports are switched off. Ask an administrator to turn them on.",
         "Báo cáo minh bạch đang tắt. Hãy nhờ quản trị viên bật.",
     ),
     "sgd_intro": (
-        "Rules propose guardians, thresholds and limits. Nothing is attached until a person accepts.",
-        "Quy tắc đề xuất bộ bảo vệ, ngưỡng và giới hạn. Không có gì được gắn cho đến khi một người chấp nhận.",
+        "Rules suggest guardians, thresholds and limits. Nothing is applied until you accept.",
+        "Quy tắc đề xuất bộ bảo vệ, ngưỡng và giới hạn. Chưa có gì được áp dụng cho đến khi bạn chấp nhận.",
     ),
     "sgd_proof_hint": ("Run the pre-deploy test now.", "Chạy kiểm thử trước triển khai ngay."),
     "wf_request_hint": (
-        "A second person must approve. You cannot approve your own request.",
-        "Cần người thứ hai duyệt. Bạn không thể tự duyệt yêu cầu của mình.",
+        "A second approver must approve. You cannot approve your own request.",
+        "Cần người phê duyệt thứ hai. Bạn không thể tự phê duyệt yêu cầu của mình.",
     ),
     "sy_stage_now": ("Stage", "Giai đoạn"),
     "sy_stage_needs_approval": ("Approval needed to enter", "Cần duyệt để chuyển sang"),
@@ -54,12 +54,12 @@ UX5: dict[str, tuple[str, str]] = {
         "Chưa có tác tử nào liên kết với hệ thống này. Hãy liên kết một tác tử để xem thông tin này.",
     ),
     "du_reeval_hint": (
-        "Re-run the matrix on the stored answers. Nothing is deleted.",
-        "Chạy lại ma trận trên các câu trả lời đã lưu. Không xóa gì.",
+        "Check the duties again using the saved answers. Nothing is deleted.",
+        "Kiểm tra lại các nghĩa vụ dựa trên câu trả lời đã lưu. Không xóa gì.",
     ),
     "du_refresh_hint": (
-        "Read the live counts of the mapped controls (last {days} days). A full-coverage duty whose controls all work is closed. Partial and none are never closed here.",
-        "Đọc số liệu trực tiếp của các kiểm soát đã ánh xạ ({days} ngày gần nhất). Nghĩa vụ bao phủ đầy đủ có mọi kiểm soát đang hoạt động sẽ được đóng. Bao phủ một phần hoặc chưa có không bao giờ đóng ở đây.",
+        "Reads the latest results of the linked controls (last {days} days). A duty with full coverage closes when all its controls work. Partial or no coverage never closes here.",
+        "Đọc kết quả mới nhất của các kiểm soát đã liên kết ({days} ngày gần nhất). Nghĩa vụ được bao phủ đầy đủ sẽ đóng khi mọi kiểm soát đều hoạt động. Bao phủ một phần hoặc chưa có thì không đóng ở đây.",
     ),
     "tri_purpose": (
         "Workspace objects not yet registered as AI systems. Highest score first.",
@@ -67,20 +67,20 @@ UX5: dict[str, tuple[str, str]] = {
     ),
     "ob_purpose_lead": (
         "Bring an agent under supervision in 6 steps. A person approves every step.",
-        "Đưa một tác tử vào giám sát qua 6 bước. Một người duyệt từng bước.",
+        "Đưa một tác tử vào giám sát qua 6 bước. Mỗi bước đều do con người duyệt.",
     ),
     "repo_path": (
         "Agent code folder (prefilled example; pick one from Candidates)",
         "Thư mục mã của tác tử (ví dụ điền sẵn; chọn từ Ứng viên)",
     ),
     "start_hint": (
-        "Read-only. Secrets are removed before a model reads the code.",
-        "Chỉ đọc. Bí mật được xóa trước khi mô hình đọc mã.",
+        "View only. Passwords and keys are removed before the AI reads the code.",
+        "Chỉ xem. Mật khẩu và khóa được xóa trước khi AI đọc mã nguồn.",
     ),
-    "no_runs": ("No onboarding runs yet.", "Chưa có lần tiếp nhận nào."),
+    "no_runs": ("No onboarding yet.", "Chưa có lần tiếp nhận nào."),
     "int_purpose_lead": (
-        "Readiness reports for agents to bring under Watch.",
-        "Báo cáo mức sẵn sàng của các tác tử cần đưa vào giám sát.",
+        "Readiness reports for agents you plan to put under Watch.",
+        "Báo cáo mức sẵn sàng của các tác tử dự kiến đưa vào giám sát.",
     ),
     "int_why": (
         "Patches are never applied here. The owning team applies them.",
@@ -91,8 +91,8 @@ UX5: dict[str, tuple[str, str]] = {
         "Chưa có báo cáo tích hợp. Hãy nhờ quản trị viên chạy bộ tư vấn.",
     ),
     "tk_purpose": (
-        "Tasks per system and lifecycle stage. A required task blocks the move to the next stage.",
-        "Nhiệm vụ theo hệ thống và giai đoạn vòng đời. Nhiệm vụ bắt buộc chặn việc chuyển giai đoạn.",
+        "Tasks for each AI system and lifecycle stage. Finish all required tasks before the system moves to the next stage.",
+        "Nhiệm vụ cho từng hệ thống AI và giai đoạn vòng đời. Phải hoàn tất nhiệm vụ bắt buộc trước khi hệ thống chuyển giai đoạn.",
     ),
     "tk_illustrative": (
         "Task sets are illustrative until the bank sets them.",
@@ -119,13 +119,13 @@ UX5: dict[str, tuple[str, str]] = {
     "ux4b_audit_pack_open": ("Open Evidence", "Mở trang Bằng chứng"),
     "sy_rv_none": (
         "No reviews yet. Reviews start at the Validation stage.",
-        "Chưa có đợt rà soát. Rà soát bắt đầu ở giai đoạn Xác nhận.",
+        "Chưa có đợt rà soát. Rà soát bắt đầu ở giai đoạn Thẩm định.",
     ),
     "sy_col_components": ("Components", "Thành phần"),
     "sy_inherited": ("from parts", "từ thành phần"),
     "sy_cls_none_applied": ("Not classified yet.", "Chưa được phân loại."),
     "sy_cls_no_draft": (
-        "No draft yet. Make one from the rules.",
+        "No draft yet. Create one from the rules.",
         "Chưa có bản nháp. Hãy tạo từ quy tắc.",
     ),
     "sy_cls_remake": ("Discard draft and restart", "Hủy bản nháp và làm lại"),

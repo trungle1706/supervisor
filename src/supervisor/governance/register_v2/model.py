@@ -70,7 +70,7 @@ def n_steps(duties: bool = False, v3: bool = False) -> int:
 def key_of(step: int, duties: bool = False, v3: bool = False) -> str:
     keys = step_keys(duties, v3)
     if not 1 <= step <= len(keys):
-        raise RegisterError("step", f"must be 1 to {len(keys)}")
+        raise RegisterError("step", f"Choose a step from 1 to {len(keys)}.")
     return keys[step - 1]
 
 
@@ -159,10 +159,12 @@ def clean_field(name: str, raw: Any) -> Any:
     if not text:
         return ""
     if any(ord(c) < 32 and c not in "\n\t" for c in text):
-        raise RegisterError(name, "must not hold control characters")
+        raise RegisterError(
+            name, "This contains characters that are not allowed. Remove them and try again."
+        )
     if name in CHOICES:
         if text not in CHOICES[name]:
-            raise RegisterError(name, f"must be one of {', '.join(CHOICES[name])}")
+            raise RegisterError(name, f"Choose one of: {', '.join(CHOICES[name])}.")
         return text
     if name in ("name", "owner_user", "owner_team", "purpose"):
         try:
@@ -172,21 +174,23 @@ def clean_field(name: str, raw: Any) -> Any:
             raise RegisterError(name, msg) from None
     if name == "agent_id":
         if not ID_RE.match(text):
-            raise RegisterError(name, "must match ^[A-Za-z0-9_.:@-]{1,128}$")
+            raise RegisterError(name, "Use 1 to 128 letters, digits or the symbols _ . : @ - only.")
         return text
     if name == "model_family":
         if not SLUG_RE.match(text):
-            raise RegisterError(name, f"must match {SLUG_RE.pattern}")
+            raise RegisterError(
+                name, "Use 1 to 64 letters, digits or the symbols _ . : @ / + - only."
+            )
         return text
     if name == "description":
         if len(text) > MAX_DESC:
-            raise RegisterError(name, f"at most {MAX_DESC} characters")
+            raise RegisterError(name, f"Too long. Keep it to {MAX_DESC} characters or fewer.")
         return text
     if name == "data_sources":
         if len(text) > MAX_LIST:
-            raise RegisterError(name, f"at most {MAX_LIST} characters")
+            raise RegisterError(name, f"Too long. Keep it to {MAX_LIST} characters or fewer.")
         return text
-    raise RegisterError(name, "unknown field")
+    raise RegisterError(name, "This field is not recognised. Reload the page and try again.")
 
 
 def clean_step(
@@ -207,5 +211,5 @@ def clean_step(
     if strict:
         missing = [f for f in REQUIRED.get(step, ()) if out.get(f) in ("", None)]
         if missing:
-            raise RegisterError(missing[0], "is required")
+            raise RegisterError(missing[0], "Fill this in to continue.")
     return out

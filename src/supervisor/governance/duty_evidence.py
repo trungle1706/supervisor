@@ -49,6 +49,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from supervisor.core.canonical import format_ts
+from supervisor.core.flags import truthy
+from supervisor.core.rows import rows_by
 from supervisor.governance import duties_gap as dg
 from supervisor.risk import evidence as ev
 
@@ -212,8 +214,7 @@ def counter_of(kind: str, cid: str) -> str:
 # ------------------------------------------------------------------------------ the reader
 
 
-def _true(value: Any) -> bool:
-    return ev._true(value)  # noqa: SLF001 - the one definition of a stored boolean
+_true = truthy  # the one definition of a stored boolean (core.flags)
 
 
 class Reader:
@@ -243,14 +244,18 @@ class Reader:
         by: str = "agent_id",
     ) -> int:
         n = 0
+        # All agents in one batch read; the newest SCAN_CAP rows of each agent, as before.
+        found = rows_by(
+            store,
+            table,
+            by,
+            self.agents,
+            where=where,
+            order_by=(f"-{ts_col}",) if ts_col else (),
+            per_key_limit=SCAN_CAP,
+        )
         for a in self.agents:
-            rows = store.query(
-                table,
-                {by: a, **(where or {})},
-                order_by=(f"-{ts_col}",) if ts_col else (),
-                limit=SCAN_CAP,
-            )
-            for r in rows:
+            for r in found.get(a, []):
                 if ts_col and not self._in(r[ts_col]):
                     continue
                 if pred is not None and not pred(r):
@@ -268,17 +273,21 @@ class Reader:
         return sum(1 for r in rows if self._in(r["ts"]))
 
     def _case_ids(self) -> list[str]:
+        found = rows_by(
+            self.env.state, "cases", "agent_id", self.agents, columns=("agent_id", "case_id")
+        )
         out: list[str] = []
         for a in self.agents:
-            out += [str(c["case_id"]) for c in self.env.state.query("cases", {"agent_id": a})]
+            out += [str(c["case_id"]) for c in found.get(a, [])]
         return out
 
     def _monitor(self, name: str | None) -> int:
         """Days (rows) of ``oversight_metric`` in the window; with a monitor name only the rows
         whose status for that monitor is ``ok``."""
         n = 0
+        found = rows_by(self.env.state, "oversight_metric", "agent_id", self.agents)
         for a in self.agents:
-            for r in self.env.state.query("oversight_metric", {"agent_id": a}):
+            for r in found.get(a, []):
                 day = ev._date(r.get("metric_date"))  # noqa: SLF001
                 if day is None or not (self.w.start.date() <= day < self.w.end.date()):
                     continue
@@ -331,11 +340,16 @@ class Reader:
             )
         if counter == "chain_lane":
             n = 0
+            lanes = rows_by(
+                t,
+                "chain_entry",
+                "lane",
+                [f"agent:{a}" for a in self.agents],
+                order_by=("-seq",),
+                per_key_limit=SCAN_CAP,
+            )
             for a in self.agents:
-                rows = t.query(
-                    "chain_entry", {"lane": f"agent:{a}"}, order_by=("-seq",), limit=SCAN_CAP
-                )
-                n += sum(1 for r in rows if self._in(r["ts"]))
+                n += sum(1 for r in lanes.get(f"agent:{a}", []) if self._in(r["ts"]))
             return n
         if counter == "chain_verify":
             return self._root("chain_verify")
@@ -359,11 +373,9 @@ class Reader:
         if counter == "cases":
             return self._each(s, "cases", "opened_at")
         if counter == "signoff":
-            ids = set(self._case_ids())
-            n = 0
-            for cid in sorted(ids):
-                n += sum(1 for r in t.query("signoff", {"case_id": cid}) if self._in(r["ts"]))
-            return n
+            ids = sorted(set(self._case_ids()))
+            signed = rows_by(t, "signoff", "case_id", ids)
+            return sum(1 for cid in ids for r in signed.get(cid, []) if self._in(r["ts"]))
         if counter == "coverage":
             return self._each(s, "coverage", None)
         if counter == "versions":

@@ -48,7 +48,7 @@ def test_an_agent_with_no_policy_record_gets_200_and_a_hint(tools_on: Console) -
     ):
         r = tools_on.get(url, headers=headers)
         assert r.status_code == 200, (url, r.text[:200])
-        assert 'data-unknown-agent="1"' in r.text and "no record in the policy" in r.text
+        assert 'data-unknown-agent="1"' in r.text and "not in the policy yet" in r.text
         assert 'class="tools-agent"' not in r.text  # no fake per-tool table
 
 

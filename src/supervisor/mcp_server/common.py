@@ -8,6 +8,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from supervisor.core.errors import NotFoundError
+from supervisor.core.flags import truthy
 from supervisor.governance.model import check_system_id, ensure_on
 from supervisor.governance.systems import ALL
 
@@ -78,7 +79,7 @@ def agents_of_system(call: Any, system_id: str) -> list[str]:
         {
             str(c["ref_id"])
             for c in call.ctx.state.query("system_component", {"system_id": system_id})
-            if str(c["active"]).lower() in ("1", "true") and c["ref_kind"] == "agent"
+            if truthy(c["active"]) and c["ref_kind"] == "agent"
         }
     )
 

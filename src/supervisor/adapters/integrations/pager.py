@@ -1,5 +1,8 @@
 """Paging for urgent cases with acknowledgement write-back (WP11 stub, OFF by default).
 
+Not wired to a feature yet: nothing in ``src/`` imports this module; only
+``tests/integrations/test_integrations.py`` does. It is kept on purpose (planned integration).
+
 Direction: Supervisor -> pager (PagerDuty / Opsgenie / the bank's on-call tool): page;
 pager -> Supervisor: acknowledgement, written back as a case comment (who, when) so the
 "time to human" is in the case timeline and on the evidence chain.

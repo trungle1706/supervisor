@@ -2,7 +2,7 @@
    Variables: a, rules, policy, allow, shadow. Read only. #}
 {% import "_ui.html" as ui with context %}
 <section class="card" data-section="rules">
-  <h3>{{ t('policy_rules') }} <span class="k">{{ rules|length }}</span></h3>
+  <h3>{{ t('policy_rules') }}{% if rules %} <span class="k">{{ rules|length }}</span>{% endif %}</h3>
   <p class="muted" style="margin:0 0 8px">
     {% if shadow %}{{ ui.pill(t('shadow_word'), 'teal') }} {{ t('policy_shadow_note') }}{% else %}{{ ui.pill(t('enforced_word'), 'ok') }}{% endif %}
     {% if ux5 %}{% if policy.version %} · {{ t('policy_version') }} {{ policy.version }}{% endif %}{% if policy.hash %} <span class="muted" title="{{ t('policy_hash') }} {{ policy.hash }}">(<span class="muted">{{ t('g4_details') }}</span>)</span>{% endif %}
@@ -35,7 +35,7 @@
   {% endif %}
 </section>
 <section class="card" data-section="allow-list">
-  <h3>{{ t('policy_allow') }} <span class="k">{{ allow|length }}</span></h3>
+  <h3>{{ t('policy_allow') }}{% if allow %} <span class="k">{{ allow|length }}</span>{% endif %}</h3>
   {% if allow %}
   <div class="tablewrap flat"><table>
     <thead><tr><th scope="col">{{ t('tl_tool') }}</th><th scope="col">{{ t('tl_risk') }}</th></tr></thead>

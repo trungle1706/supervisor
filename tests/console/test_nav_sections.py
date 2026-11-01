@@ -109,7 +109,7 @@ def test_active_tab_shows_only_what_is_on(
     html = sections.get("/console/catalog?tab=active").text
     assert "Drift monitor" in html and "Fairness monitor" not in html
     assert "Prompt injection patterns" not in html  # detectors off
-    assert "Hash-chained evidence" in html  # always on
+    assert "Tamper-proof evidence" in html  # always on
     all_html = sections.get("/console/catalog?tab=catalog").text
     assert "FAIRNESS_ENABLED=1" in all_html
 

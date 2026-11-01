@@ -12,7 +12,8 @@ Public API (the orchestrator, WP-F4, reads ``live_agent_for`` and ``portfolio``;
 * ``get(agent_id, version=None) -> row | None`` (``None`` = the newest version)
 * ``versions(agent_id) -> list[row]``, ``list_agents(...) -> list[row]`` (newest version of each)
 * ``events(agent_id, version=None) -> list[row]``, ``record_event(...)``
-* ``live_agent_for(dimension_id) -> row | None``, ``portfolio() -> list[dict]``
+* ``live_agent_for(dimension_id) -> row | None``, ``draft_agent_for(dimension_id) -> row | None``
+  (demo only), ``portfolio() -> list[dict]``
 * ``validate_definition(raw, tools, groups) -> AgentDefinitionV1`` (module function)
 * ``permits(roles, owner_group, groups) -> bool`` (module function; who may edit a group's agents)
 
@@ -457,6 +458,17 @@ class FactoryStore:
             for r in self.state.query(AGENT_TABLE, {"dimension_id": dimension_id, "state": "live"})
         ]
         rows.sort(key=lambda r: _version_key(r["version"]))
+        return rows[-1] if rows else None
+
+    def draft_agent_for(self, dimension_id: str) -> dict[str, Any] | None:
+        """The newest ``draft`` version for a dimension (highest version, then agent id), or
+        ``None``. Only the demo setting ORCH_RUN_DRAFT_AGENTS reads it: a draft is not tested and
+        not approved, so the orchestrator never uses it otherwise."""
+        rows = [
+            self._row(r)
+            for r in self.state.query(AGENT_TABLE, {"dimension_id": dimension_id, "state": "draft"})
+        ]
+        rows.sort(key=lambda r: (_version_key(r["version"]), str(r["id"])))
         return rows[-1] if rows else None
 
     def portfolio(self) -> list[dict[str, Any]]:

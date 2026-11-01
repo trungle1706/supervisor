@@ -307,7 +307,7 @@ def test_a_newer_attempt_asks_for_run_again(on: Console) -> None:
     finish(on)
     upload(on)
     html = on.get("/console/predeploy/payments", headers=HX).text
-    assert 'data-newer="1"' in html and "attempt 2 is newer: press Run again" in html
+    assert 'data-newer="1"' in html and "upload 2 is newer: run again" in html
 
 
 # ------------------------------------------------------------------------------ roles

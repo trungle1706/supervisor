@@ -36,10 +36,7 @@
     </li>
     {% endfor %}
   </ul>
-  <p class="g6-more">
-    <a href="/console/cases/{{ case.case_id }}?tab=rules&amp;lang={{ lang }}" hx-get="/console/cases/{{ case.case_id }}/tab/rules?lang={{ lang }}" hx-target="#tab-body">{{ t('rules_and_judges') }} →</a>
-    · <a href="/console/cases/{{ case.case_id }}?tab=transcript&amp;lang={{ lang }}" hx-get="/console/cases/{{ case.case_id }}/tab/transcript?lang={{ lang }}" hx-target="#tab-body">{{ t('transcript') }} →</a>
-  </p>
+  {# UI-182: no links to the Rules and Transcript tabs, which are in the strip above #}
 </section>
 {% else %}
 {% import "_ui.html" as ui with context %}

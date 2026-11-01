@@ -97,7 +97,7 @@ def test_sso_actions_record_identity_and_sp_is_read_only(dbx: tuple[TestClient, 
     hx = {"HX-Request": "true"}
     # no SSO header: the app service principal, read-only
     r = client.get("/console/")
-    assert r.status_code == 200 and "app-sp-test" in r.text and "service principal" in r.text
+    assert r.status_code == 200 and "app-sp-test" in r.text and "app account" in r.text
     r = client.post("/console/agents/credit_prequal/pause", data={"reason": "x"}, headers=hx)
     assert r.status_code == 403 and "signed-in person" in r.text
     # the X-Dev-User header means nothing on the App

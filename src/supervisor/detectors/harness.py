@@ -44,6 +44,8 @@ from supervisor.core.detectors import (
     RunConfig,
     full_schema,
 )
+from supervisor.core.stats import Z_196
+from supervisor.core.stats import wilson_bp as _wilson_bp
 from supervisor.detectors import build_registry, golden_secrets
 from supervisor.detectors import moderation_golden as mog  # WP-D4
 from supervisor.detectors.golden import DATA_DIR, load, write_all
@@ -142,18 +144,10 @@ THRESHOLDS: dict[str, dict[str, int]] = {
 }
 
 
-def wilson_bp(k: int, n: int, z: float = 1.96) -> list[int] | None:
+def wilson_bp(k: int, n: int, z: float = Z_196) -> list[int] | None:
     """Wilson score interval for k successes in n trials, in basis points [low, high]."""
-    if n <= 0:
-        return None
-    p = k / n
-    denom = 1 + z * z / n
-    centre = (p + z * z / (2 * n)) / denom
-    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    return [
-        max(0, math.floor((centre - half) * 10000)),
-        min(10000, math.ceil((centre + half) * 10000)),
-    ]
+    ci = _wilson_bp(k, n, z)
+    return None if ci is None else list(ci)
 
 
 def _bp(k: int, n: int) -> int | None:

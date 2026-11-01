@@ -49,6 +49,8 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.config import REPO_ROOT
+from supervisor.core.stats import Z_196
+from supervisor.core.stats import wilson_bp as _wilson_bp
 from supervisor.gateway.adapters import claude_code_hook as hook
 from supervisor.gateway.adapters.fastapi_mw import SupervisorASGIMiddleware
 from supervisor.gateway.adapters.langgraph import SupervisorToolMiddleware
@@ -76,17 +78,10 @@ CLOSED_CLASSES = {"money", "credit", "pii_export"}
 # ----------------------------------------------------------------------------- statistics
 
 
-def wilson_bp(k: int, n: int, z: float = 1.96) -> list[int] | None:
-    if n <= 0:
-        return None
-    p = k / n
-    denom = 1 + z * z / n
-    centre = (p + z * z / (2 * n)) / denom
-    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    return [
-        max(0, math.floor((centre - half) * 10000)),
-        min(10000, math.ceil((centre + half) * 10000)),
-    ]
+def wilson_bp(k: int, n: int, z: float = Z_196) -> list[int] | None:
+    """Wilson score interval for k successes in n trials, in basis points [low, high]."""
+    ci = _wilson_bp(k, n, z)
+    return None if ci is None else list(ci)
 
 
 def _pct(values: list[int], p: int) -> int:

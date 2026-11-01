@@ -20,13 +20,14 @@ from supervisor.analytics.decisions import looks_personal, safe_id, shown_id
 from supervisor.console import ux3
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
     sort_rows,
 )
 from supervisor.console.readmodels import _verdict_row, rules_index
+from supervisor.core.rows import rows_by
 
 MAX_SPANS = 500  # spans drawn per trace; the rest is counted ("+N more")
 TEXT_CAP = 1000  # characters of a masked excerpt shown
@@ -134,7 +135,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "started", "desc")
     keys = {"status": lambda r: _STATUS_RANK[r["status"]]}
     shown = sort_rows(rows, col, direction, keys)
-    page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(shown, p, PAGE_SIZE)
     agents = sorted(a["agent_id"] for a in ctx.state.query("agent"))
     base = {k: p[k] for k in ("agent", "status", "range", "q", "corr")}
     return {
@@ -246,10 +247,9 @@ def trace_detail(ctx: Any, trace_id: str, span_id: str | None = None) -> dict[st
     vs = ctx.tables.query("verdict", {"trace_id": trace_id}, order_by=("ts",), limit=2000)
     seen = {v["verdict_id"] for v in vs}
     gates = [e["event_id"] for e in events if e["event_type"] == "gate_decision"][:50]
-    for eid in gates:  # gate verdicts of a call that gave no trace id are keyed by the event
-        vs += [
-            v for v in ctx.tables.query("verdict", {"event_id": eid}) if v["verdict_id"] not in seen
-        ]
+    # gate verdicts of a call that gave no trace id are keyed by the event
+    for rows in rows_by(ctx.tables, "verdict", "event_id", gates).values():
+        vs += [v for v in rows if v["verdict_id"] not in seen]
     by_event: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for v in vs:
         by_event[str(v.get("event_id"))].append(_verdict_view(v, rules, text))
@@ -321,13 +321,19 @@ def span_detail(
     if node is None:
         return None
     items = []
+    chain_rows = rows_by(
+        ctx.tables,
+        "chain_entry",
+        "record_ref",
+        [e["event_id"] for e in node["events"] if e["event_type"] == "gate_decision"],
+        columns=("record_ref", "lane", "seq"),
+        where={"record_type": "gate_decision"},
+    )
     for e in node["events"]:
         level = str(e.get("capture_level") or "digest")
         chain = None
         if e["event_type"] == "gate_decision":
-            rows = ctx.tables.query(
-                "chain_entry", {"record_ref": e["event_id"], "record_type": "gate_decision"}
-            )
+            rows = chain_rows[e["event_id"]]
             chain = {"lane": rows[0]["lane"], "seq": int(rows[0]["seq"])} if rows else None
         if e.get("correlation_id"):  # WP39 review: a caller-given id is shown only when safe
             e = {**e, "correlation_id": shown_id(e.get("correlation_id"))}

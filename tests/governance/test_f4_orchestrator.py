@@ -570,6 +570,121 @@ class _Slow:
         return self.rule.run(request)
 
 
+def _wait_running(c: Console, sid: str, dim: str = "model") -> None:
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        run = orch.latest(c.ctx, sid)
+        if run and any(i["dimension_id"] == dim and i["status"] == "running" for i in run.items):
+            return
+        time.sleep(0.02)
+    raise AssertionError(f"{dim} never ran")
+
+
+def test_ux5_panel_shows_live_progress(orchon: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = orchon
+    monkeypatch.setattr(c.ctx.settings, "console_ux5", True)
+    sid = _ready(c)
+    orch.start(
+        c.ctx, sid, CREATOR, background=True, runner=_Slow(1.0), budget=orch.Budget(rule_seconds=5)
+    )
+    _wait_running(c, sid)
+    html = c.get(f"/console/systems/{sid}/orchestrate?lang=en", user=CREATOR).text
+    assert 'data-orch="progress"' in html and 'role="progressbar"' in html
+    assert 'hx-trigger="every 2s"' in html and "was=run" in html
+    assert 'data-orch-step="model" data-status="running"' in html
+    assert "Assessing: Model risk" in html and 'data-orch="pct">0%' in html
+    assert 'data-act="orch-brief"' not in html  # the brief comes when the run ends
+    orch.join(sid)
+    # the first poll after the end reloads the rows once and offers the brief
+    done = c.get(f"/console/systems/{sid}/orchestrate?lang=en&was=run", user=CREATOR).text
+    assert 'data-orch="auto-reload"' in done and 'hx-target="#tab-body"' in done
+    # only the tab of the full system page goes into #tab-body (no page in the page)
+    reload_tag = done.split('data-orch="auto-reload"', 1)[1][:300]
+    assert 'hx-select="#tab-body &gt; *"' in reload_tag or 'hx-select="#tab-body > *"' in reload_tag
+    assert 'hx-trigger="every 2s"' not in done and 'data-orch="pct">100%' in done
+    assert 'data-act="orch-brief"' in done and "/brief?lang=en" in done
+    assert 'data-status="running"' not in done
+    # any later answer (no was=run) does not reload again
+    later = c.get(f"/console/systems/{sid}/orchestrate?lang=en", user=CREATOR).text
+    assert 'data-orch="auto-reload"' not in later and 'data-act="orch-brief"' in later
+    vi = c.get(f"/console/systems/{sid}/orchestrate?lang=vi", user=CREATOR).text
+    assert "Xem bản tóm tắt" in vi
+
+
+def test_brief_report(orchon: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = orchon
+    monkeypatch.setattr(c.ctx.settings, "console_ux5", True)
+    sid = _ready(c)
+    _all_required(c, "ok", ("model",))
+    _result(c, "pii_canary", "fail")
+    run = orch.run(c.ctx, sid, 1)
+    base = f"/console/systems/{sid}/orchestrate/{run.run_id}/brief"
+    part = c.get(f"{base}?lang=en", user=CREATOR, headers={"HX-Request": "true"})
+    assert part.status_code == 200, part.text[:300]
+    h = part.text
+    assert 'data-orch="brief-body"' in h and "<html" not in h.lower()
+    assert "Assessment summary, attempt 1" in h and "High risk, self-assessed" in h
+    for dim in rd.DIMENSION_IDS:
+        assert f'data-orch-brief-dim="{dim}"' in h
+    assert "Rule-based check" in h and f"/v1/orchestrate/{run.run_id}/reports/model" in h
+    assert 'data-act="orch-brief-page"' in h and "Not legal advice" in h
+    # the totals are the sums of the stored reports
+    reps = [
+        json.loads(p.read_text(encoding="utf-8"))
+        for p in orch.report_dir(c.ctx.settings, sid, 1).glob("*.json")
+        if p.stem in rd.DIMENSION_IDS
+    ]
+    passed = sum(r["summary"]["passed"] for r in reps)
+    failed = sum(r["summary"]["failed"] for r in reps)
+    assert passed >= 1 and f"{passed} pass" in h and f"{failed} fail" in h
+    if failed:
+        assert 'data-orch="brief-fails"' in h
+    # as a page, with ?dim= opening that type
+    page = c.get(f"{base}?lang=en&dim=model", user=CREATOR)
+    assert page.status_code == 200 and "<html" in page.text.lower()
+    assert 'data-act="orch-brief-page"' not in page.text
+    blk = page.text.split('data-orch-brief-dim="model"', 1)[1][:200]
+    assert "<details open" in blk
+    vi = c.get(f"{base}?lang=vi", user=CREATOR, headers={"HX-Request": "true"}).text
+    assert "Tóm tắt đánh giá, lần chạy 1" in vi
+    # the Open report link of the table goes to the brief page
+    tab = c.get(f"/console/systems/{sid}?tab=riskdim&lang=en", user=CREATOR).text
+    assert f"{base}?dim=model" in tab
+    # out of scope, unknown run, a run of another system, a bad id: 400, never 500
+    assert c.get(f"{base}?lang=en", user=VIEWER).status_code == 400
+    assert c.get(f"/console/systems/{sid}/orchestrate/orc_nope/brief").status_code == 400
+    other = _ready_second(c)
+    assert c.get(f"/console/systems/{other}/orchestrate/{run.run_id}/brief").status_code == 400
+    assert c.get(f"/console/systems/{sid}/orchestrate/a%20b/brief").status_code == 400
+
+
+def test_brief_off_path(on: Console) -> None:
+    sid = _system(on)
+    assert on.get(f"/console/systems/{sid}/orchestrate/orc_x/brief").status_code == 400
+
+
+def test_demo_pace_waits_before_each_type(orchon: Console, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = orchon
+    sid = _ready(c)
+    waits: list[float] = []
+    monkeypatch.setattr(orch.time, "sleep", waits.append)
+    run = orch.run(c.ctx, sid, 1)
+    assert waits == []  # default 0: no pause
+    monkeypatch.setattr(c.ctx.settings, "orch_demo_pace_ms", 400)
+    run2 = orch.run(c.ctx, sid, 2)
+    applicable = sum(1 for i in run2.items if i["applies"])
+    assert waits == [0.4] * applicable and run.status == run2.status == "done"
+
+
+def test_demo_pace_setting_bounds(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SUPERVISOR_ENV_FILE", "/dev/null")
+    monkeypatch.setenv("ORCH_DEMO_PACE_MS", "1500")
+    assert load_settings().orch_demo_pace_ms == 1500
+    monkeypatch.setenv("ORCH_DEMO_PACE_MS", "9000")
+    with pytest.raises(Exception):  # noqa: B017 - above the cap of 5000
+        load_settings()
+
+
 def test_budget_time_cut(orchon: Console) -> None:
     c = orchon
     sid = _ready(c)
@@ -577,7 +692,7 @@ def test_budget_time_cut(orchon: Console) -> None:
     run = orch.run(c.ctx, sid, 1, runner=_Slow(3.0), budget=orch.Budget(rule_seconds=1))
     assert time.monotonic() - started < 2.9 * 1 + 2  # not 3 s per slow call
     it = _items(run)["model"]
-    assert it["status"] == "budget_exceeded" and "time budget" in it["note"]
+    assert it["status"] == "budget_exceeded" and "time limit" in it["note"]
     assert it["report_ref"] == "" and _rows(c, sid)["model"]["status"] == "not_started"
     assert _items(run)["data_governance"]["status"] == "done"
     assert run.status == "done"
@@ -702,7 +817,7 @@ def test_waived_row_is_left_alone_and_na_is_written(orchon: Console) -> None:
     assert rows["model"]["status"] == "waived"
     assert _items(run)["model"]["status_written"] == ""
     assert rows["reputation"]["status"] == "not_applicable"
-    assert "low_core_only" in rows["reputation"]["note"]
+    assert "core risk types only" in rows["reputation"]["note"]
     assert _items(run)["reputation"]["status"] == "not_applicable"
 
 
@@ -731,6 +846,42 @@ def test_duties_prefill(orchon: Console) -> None:
     newest = orch.read_duties_prefill(c.ctx.settings, sid)
     assert newest is not None and newest["attempt_n"] == 2
     assert orch.read_duties_prefill(c.ctx.settings, "no-such-system") is None
+
+
+def test_pending_class_blocks_by_default(orchon: Console) -> None:
+    c = orchon
+    assert c.ctx.settings.assess_pending_class is False
+    sid = _system(c)
+    _classify(c, sid, "medium", approved=False)
+    assert orch.classification_outcome(c.ctx, sid) is None
+    r = _api(c, "POST", f"/v1/systems/{sid}/orchestrate")
+    assert r.status_code == 400 and "plan_blocked" in r.text and "approved classification" in r.text
+
+
+def test_pending_class_counts_with_the_demo_flag(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = orchon
+    monkeypatch.setattr(c.ctx.settings, "assess_pending_class", True)
+    sid = _system(c)
+    assert orch.classification_outcome(c.ctx, sid) is None  # nothing saved: still blocked
+    add_agent(c.runtime.adapters, AGENT)
+    c.ctx.systems.link(sid, "agent", AGENT, CREATOR)
+    _classify(c, sid, "medium", approved=False)
+    assert orch.classification_outcome(c.ctx, sid) == "medium"
+    r = _api(c, "POST", f"/v1/systems/{sid}/orchestrate")
+    assert r.status_code == 202, r.text
+    orch.join(sid)
+    assert _api(c, "GET", f"/v1/systems/{sid}/orchestrate").json()["status"] == "done"
+
+
+def test_demo_flag_keeps_an_approved_class(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = orchon
+    monkeypatch.setattr(c.ctx.settings, "assess_pending_class", True)
+    sid = _ready(c, "high_self")
+    assert orch.classification_outcome(c.ctx, sid) == "high_self"
 
 
 # ------------------------------------------------------------------ API
@@ -825,16 +976,16 @@ def test_htmx_panel_and_button(orchon: Console) -> None:
     tab = c.get(f"/console/systems/{sid}?tab=riskdim&lang=en").text
     assert 'id="orch-panel"' in tab and 'data-act="orch-run"' in tab
     assert 'data-act="rd-reassess"' not in tab  # the placeholder is replaced
-    assert "No run yet." in tab
+    assert "No assessment yet." in tab
     r = c.post(f"/console/systems/{sid}/orchestrate", {}, user=CREATOR)
     assert r.status_code == 200, r.text[:300]
-    assert 'id="orch-panel"' in r.text and "Run started." in r.text
+    assert 'id="orch-panel"' in r.text and "Assessment started." in r.text
     orch.join(sid)
     panel = c.get(f"/console/systems/{sid}/orchestrate?lang=en", user=CREATOR)
     assert panel.status_code == 200
     html = panel.text
     assert 'data-orch-dim="model"' in html and 'data-orch-dim="legal_compliance"' in html
-    assert "/reports/model" in html and "Budget used" in html and "Plan hash" in html
+    assert "/reports/model" in html and "Budget used" in html and "Plan ID" in html
     assert 'hx-trigger="every 2s"' not in html  # finished: no more polling
     assert "Not legal advice" in html
     vi = c.get(f"/console/systems/{sid}/orchestrate?lang=vi", user=CREATOR).text
@@ -858,3 +1009,402 @@ def test_panel_polls_while_running(orchon: Console) -> None:
     html = c.get(f"/console/systems/{sid}/orchestrate?lang=en", user=CREATOR).text
     assert 'hx-trigger="every 2s"' in html and 'data-act="orch-run"' not in html
     orch.join(sid)
+
+
+# --------------------------------------------------------------------------- plain wording
+
+
+def test_every_reason_code_has_a_sentence_and_both_labels() -> None:
+    from supervisor.console.i18n_orch import ORCH
+
+    outcomes = (*orch.OUTCOMES, None)
+    seen: set[str] = set()
+    cfg = rd.load_config()
+    for outcome in outcomes:
+        for flags in ({}, {"customer_decision": True}, {"third_party_model": False}):
+            for institution in ("bank", "other"):
+                p = orch.plan(
+                    {"system_id": "s", "user_segment": "customer"},
+                    outcome,
+                    flags,
+                    None,
+                    institution=institution,
+                    cfg=cfg,
+                )
+                seen.update(i.reason for i in p.items)
+    assert seen and seen <= set(orch.REASON_EN)
+    for code in orch.REASON_EN:
+        en, vi = ORCH[f"orch_reason_{code}"]
+        assert en == orch.REASON_EN[code] and vi.strip()
+
+
+def test_finding_rationales_are_plain_sentences() -> None:
+    def prop(state: str, required: bool) -> dict[str, Any]:
+        ptr = ["pack:truthfulqa_vi:r1:agent"] if state in ("ok", "fail") else []
+        chk = {"kind": "pack", "id": "truthfulqa_vi", "required": required, "state": state}
+        return {"checks": [{**chk, "pointers": ptr}]}
+
+    def why(state: str, required: bool) -> str:
+        return orch.rule_findings("model", prop(state, required), {})[0]["rationale"]
+
+    assert why("missing", True) == "Required test truthfulqa_vi has not been run yet."
+    assert why("missing", False) == "Optional test truthfulqa_vi has not been run yet."
+    assert why("ok", True) == "Required test truthfulqa_vi passed."
+    assert why("fail", True) == "Required test truthfulqa_vi failed."
+    assert "out of date" in why("stale", True)
+    legal = orch.rule_findings(
+        "legal_compliance", {"checks": []}, {"model": {"report_id": "r", "verdict": "question"}}
+    )
+    texts = [f["rationale"] for f in legal]
+    assert "Model risk is still open, so legal compliance stays open." in texts
+    assert "No automated test covers this risk type. You decide it at the Duties step." in texts
+
+
+# ------------------------------------------------------------------ W1: real-model wiring
+
+
+def test_w1_rule_items_carry_agent_kind_and_the_off_path_is_unchanged(orchon: Console) -> None:
+    c = orchon
+    sid = _ready(c)
+    assert c.ctx.settings.orch_run_draft_agents is False
+    run = orch.run(c.ctx, sid, 1)
+    applicable = [i for i in run.items if i["applies"]]
+    assert applicable and {i["agent_kind"] for i in run.items} == {"rule"}
+    assert {i["agent"] for i in applicable} == {"rule"}
+    assert all("agent_kind" in i for i in run.plan["items"])
+    assert all("model_error" not in i for i in run.items)
+
+
+def test_w1_time_budget_comes_from_the_settings(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = orchon
+    assert orch.settings_budget(c.ctx.settings) == orch.Budget()  # defaults = the old constants
+    monkeypatch.setattr(c.ctx.settings, "orch_agent_seconds", 77)
+    monkeypatch.setattr(c.ctx.settings, "orch_total_seconds", 555)
+    sid = _ready(c)
+    run = orch.run(c.ctx, sid, 1)
+    assert run.budget["agent_seconds"] == 77 and run.budget["total_seconds"] == 555
+    assert run.budget["rule_seconds"] == orch.RULE_SECONDS  # the rule runner is unchanged
+    explicit = orch.run(c.ctx, sid, 2, budget=orch.Budget(agent_seconds=9))
+    assert explicit.budget["agent_seconds"] == 9  # an explicit budget still wins
+
+
+def test_w1_runner_gets_settings_and_a_diag_and_a_model_failure_is_in_the_note(
+    orchon: Console,
+) -> None:
+    c = orchon
+    sid = _ready(c)
+    seen: dict[str, Any] = {}
+
+    class Failing:
+        def run(self, request: orch.AgentRequest) -> dict[str, Any]:
+            rep = orch.RuleRunner().run(request)
+            if request.dimension_id == "model":
+                seen["settings"] = request.inputs["settings"]
+                request.inputs["diag"].update(
+                    {
+                        "model_calls": 3,
+                        "model_calls_failed": 3,
+                        "model_items_failed": 5,
+                        "model_error": "LLMError: HTTP 400",
+                    }
+                )
+            return rep
+
+    draft_agent = orch.LiveAgent("model-draft", "0.2-draft", {"checklist": []}, "draft")
+    run = orch.run(c.ctx, sid, 1, catalog=Cat({"model": draft_agent}), runner=Failing())
+    assert seen["settings"] is c.ctx.settings
+    it = _items(run)["model"]
+    assert it["agent_kind"] == "draft" and it["agent"] == "model-draft@0.2-draft"
+    assert it["status"] == "done"  # the run goes on; the report is stored
+    assert it["model_error"] == "LLMError: HTTP 400"
+    assert it["note"] == (
+        "The AI model failed on 3 of 3 calls (LLMError: HTTP 400). 5 item(s) were left open "
+        "for a person. Check the model settings and run it again."
+    )
+    assert "model_error" not in _items(run)["data_governance"]  # rule items are not touched
+    assert run.plan["items"][0]["agent_kind"] == "draft"
+
+
+def test_w1_a_live_agent_without_a_model_says_so_in_plain_words(orchon: Console) -> None:
+    c = orchon
+    sid = _ready(c)
+    live = orch.LiveAgent("model-live", "1", {"checklist": []})
+
+    class NoModel:
+        def run(self, request: orch.AgentRequest) -> dict[str, Any]:
+            from supervisor.factory.runtime import MODEL_OFF_TEXT, AgentRuntimeError
+
+            if request.dimension_id == "model":
+                raise AgentRuntimeError("model_not_configured", MODEL_OFF_TEXT)
+            return orch.RuleRunner().run(request)
+
+    it = _items(orch.run(c.ctx, sid, 1, catalog=Cat({"model": live}), runner=NoModel()))["model"]
+    assert it["status"] == "failed" and it["agent_kind"] == "live"
+    assert it["note"].startswith("The AI model is not set up")
+    assert "AgentRuntimeError" not in it["note"]
+
+
+def test_w1_the_json_route_passes_the_factory_catalogue(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = orchon
+    sid = _ready(c)
+    asked: list[Any] = []
+    draft_agent = orch.LiveAgent("model-draft", "0.1-draft", {"checklist": []}, "draft")
+
+    def fake_for_console(ctx: Any) -> Cat:
+        asked.append(ctx)
+        return Cat({"model": draft_agent})
+
+    from supervisor.factory import catalog as factory_catalog
+
+    monkeypatch.setattr(factory_catalog, "for_console", fake_for_console)
+    monkeypatch.setattr(orch, "RoutingRunner", lambda: orch.RuleRunner())
+    r = _api(c, "POST", f"/v1/systems/{sid}/orchestrate")
+    assert r.status_code == 202, r.text
+    orch.join(sid)
+    assert len(asked) == 1
+    got = _api(c, "GET", f"/v1/systems/{sid}/orchestrate").json()
+    assert {i["dimension_id"]: i["agent_kind"] for i in got["items"]}["model"] == "draft"
+
+
+# ------------------------------------------------------------------ W3: executive findings
+
+_W3_FACTS = {
+    "version": 1,
+    "nodes": ["n1"],
+    "facts": [
+        {
+            "kind": "tool",
+            "name": "transfer",
+            "detail": "risk_class=money; approved=yes",
+            "file": "code/tools.py",
+            "line": 49,
+        },
+        {
+            "kind": "autonomy",
+            "name": "L3",
+            "detail": "tools with side effects and no human approval step in code: transfer",
+            "file": "code/tools.py",
+            "line": 50,
+        },
+    ],
+}
+
+
+def _w3_exec_files(c: Console, sid: str) -> list[Path]:
+    return sorted(orch.report_dir(c.ctx.settings, sid, 1).glob("*.exec.json"))
+
+
+def _w3_run(
+    c: Console, monkeypatch: pytest.MonkeyPatch, on: bool
+) -> tuple[str, orch.OrchestratorRun]:
+    monkeypatch.setattr(c.ctx.settings, "console_ux5", True)
+    monkeypatch.setattr(c.ctx.settings, "orch_exec_findings", on)
+    monkeypatch.setattr(orch, "facts_for", lambda ctx, system_id: _W3_FACTS)
+    sid = _ready(c)
+    return sid, orch.run(c.ctx, sid, 1)
+
+
+def test_w3_exec_off_path_writes_nothing_and_ui_is_unchanged(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = orchon
+    assert load_settings().orch_exec_findings is False and load_settings().orch_exec_llm is False
+    sid, run = _w3_run(c, monkeypatch, False)
+    assert _w3_exec_files(c, sid) == []
+    base = f"/console/systems/{sid}/orchestrate/{run.run_id}/brief"
+    h = c.get(f"{base}?lang=en", user=CREATOR, headers={"HX-Request": "true"}).text
+    for marker in ("exec-bottom", "exec-key", "exec-all", "agent-kind", "g2-ex-card"):
+        assert marker not in h
+    assert "Rule-based check" in h and 'data-table="brief-findings"' in h
+    tab = c.get(f"/console/systems/{sid}?tab=riskdim&lang=en", user=CREATOR).text
+    assert 'data-orch="exec-top"' not in tab
+
+
+def test_w3_exec_on_writes_sidecars_and_the_brief_shows_them(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from supervisor.onboard import executive
+
+    c = orchon
+    sid, run = _w3_run(c, monkeypatch, True)
+    files = _w3_exec_files(c, sid)
+    assert {p.name for p in files} == {f"{d}.exec.json" for d in rd.DIMENSION_IDS}
+    out_dir = orch.report_dir(c.ctx.settings, sid, 1)
+    doc = executive.read(out_dir, "cybersecurity")
+    assert doc and doc["writer"] == "rules" and doc["items"][0]["key"] == "money_tool_no_gate"
+    # the report file and its hash are not touched by the sidecar
+    item = _items(run)["cybersecurity"]
+    raw = (out_dir / "cybersecurity.json").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == item["report_sha256"]
+    base = f"/console/systems/{sid}/orchestrate/{run.run_id}/brief"
+    h = c.get(f"{base}?lang=en", user=CREATOR, headers={"HX-Request": "true"}).text
+    assert 'data-orch="exec-bottom"' in h and "Bottom line" in h and "Key findings" in h
+    assert "The agent can send payments (transfer)" in h
+    assert "Why it matters" in h and "Next step" in h and "Who acts" in h
+    assert "The system owner" in h and "code/tools.py:49" in h
+    assert "Written by rules" in h and "Rule check" in h and 'data-orch="exec-all"' in h
+    assert "All checks (" in h and 'data-table="brief-findings"' in h  # raw findings stay
+    # the bottom line shows the same finding once, with all the types it applies to
+    bottom = h.split('data-orch="exec-bottom"', 1)[1].split('data-orch="brief-kpis"', 1)[0]
+    assert bottom.count('data-exec-item="money_tool_no_gate"') == 1
+    assert "Applies to:" in bottom and bottom.count("g2-ex-card") <= 3 + 1
+    vi = c.get(f"{base}?lang=vi", user=CREATOR, headers={"HX-Request": "true"}).text
+    assert "Kết luận chính" in vi and "Phát hiện chính" in vi and "Tác tử có thể chuyển tiền" in vi
+    page = c.get(f"{base}?lang=en", user=CREATOR)
+    assert page.status_code == 200 and "exec-bottom" in page.text
+    # the Result column of the table shows the top headline of the type
+    tab = c.get(f"/console/systems/{sid}?tab=riskdim&lang=en", user=CREATOR).text
+    cyber = tab.split('data-dimension="cybersecurity"', 1)[1].split("</tr>", 1)[0]
+    assert 'data-orch="exec-top"' in cyber and 'data-rating="high"' in cyber
+    assert "The agent can send payments" in cyber
+
+
+def test_w3_exec_on_for_an_old_run_builds_on_the_fly(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = orchon
+    sid, run = _w3_run(c, monkeypatch, False)
+    assert _w3_exec_files(c, sid) == []
+    monkeypatch.setattr(c.ctx.settings, "orch_exec_findings", True)
+    base = f"/console/systems/{sid}/orchestrate/{run.run_id}/brief"
+    h = c.get(f"{base}?lang=en", user=CREATOR, headers={"HX-Request": "true"}).text
+    assert 'data-orch="exec-bottom"' in h and "Written by rules" in h
+    assert _w3_exec_files(c, sid) == []  # shown, not stored
+
+
+def test_w3_exec_failure_never_fails_the_run(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from supervisor.onboard import executive
+
+    def boom(*a: Any, **k: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(executive, "build", boom)
+    c = orchon
+    sid, run = _w3_run(c, monkeypatch, True)
+    assert run.status == "done" and _w3_exec_files(c, sid) == []
+    assert all(i["status"] in ("done", "needs_person") for i in run.items if i["applies"])
+
+
+class _W3Model:
+    is_mock = False
+    family = "fake"
+    model_id = "fake-model-9"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def complete_json(self, messages: Any, schema: Any, timeout_s: float) -> Any:
+        self.calls += 1
+        payload = json.loads(messages[1]["content"])
+        for it in payload["items"]:
+            if it["key"] == "money_tool_no_gate":
+                it["headline"] = {
+                    "en": "Payments (transfer) can run with no approval step in the code.",
+                    "vi": "Thanh toán (transfer) có thể chạy mà mã không có bước phê duyệt.",
+                }
+        return payload
+
+
+def test_w3_exec_llm_layer_is_off_by_default_and_labelled(
+    orchon: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import supervisor.adapters.factory as factory
+
+    model = _W3Model()
+    monkeypatch.setattr(factory, "make_chat_model", lambda settings: model)
+    c = orchon
+    monkeypatch.setattr(c.ctx.settings, "llm_base_url", "http://fake.invalid/v1")
+    # the main flag on, the model layer off: no model call, writer rules
+    sid, run = _w3_run(c, monkeypatch, True)
+    assert model.calls == 0
+    from supervisor.onboard import executive
+
+    out_dir = orch.report_dir(c.ctx.settings, sid, 1)
+    assert executive.read(out_dir, "cybersecurity")["writer"] == "rules"
+    # both on: one call per risk type with items, writer ai:<model>, shown on screen
+    monkeypatch.setattr(c.ctx.settings, "orch_exec_llm", True)
+    run2 = orch.run(c.ctx, sid, 2)
+    assert model.calls >= 1 and run2.status == "done"
+    doc = executive.read(orch.report_dir(c.ctx.settings, sid, 2), "cybersecurity")
+    assert doc["writer"] == "ai:fake-model-9"
+    assert doc["items"][0]["headline"]["en"].startswith("Payments (transfer) can run")
+    assert doc["items"][0]["status"] == "fail" and doc["items"][0]["severity"] == "high"
+    h = c.get(
+        f"/console/systems/{sid}/orchestrate/{run2.run_id}/brief?lang=en",
+        user=CREATOR,
+        headers={"HX-Request": "true"},
+    ).text
+    assert "AI-written (fake-model-9)" in h
+
+
+def test_w1_facts_follow_the_node_id_in_the_tags(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A system registered from a scanned object has no component row; its tags name the node."""
+    from types import SimpleNamespace
+
+    from supervisor.factory.schemas import facts_v1
+    from supervisor.onboard import facts as facts_mod
+
+    asked: list[str] = []
+
+    class FakeSvc:
+        def __init__(self, *a: Any, **k: Any) -> None: ...
+
+        def card(self, ref: str) -> str:
+            asked.append(ref)
+            return ref
+
+    monkeypatch.setattr(facts_mod, "FactsService", FakeSvc)
+    monkeypatch.setattr(
+        facts_v1,
+        "export_card",
+        lambda ref: {"facts": [{"fact_id": f"f-{ref}", "kind": "tool"}] if ref == "inv_9" else []},
+    )
+
+    def ctx_for(tags: str, comps: list[dict[str, Any]]) -> Any:
+        state = SimpleNamespace(
+            query=lambda table, where: comps,
+            get=lambda table, key: {"system_id": "S1", "tags": tags},
+        )
+        return SimpleNamespace(
+            settings=SimpleNamespace(onboard_facts=True), state=state, tables=None, clock=None
+        )
+
+    got = orch.facts_for(ctx_for('{"node_id": "inv_9", "kind": "app"}', []), "S1")
+    assert got is not None and got["nodes"] == ["inv_9"] and got["facts"][0]["fact_id"] == "f-inv_9"
+    assert asked == ["inv_9"]
+    asked.clear()
+    # a component row for the same node is not read twice; bad tags are ignored
+    comp = [{"ref_id": "inv_9", "active": True}]
+    assert orch.facts_for(ctx_for('{"node_id": "inv_9"}', comp), "S1") is not None
+    assert asked == ["inv_9"]
+    assert orch.facts_for(ctx_for("not json", []), "S1") is None
+    off = ctx_for("{}", [])
+    off.settings.onboard_facts = False
+    assert orch.facts_for(off, "S1") is None
+
+
+def test_w3_bottom_line_merges_scan_findings_but_not_tests() -> None:
+    from supervisor.console import systems_orch
+
+    def item(key: str, status: str, sev: str, head: str) -> dict[str, Any]:
+        t = {"en": head, "vi": head}
+        return {"key": key, "status": status, "severity": sev, "headline": t, "impact": t,
+                "action": t, "owner": "risk_team", "finding_ids": [], "fact_refs": []}  # fmt: skip
+
+    money = item("money_tool_no_gate", "fail", "high", "pay")
+    docs = {
+        "cybersecurity": {"items": [money, item("tests_missing", "open", "medium", "A")]},
+        "ethics": {"items": [money, item("tests_missing", "open", "medium", "B")]},
+        "model": {"items": [item("tests_missing", "open", "medium", "C")]},
+    }
+    top = systems_orch.exec_bottom(docs, ["cybersecurity", "ethics", "model"])
+    assert [t["key"] for t in top] == ["money_tool_no_gate", "tests_missing", "tests_missing"]
+    assert top[0]["dims"] == ["cybersecurity", "ethics"]
+    assert top[1]["dims"] == ["cybersecurity"] and top[2]["dims"] == ["ethics"]
+    assert len(top) == systems_orch.BOTTOM_ITEMS

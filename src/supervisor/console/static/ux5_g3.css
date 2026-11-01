@@ -6,7 +6,7 @@
 .ux5 .g3-bad { color: var(--u5-crit); }
 .ux5 .g3-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--u5-line); margin: 0 0 16px; }
 .ux5 .g3-tabs a { padding: 8px 14px; font-size: 14px; font-weight: 500; color: var(--u5-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.ux5 .g3-tabs a.on { color: var(--u5-ink); font-weight: 600; border-bottom-color: var(--u5-brand); }
+.ux5 .g3-tabs a.on { color: var(--u5-ink); font-weight: 600; border-bottom-color: var(--u5-ink); }
 .ux5 .g3-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; margin: 16px 0; }
 .ux5 .g3-two-wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 @media (max-width: 900px) { .ux5 .g3-two, .ux5 .g3-two-wide { grid-template-columns: minmax(0, 1fr); } }

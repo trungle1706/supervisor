@@ -576,14 +576,3 @@ def plan_patches(
                 )
             )
     return plan
-
-
-def build_patches(
-    target: Path,
-    inv: Inventory,
-    profile: AgentProfile,
-    mp: MonitoringPlan,
-    playbook: RemediationPlaybook,
-) -> list[Patch]:
-    """The patches for the target, each already checked against it."""
-    return plan_patches(target, inv, profile, mp, playbook).patches

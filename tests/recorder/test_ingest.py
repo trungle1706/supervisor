@@ -11,10 +11,11 @@ from supervisor.adapters.factory import Adapters
 from supervisor.adapters.masking.vn_regex import VnRegexMasker
 from supervisor.jobs import ingest
 from supervisor.recorder.capture import AgentCapture, CapturePolicy
-from supervisor.recorder.normalise import Normaliser, span_from_readable, spans_to_otlp_json
+from supervisor.recorder.normalise import Normaliser, span_from_readable
 from supervisor.recorder.service import build_recorder
 from supervisor.recorder.sink import Spool
 from tests.recorder.conftest import PII_NAME, payments_spans
+from tests.recorder.otlp_helpers import spans_to_otlp_json
 
 POLICY = CapturePolicy({"payments": AgentCapture("masked")})
 

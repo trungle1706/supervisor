@@ -34,7 +34,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import re
 import sys
 import tempfile
@@ -43,29 +42,15 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
+from supervisor.core.stats import wilson_bp_full as wilson_bp
+from supervisor.jobs._cli_common import write_baseline
 from supervisor.transparency import allowlist, render
 from supervisor.transparency.model import SECTIONS, VARIANTS, TransparencyError
 
 THRESHOLDS_BP = {"golden": 10000, "adversarial": 10000, "determinism": 10000, "leaks_max": 0}
-Z95 = 1.959964
 BASE_COMMIT = "316a039"
 AGENT_IDS = ("customer_service", "credit_prequal", "payments")
 PROFILES = ("base", "risk_off", "inventory_off", "chain_fail", "verified", "cases2")
-
-
-def wilson_bp(successes: int, n: int) -> tuple[int, int]:
-    """Wilson 95 percent interval of a proportion, in integer basis points."""
-    if n <= 0:
-        return (0, 10000)
-    p = successes / n
-    z2 = Z95 * Z95
-    denom = 1 + z2 / n
-    centre = (p + z2 / (2 * n)) / denom
-    half = Z95 * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / denom
-    return (
-        max(0, math.floor((centre - half) * 10000)),
-        min(10000, math.ceil((centre + half) * 10000)),
-    )
 
 
 def _bp(part: int, whole: int) -> int:
@@ -871,9 +856,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "determinism_bp": res["determinism"]["bp"],
             },
         }
-        (fixtures / "baseline.json").write_text(
-            json.dumps(base, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
-        )
+        write_baseline(fixtures / "baseline.json", base)
         print(f"[OK] wrote {fixtures / 'baseline.json'}")  # noqa: T201
     return 0 if all(v == "GO" for v in res["verdicts"].values()) else 1
 

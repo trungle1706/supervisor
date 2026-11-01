@@ -11,7 +11,7 @@ from typing import Any
 from supervisor.console import ux3
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -84,7 +84,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
         shown_all = [r for r in everything if _fits(r, p)]
     col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "agent_id", "asc")
     shown = sort_rows(shown_all, col, direction)
-    page = paginate(shown, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(shown, p, PAGE_SIZE)
     base = {k: p[k] for k in FILTERS}
     open_req = [r for r in everything if r["required"] and r["status"] in ("open", "in_progress")]
     tiles = [

@@ -17,6 +17,7 @@ from supervisor.core.errors import ConcurrencyError, DuplicateKeyError
 from supervisor.core.models import Case, CaseEvent
 from supervisor.core.ports import Clock, EvidenceSink, SqlExecutor, StateStore, TableStore
 from supervisor.core.schema import SchemaModel
+from supervisor.core.timeutil import parse_utc_strict
 
 OPEN_STATUSES = ("open", "triage", "escalated")
 SEVERITY_ORDER = ("low", "medium", "high", "critical")
@@ -92,10 +93,7 @@ def floor_window(ts: datetime, window_s: int) -> datetime:
     return EPOCH + timedelta(seconds=(epoch_s(ts) // window_s) * window_s)
 
 
-def as_dt(value: Any) -> datetime:
-    if isinstance(value, datetime):
-        return value.astimezone(UTC)
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(UTC)
+as_dt = parse_utc_strict  # a time (text or datetime) as aware UTC; junk raises ValueError
 
 
 def read_range(

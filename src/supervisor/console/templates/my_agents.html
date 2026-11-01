@@ -14,6 +14,7 @@
 {% endif %}
 {{ v3.scope_switch('/console/my/agents', scope, scopes) }}
 {{ ui.tiles(tiles, '/console/my/agents', '/console/my/agents/rows') }}
+<p class="hint" data-mya="compose">{{ t('b1_mya_compose', reg=compose.reg, run=compose.run, gate=compose.gate, cand=compose.cand) }}</p>
 {{ ui.filterbar('/console/my/agents', '/console/my/agents/rows', [
   {'name': 'q', 'label': t('search_agents'), 'kind': 'search', 'value': params.q},
   {'name': 'kind', 'label': t('mya_col_kind'), 'kind': 'select', 'value': params.kind, 'options': kind_opts},

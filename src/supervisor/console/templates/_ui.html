@@ -35,11 +35,18 @@
 
 {# Count tiles that act as one filter. items = [{label (i18n key), n, on, qs}]; qs is the
    filter query string the tile sets (no lang). #}
-{% macro tiles(items, url, rows_url, target='#list') %}
+{% macro tiles(items, url, rows_url, target='#list', static=False) %}
+{% if static %}{# UI-050: figures only, no click-to-filter when a select under them filters the same field #}
+<div class="tiles" role="group" aria-label="{{ t('filter_quick') }}">
+{% for i in items %}<span class="tile"><span class="n">{{ i.n }}</span><span class="l">{{ t(i.label) }}</span></span>
+{% endfor %}
+</div>
+{% else %}
 <div class="tiles" role="group" aria-label="{{ t('filter_quick') }}">
 {% for i in items %}{% set q = (i.qs ~ '&' if i.qs else '') ~ 'lang=' ~ lang %}<a class="tile {{ 'on' if i.on else '' }}" href="{{ url }}?{{ q }}"{% if i.on %} aria-current="true"{% endif %} hx-get="{{ rows_url }}?{{ q }}" hx-target="{{ target }}" hx-push-url="false"><span class="n">{{ i.n }}</span><span class="l">{{ t(i.label) }}</span></a>
 {% endfor %}
 </div>
+{% endif %}
 {% endmacro %}
 
 {# Filter bar. fields = [{name, label, kind: select|search, value, options: [(value, label)]}].

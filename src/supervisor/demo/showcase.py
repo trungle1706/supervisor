@@ -12,7 +12,7 @@ from __future__ import annotations
 import importlib
 import sys
 
-COMMANDS: tuple[str, ...] = ("portfolio", "journeys", "traffic", "factory")
+COMMANDS: tuple[str, ...] = ("portfolio", "journeys", "traffic", "factory", "drift")
 
 
 def main(argv: list[str] | None = None) -> int:

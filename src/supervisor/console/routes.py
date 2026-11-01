@@ -19,7 +19,7 @@ import re
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlencode
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
@@ -64,6 +64,8 @@ from supervisor.console import (
     integration_reports,
     integrations_view,
     inventory_views,
+    kbgraph,  # --- KBGRAPH_ENABLED ---
+    labels,  # --- UI-330: names for ids ---
     my_agents,
     nav,
     nav_v3,  # --- WP-UX4a ---
@@ -91,6 +93,7 @@ from supervisor.console import (
     ux5 as ux5_helpers,  # --- UX5 G6 ---
 )
 from supervisor.console.context import ConsoleContext, get_context
+from supervisor.console.htmx import append_message, message_html
 from supervisor.console.i18n import LANGS, pick_lang, translator
 from supervisor.console.listing import ListingError
 from supervisor.controls.model import ensure_on as ensure_controls_on
@@ -120,6 +123,14 @@ STATIC = {
     "ux5_g4.css": "text/css",  # UX5-G4: agent page, catalogues, settings pages (ux5 only)
     "ux5_g5.css": "text/css",  # UX5 G5 pages
     "ux5_g2.css": "text/css",  # UX5 package G2 (systems, wizard, tasks)
+    "kbgraph.css": "text/css",  # regulation graph (KBGRAPH_ENABLED)
+    "finv.css": "text/css",  # W4: inventory run dashboard (FACTORY_INVENTORY_RUN)
+    "rteam.css": "text/css",  # W7: red team panel and report (REDTEAM_TAB)
+    "rteam.js": "application/javascript",  # W7: print button of the red team report
+    "stab.css": "text/css",  # W8: Stability tab (STABILITY_TAB)
+    "gkit.css": "text/css",  # W6: Connect your app to Guardian (GUARDIAN_KIT)
+    "gkit.js": "application/javascript",  # W6: copy buttons of the Guardian kit
+    "kbgraph.js": "application/javascript",  # regulation graph: plain JS, no library
     "htmx.LICENSE.txt": "text/plain",
 }
 FONTS = (
@@ -219,17 +230,39 @@ def render(
                 "regkb_internal": bool(ctx.settings.regkb_internal),
                 "regkb_watch": bool(ctx.settings.regwatch_enabled),  # WP-W1
                 "regkb_changes": _change_loop_on(ctx.settings),  # WP-B1
+                "regkb_graph": kbgraph.enabled(ctx.settings),  # KBGRAPH_ENABLED
+                "onboard_on": bool(ctx.settings.console_onboard_enabled),  # UI-080
+                # UI-011: with My agents on, the Catalogues > Agents list is a duplicate of it
+                "agents_cat": not ctx.settings.console_my_agents,
+                # UI-160: under UX5 Detectors / Judges / Monitors are the category chips of Library
+                "guardian_cat_tabs": not ctx.settings.console_ux5,
             }
         return cache["v"]
 
     data.setdefault("section", "")
     data["compliance_enabled"] = bool(ctx.settings.console_compliance_enabled)  # WP14 nav link
+    data.setdefault("gkit_on", bool(getattr(ctx.settings, "guardian_kit", False)))  # GUARDIAN_KIT
     compliance_on = data["compliance_enabled"]
     _t = translator(lang, ux5=bool(ctx.settings.console_ux5))
     integration_on = bool(ctx.settings.console_integration_enabled)
+    # UI-330: names for ids, flag names for admins only, the demo-data chip (labels.py)
+    _lab = labels.Labeler(
+        _t,
+        agents=lambda: labels.agent_names(ctx),
+        systems=lambda: labels.system_names(ctx),
+        is_admin="admin" in me.roles,
+    )
     body = _env.get_template(template).render(
         t=_t,
+        plural=lambda key, n, **kw: _t(  # noqa: E731 - "1 agent" / "2 agents" (UI-341)
+            key + "_one" if n == 1 and _t(key + "_one") != key + "_one" else key, n=n, **kw
+        ),
+        label_for=_lab.html,
+        label_text=_lab.text,
+        flag_title=_lab.flag_title,
+        demo=_lab.demo,
         ux5=bool(ctx.settings.console_ux5),
+        redteam_tab=bool(ctx.settings.redteam_tab),  # W7: the step panel renders nothing when off
         dur=lambda secs: views.duration_text(secs, lang),
         shell=shell,
         side_nav=ctx.settings.console_nav != "top",  # CONSOLE_NAV=top is the rollback
@@ -307,16 +340,9 @@ def _v3_actions(ctx: ConsoleContext, me: AuthPrincipal, cache: dict[str, Any]) -
     return cache["actions"]
 
 
-def message_html(message: str, *, ok: bool = False, oob: bool = False) -> str:
-    """The #flash partial (also used by the app-level 400 handler)."""
-    from markupsafe import escape
-
-    cls = "msg-ok" if ok else "msg-error"
-    role = "status" if ok else "alert"
-    inner = f'<div class="msg {cls}" role="{role}">{escape(message)}</div>'
-    if oob:
-        return f'<div id="flash" hx-swap-oob="true">{inner}</div>'
-    return inner
+def request_translator(request: Request, ctx: ConsoleContext) -> Callable[..., str]:
+    """The ``t(key, **kw)`` function for the language of this request."""
+    return translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
 
 
 def _htmx_only(request: Request) -> None:
@@ -491,7 +517,11 @@ def static(name: str) -> Response:
     media = STATIC.get(name)
     if media is None:
         return Response("not found", status_code=404, media_type="text/plain")
-    return FileResponse(HERE / "static" / name, media_type=media)
+    resp = FileResponse(HERE / "static" / name, media_type=media)
+    # CSS and JS change with each release and their links carry no version: the browser checks
+    # again on every load (304 when unchanged), so a phone never keeps an old stylesheet.
+    resp.headers["cache-control"] = "no-cache"
+    return resp
 
 
 # ---------------------------------------------------------------------------- queue
@@ -539,7 +569,7 @@ def _queue_data(ctx: ConsoleContext, request: Request) -> dict[str, Any]:
         "closed_n": len(ctx.cases.list_cases(statuses=["closed"])),
         # --- WP-UX2 --- filter bar options, sort and pages (cases_list)
         "severity_opts": [(s, s) for s in reversed(SEVERITIES)],
-        "agent_opts": [(a, a) for a in agents],
+        "agent_opts": labels.agent_opts(ctx, agents),
         "source_opts": [(s, f"src_{s}") for s in SOURCE_KINDS],
         **cases_list.list_view(items, filters, request.query_params),
     }
@@ -724,10 +754,8 @@ async def _case_action(
     await _call(action, data)
     page = await _call(_case_data, ctx, case_id, me)
     resp = render(request, ctx, me, "_case_body.html", **page)
-    t = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
-    resp.body = resp.body + message_html(f"{t('saved')} {done}", ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
+    t = request_translator(request, ctx)
+    return append_message(resp, f"{t('saved')} {done}")
 
 
 @router.post(
@@ -865,15 +893,7 @@ async def signoff(
     )
     page = await _call(_case_data, ctx, case_id, me)
     resp = render(request, ctx, me, "_signoff_panel.html", **page)
-    resp.body = (
-        resp.body
-        + message_html(
-            translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))("signoff_recorded"),
-            ok=True,
-            oob=True,
-        ).encode()
-    )
-    resp.headers["content-length"] = str(len(resp.body))
+    append_message(resp, request_translator(request, ctx)("signoff_recorded"))
     return resp
 
 
@@ -942,6 +962,13 @@ def _agents_page_data(
 @router.get("/agents", response_class=HTMLResponse, dependencies=[Depends(needs("console.view"))])
 async def agents(request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME) -> Response:
     query = dict(request.query_params)
+    if ctx.settings.console_my_agents and not query.get("drawer"):
+        # UI-011: one Agents page. My agents is the same registry with a scope filter and the
+        # recommended action; the old list stays reachable with a drawer (no-JS fallback) and with
+        # CONSOLE_MY_AGENTS off.
+        keep = {k: v for k, v in query.items() if k in ("q", "lang") and v}
+        target = f"/console/my/agents?{urlencode({'scope': 'all', **keep})}"
+        return RedirectResponse(target, status_code=303)
     data = await _call(_agents_page_data, ctx, me, query)
     opened = query.get("drawer")
     if opened:  # no-JS fallback of the row drawer: the same content, rendered with the page
@@ -1197,11 +1224,8 @@ async def intake_run(
     touched = await _call(case_intake.run, ctx.cases)
     data = await _call(_queue_data, ctx, request)
     resp = render(request, ctx, me, "_queue_rows.html", **data)
-    t = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
-    note = f"{t('refresh_cases')}: {len(set(touched))}"
-    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
+    t = request_translator(request, ctx)
+    return append_message(resp, f"{t('refresh_cases')}: {len(set(touched))}")
 
 
 @router.post(
@@ -1483,6 +1507,8 @@ async def compliance_obligation(
             me,
             "compliance_obligation_ux5.html",
             agent=agent,
+            # UI-115: the product name of the matrix header, not the raw agent id
+            agent_name=str((detail["matrix"].get("header") or {}).get("product_name") or agent),
             row=detail["row"],
             ob=detail["ob"],
             controls=detail["controls"],
@@ -2285,15 +2311,13 @@ async def transparency_generate(
     request.state.audit_detail = f"generate:{len(made)}"
     data = await _call(transparency_views.list_view, ctx, me)
     resp = render(request, ctx, me, "_transparency_list.html", **data)
-    t = translator(_lang(request, ctx), ux5=bool(ctx.settings.console_ux5))
+    t = request_translator(request, ctx)
     note = (
         t("tp_generated", v=max(r["version"] for r in made))
         if made
         else t("tp_unchanged", v=max(r["version"] for r in out))
     )
-    resp.body = resp.body + message_html(note, ok=True, oob=True).encode()
-    resp.headers["content-length"] = str(len(resp.body))
-    return resp
+    return append_message(resp, note)
 
 
 # -- credentials, users, integrations (read-only)
@@ -2612,12 +2636,36 @@ async def agent_page(
 ) -> Response:
     """Agent detail: header, eight tabs, one tab body. ``?tab=`` is the no-JS link."""
     query = dict(request.query_params)
-    data = await _call(_agent_detail_data, ctx, me, agent_id, query.get("tab") or "overview", query)
-    data["tabs"] = agent_detail.visible_tabs(ctx, me)
+    try:
+        data = await _call(
+            _agent_detail_data, ctx, me, agent_id, query.get("tab") or "overview", query
+        )
+    except agent_detail.AgentDetailError as first:
+        if query.get("tab"):
+            raise
+        # UI-001: an agent that only the gate's policy file knows has no Overview; open the tab
+        # that exists for it (Register) instead of an error. Anything else keeps its own error.
+        try:
+            data = await _call(_agent_detail_data, ctx, me, agent_id, "register", query)
+        except agent_detail.AgentDetailError:
+            raise first from None
+    data["tabs"] = agent_detail.tabs_for(ctx, me, data["a"])
+    if ctx.settings.console_ux5 and ctx.settings.onboard_intake:
+        # UI-104: the onboarding tabs (Source, Facts, Pre-deploy, Attach, Post-deploy) are empty
+        # for an agent that was never onboarded; they show once a source was taken in (the open
+        # tab stays, and a direct URL still opens any of them)
+        from supervisor.console import intake_routes
+
+        flow = ("source", "facts", "predeploy", "attach", "postdeploy")
+        opened = data.get("tab")
+        if not intake_routes.service(ctx).attempts(agent_id):
+            data["tabs"] = [t for t in data["tabs"] if t not in flow or t == opened]
     data["tab_counts"] = agent_detail.counts(data["a"])
     comp = _compliance_ctx(request, ctx)
     comp.pop("section")
-    return render(request, ctx, me, "agent.html", section="agents", **comp, **data)
+    # UI-011: with My agents on, an agent page sits under it (the Catalogues tab is hidden then)
+    section = "my_agents" if ctx.settings.console_my_agents else "agents"
+    return render(request, ctx, me, "agent.html", section=section, **comp, **data)
 
 
 @router.get(
@@ -2815,9 +2863,10 @@ def _v3_tab(request: Request, ctx: ConsoleContext, me: AuthPrincipal, sec: str) 
 
 
 def _v3_go(request: Request, path: str) -> RedirectResponse:
-    """302 to the page behind a tab, keeping ``lang``."""
+    """303 to the page behind a tab, keeping ``lang`` (UI-310: a section root is a second URL for
+    its first tab, so it redirects)."""
     lang = request.query_params.get("lang")
-    return RedirectResponse(nav.href(path, lang) if lang in LANGS else path, status_code=302)
+    return RedirectResponse(nav.href(path, lang) if lang in LANGS else path, status_code=303)
 
 
 def _v3_section(
@@ -2907,6 +2956,15 @@ async def catalogues_page(
 async def guardians_page(
     request: Request, ctx: ConsoleContext = _CTX, me: AuthPrincipal = _ME
 ) -> Response:
+    want = request.query_params.get("tab")
+    if ctx.settings.console_ux5 and want in catalog_view.TAB_TO_CAT:
+        # UI-160: under UX5 the Detectors / Judges / Monitors tabs are the category chips of the
+        # Library page; the old URLs go there
+        keep = {
+            k: v for k, v in request.query_params.items() if k in ("state", "system", "lang") and v
+        }
+        target = f"/console/catalog?{urlencode({'cat': catalog_view.TAB_TO_CAT[want], **keep})}"
+        return RedirectResponse(target, status_code=303)
     tab, away = await _call(_v3_section, request, ctx, me, "guardians")
     if away:
         return _v3_go(request, tab.path)

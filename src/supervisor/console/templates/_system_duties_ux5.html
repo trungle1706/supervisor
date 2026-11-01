@@ -23,6 +23,9 @@
   </details>
 {% endmacro %}
 {% set can_act = du_can_edit or du_can_waive %}
+{# UI-065: the evidence column is shown only when some duty has evidence rows #}
+{% set evn = namespace(any=false) %}{% for g in u5_groups %}{% for r in g.rows %}{% if r.ev and r.ev.mapped and r.ev_rows %}{% set evn.any = true %}{% endif %}{% endfor %}{% endfor %}
+{% set show_ev = du_pack and evn.any %}
 <div class="g2-tabhead" data-section="duty-head">
   <h2>{{ t('du_tab') }}</h2>
   <button type="button" class="u5-info" title="{{ t('g2_du_about') }}" aria-label="{{ t('ux5_info') }}">i</button>
@@ -43,29 +46,26 @@
   {% if du_score.pct is none %}
   <div data-du="score"><b>-</b><span>{{ t('du_score_none') }}</span></div>
   {% else %}
-  <div data-du="score"><b>{{ du_score.pct }}%</b><span>{{ t('g2_du_closed_of', total=du_score.open + du_score.closed) }}</span>
+  <div data-du="score"><b>{{ du_score.pct }}%</b><span title="{{ t('b1_du_score_tip') }}">{{ t('b1_du_closed_of', total=du_score.open + du_score.closed) }}</span>
     <div class="g2-track" role="img" aria-label="{{ du_score.pct }}%"><i style="width:{{ [du_score.pct, 1]|max }}%"></i></div></div>
   {% endif %}
-  <div><b>{{ du_score.open }}</b><span>{{ t('du_f_open') }}</span></div>
-  <div><b>{{ du_score.closed }}</b><span>{{ t('du_f_closed') }}</span></div>
-  <div><b>{{ du_score.waived }}</b><span>{{ t('du_f_waived') }}</span></div>
-  <div><b class="g2-warn">{{ du_counts.needs_answer }}</b><span>{{ t('g2_du_need_answer') }}</span></div>
+  {# UI-065: open / closed / waived / needs answer are the filter chips below; not repeated as tiles #}
   {% if u5_owner %}<div><b class="g2-sm">{{ u5_owner }}</b><span>{{ t('du_col_owner') }}</span></div>{% endif %}
 </section>
 <p class="hint g2-note">{{ t('g2_du_note', waived=du_score.waived, groups=du_score.open_groups) }}
-  {% if du_score.open_groups %}<a href="/console/risks?drawer={{ du_risk_id }}&amp;lang={{ lang }}">{{ t('g2_du_view_risk') }}</a>{% endif %}</p>
+  {% if du_score.open_groups and shell().pages.get('risks') %}<a href="/console/risks?drawer={{ du_risk_id }}&amp;lang={{ lang }}">{{ t('g2_du_view_risk') }}</a>{% endif %}</p>
 
-<form class="g2-filters" method="get" action="{{ dub }}" role="search" aria-label="{{ t('du_filter') }}" data-du="filters">
+<form class="g2-filters" method="get" action="{{ dub }}" role="search" aria-label="{{ t('du_filter') }}" data-du="filters" data-autosubmit>
   <input type="hidden" name="tab" value="duties"><input type="hidden" name="lang" value="{{ lang }}">
   <div class="g2-seg" role="group" aria-label="{{ t('du_filter') }}">
-    {% for f in du_filters %}<a class="{% if f == du_filter %}on{% endif %}" href="{{ dub }}?tab=duties&amp;f={{ f }}&amp;lang={{ lang }}" data-filter="{{ f }}"{% if f == du_filter %} aria-current="true"{% endif %}>{{ t('du_f_' ~ f) }} <span>{{ du_counts[f] }}</span></a>{% endfor %}
+    {% for f in du_filters %}<a class="{% if f == du_filter %}on{% endif %}" href="{{ dub }}?tab=duties&amp;f={{ f }}&amp;lang={{ lang }}" data-filter="{{ f }}"{% if f == du_filter %} aria-current="true"{% endif %}{% if f == 'all' %} title="{{ t('b1_du_all_tip') }}"{% endif %}>{{ t('b1_du_f_all') if f == 'all' else t('du_f_' ~ f) }} <span>{{ du_counts[f] }}</span></a>{% endfor %}
   </div>
   <input type="hidden" name="f" value="{{ du_filter }}">
   <select name="cov" aria-label="{{ t('g2_du_cov') }}">
     {% for c in du_cov_opts %}<option value="{{ c }}"{% if c == du_cov %} selected{% endif %}>{{ t('g2_du_cov') }}: {{ t('g2_du_cov_' ~ c) }}</option>{% endfor %}
   </select>
   <input type="search" name="q" value="{{ du_q }}" maxlength="80" placeholder="{{ t('g2_du_search') }}" aria-label="{{ t('g2_du_search') }}">
-  <button class="btn sm" type="submit">{{ t('apply') }}</button>
+  <noscript><button class="btn sm" type="submit">{{ t('apply') }}</button></noscript>
 </form>
 
 {% if du_can_edit %}
@@ -93,7 +93,7 @@
         {% if can_act and g.can_bulk %}<th scope="col" class="g2-c-sel"><span class="sr">{{ t('g2_du_select') }}</span></th>{% endif %}
         <th scope="col" class="g2-c-id">{{ t('g2_du_col_id') }}</th><th scope="col" class="g2-c-duty">{{ t('du_col_duty') }}</th><th scope="col" class="g2-c-st">{{ t('status') }}</th>
         {% if u5_owners_differ %}<th scope="col">{{ t('du_col_owner') }}</th>{% endif %}
-        {% if du_pack %}<th scope="col" class="g2-c-ev">{{ t('g2_du_evidence') }}</th>{% endif %}
+        {% if show_ev %}<th scope="col" class="g2-c-ev">{{ t('g2_du_evidence') }}</th>{% endif %}
         {% if can_act %}<th scope="col" class="g2-c-act"><span class="sr">{{ t('wf_actions') }}</span></th>{% endif %}
       </tr></thead>
       <tbody>
@@ -113,9 +113,9 @@
             {% else %}{{ u5.status_chip('bad' if r.coverage == 'none' else 'warn', t('du_cov_' ~ r.coverage)) }}{% if r.overdue %} {{ u5.status_chip('bad', t('rk_overdue')) }}{% endif %}{% endif %}
           </td>
           {% if u5_owners_differ %}<td>{{ r.owner }}</td>{% endif %}
-          {% if du_pack %}<td class="g2-c-ev" data-du="evidence">
-            {% if r.ev and r.ev.mapped %}<span class="g2-ev {{ 'ok' if r.ev.mark == 'works' else '' }}" title="{{ r.ev_tip }}">{{ t('g2_du_ev_rows', n=r.ev_rows) }}</span>
-            {% elif r.ev %}<span class="muted" title="{{ t('du_ev_nomap') }}">{{ t('g2_du_ev_none') }}</span>{% else %}-{% endif %}
+          {% if show_ev %}<td class="g2-c-ev" data-du="evidence">
+            {% if r.ev and r.ev.mapped and r.ev_rows %}<span class="g2-ev {{ 'ok' if r.ev.mark == 'works' else '' }}" title="{{ r.ev_tip }}">{{ t('g2_du_ev_rows', n=r.ev_rows) }}</span>
+            {% elif r.ev and not r.ev.mapped %}<span class="muted" title="{{ t('du_ev_nomap') }}">{{ t('g2_du_ev_none') }}</span>{% else %}-{% endif %}
           </td>{% endif %}
           {% if can_act %}<td class="g2-c-act">{% if r.can_act %}{{ row_menu(r) }}{% elif r.applies == 'needs_answer' %}<span class="hint">{{ t('du_needs_answer') }}</span>{% endif %}</td>{% endif %}
         </tr>

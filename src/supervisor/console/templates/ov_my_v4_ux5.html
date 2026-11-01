@@ -10,6 +10,9 @@
 {% block content %}
 {% set tot = d.totals %}
 {% set pf = d.portfolio %}
+{# UI-001: the Risks page may be off in this config; the live equivalent is the Systems list #}
+{% set risks_page = shell().pages.get('risks') %}
+{% set past_href = '/console/risks?lang=' ~ lang if risks_page else ('/console/systems?lang=' ~ lang if d.systems_page else '') %}
 <link rel="stylesheet" href="/console/static/ux5_g1.css">
 <div class="g1" data-page="my-overview" data-unit="systems" data-version="5" data-greeting="{{ greet_key }}">
 <header class="u5-head">
@@ -19,8 +22,7 @@
   </div>
 </header>
 <div class="g1-facts">
-  <a class="u5-chip {{ 'ok' if not d.actions_n else 'warn' }}" href="/console/cases?lang={{ lang }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('u5g1_items_wait', n=d.actions_n) }}</a>
-  <a class="u5-chip {{ 'warn' if d.cases_n else 'ok' }}" href="/console/cases?lang={{ lang }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('u5g1_cases_open', n=d.cases_n) }}</a>
+  {# UI-003: "items wait" and "open cases" were also the sidebar badge, the KPI strip and the banner button #}
   {% if d.clock %}<span class="u5-chip {{ 'bad' if (d.clock.overdue or d.clock.secs < 14400) else 'info' }}"><span class="u5-dot" aria-hidden="true"></span>{% if d.clock.overdue %}{{ t('u5g1_clock_over', d=dur(d.clock.secs)) }}{% else %}{{ t('u5g1_clock_left', d=dur(d.clock.secs)) }}{% endif %}</span>{% endif %}
   <span class="g1-grow"></span>
   {{ v3.scope_switch('/console/', d.scope, d.scopes) }}
@@ -38,10 +40,10 @@
   <div class="g1-attn-main"><b>{{ t('u5g1_all_good') }}</b></div>
   {% else %}
   <span class="u5-chip {{ 'bad' if d.banner.state == 'attention' else 'warn' }}"><span class="u5-dot" aria-hidden="true"></span>{{ t('ov4_state_' ~ d.banner.state) }}</span>
-  <div class="g1-attn-main"><b>{{ t(d.banner.why, arg=d.banner.arg) }}</b>
-    {% if d.banner.open_items > 1 %}<p>{{ t('u5g1_more_open', n=d.banner.open_items - 1) }}</p>{% endif %}</div>
+  <div class="g1-attn-main"><b>{{ t(d.banner.why, arg=(label_text('task', d.banner.arg_task, d.banner.arg) if d.banner.get('arg_task') else d.banner.arg)) }}</b>
+    {% if d.banner.more %}<p>{{ t('u5g1_more_open', n=d.banner.more) }}</p>{% endif %}</div>
   <a class="btn primary" href="{{ d.banner.href }}{{ '&' if '?' in d.banner.href else '?' }}lang={{ lang }}">{{ t('u5g1_open_' ~ d.banner.cta) }}</a>
-  <a class="btn" href="/console/cases?lang={{ lang }}">{{ t('u5g1_all_n', n=d.banner.open_items) }}</a>
+  <a class="btn" href="/console/cases?lang={{ lang }}">{{ t('b1_all_cases', n=d.cases_n) }}</a>
   {% endif %}
 </section>
 {% if d.attention or d.waiting_input %}
@@ -59,7 +61,7 @@
   <div data-num="agents"><b>{{ tot.agents }}</b><span>{{ t('u5g1_agents_running', n=tot.states.get('RUNNING', 0)) }}</span></div>
   <div data-num="cover"><b>{% if tot.cover is none %}-{% else %}{{ tot.cover.n }} / {{ tot.cover.of }}{% endif %}</b><span>{{ t('ov4_t_cover') }}</span></div>
   <div data-num="cases"><b>{{ tot.cases }}</b><span>{{ t('ov4_t_cases') }}</span></div>
-  <div data-num="due"><b{% if tot.due %} class="g1-bad"{% endif %}>{{ tot.due }}</b><span>{{ t('ov4_t_due') }}</span></div>
+  <div data-num="due" title="{{ t('b1_due_tip') }}"><b{% if tot.due %} class="g1-bad"{% endif %}>{{ tot.due }}</b><span>{{ t('ov4_t_due') }}</span></div>
 </section>
 
 <div class="g1-two">
@@ -109,7 +111,7 @@
 {% if pf and pf.risk.on %}
 {% set rk = pf.risk %}
 <section class="u5-panel" aria-labelledby="pf-rk" data-block="risk">
-  <div class="g1-ph"><h2 id="pf-rk">{{ t('u5g1_past_title') }}</h2>{% if d.systems_page %}<a href="/console/risks?lang={{ lang }}">{{ t('ux5_view_all') }} {{ rk.past_valid_until_n }}</a>{% endif %}</div>
+  <div class="g1-ph"><h2 id="pf-rk">{{ t('u5g1_past_title') }}</h2>{% if past_href %}<a href="{{ past_href }}">{% if risks_page %}{{ t('ux5_view_all') }} {{ rk.past_valid_until_n }}{% else %}{{ t('b1_view_all_systems', n=rk.past_valid_until_n) }}{% endif %}</a>{% endif %}</div>
   {% if rk.past_rows %}
   <div class="g1-scroll">
   <table class="g1-grid" data-grid data-past="{{ rk.past_valid_until_n }}">
@@ -117,7 +119,7 @@
     <tbody>
     {% for r in rk.past_rows[:5] %}
     <tr data-system="{{ r.system_id }}">
-      <th scope="row">{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}<span class="g1-id">{{ r.system_id }}</span></th>
+      <th scope="row" title="{{ r.system_id }}">{% if d.systems_page %}<a href="/console/systems/{{ r.system_id }}?lang={{ lang }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</th>
       {% for dim in rk.dimension_ids %}{% set st = r.cells[dim] %}
       <td data-dim="{{ dim }}" data-status="{{ st }}">{{ u5.status_chip({'pass': 'ok', 'fail': 'bad', 'waived': 'info'}.get(st, 'na'), t('pf_st_' ~ ('open' if st in ('not_started', 'in_progress') else st))) }}</td>
       {% endfor %}
@@ -126,7 +128,7 @@
     </tbody>
   </table>
   </div>
-  {{ u5.view_all([rk.past_rows|length, 5]|min, rk.past_valid_until_n, '/console/risks?lang=' ~ lang) }}
+  {% if past_href %}{{ u5.view_all([rk.past_rows|length, 5]|min, rk.past_valid_until_n, past_href) }}{% endif %}
   {% else %}<p class="g1-sub">{{ t('u5g1_past_none') }}</p>{% endif %}
 </section>
 {% endif %}

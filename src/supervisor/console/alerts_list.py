@@ -14,7 +14,7 @@ from typing import Any
 from supervisor.cases.service import SEVERITIES
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -83,7 +83,7 @@ def list_view(ctx: Any, query: Mapping[str, str]) -> dict[str, Any]:
     col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "ts", "desc")
     rows = [a for a in everything if _matches(a, p)]
     rows = sort_rows(rows, col, direction, _KEYS)
-    page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(rows, p, PAGE_SIZE)
     base = {k: p[k] for k in ("status", "severity", "agent", "rule")}
     tiles = [
         {

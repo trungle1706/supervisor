@@ -24,6 +24,7 @@ from typing import Any
 from supervisor.alerts.engine import evaluate
 from supervisor.alerts.rules import Rule, RuleSet, load_rules
 from supervisor.alerts.signals import Signal
+from supervisor.core.stats import wilson_bp_full as wilson_bp
 
 T0 = datetime(2026, 10, 20, 8, 0, 0, tzinfo=UTC)
 SEED = 20261020
@@ -123,18 +124,6 @@ SPECS: dict[str, Spec] = {
     ),
 }
 NINE = tuple(SPECS)
-
-
-def wilson_bp(successes: int, n: int) -> tuple[int, int]:
-    """Wilson 95 percent interval in integer basis points."""
-    if n <= 0:
-        return (0, 10000)
-    z = 1.959964
-    p = successes / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return max(0, math.floor((c - h) * 10000)), min(10000, math.ceil((c + h) * 10000))
 
 
 class _NullState:

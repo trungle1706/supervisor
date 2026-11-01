@@ -19,7 +19,7 @@
     <tbody>
     {% for r in tk.tasks %}
       <tr class="row">
-        <td><a class="mono" href="/console/tasks?drawer={{ r.task_id }}&amp;lang={{ lang }}">{{ r.template_id }}</a><div class="idline">{{ r.title }}</div></td>
+        <td><a class="mono" href="/console/tasks?drawer={{ r.task_id }}&amp;lang={{ lang }}">{{ r.template_id }}</a><div class="idline">{{ label_text('task', r.template_id, r.title) }}</div></td>
         <td>{{ t('tk_stage_' ~ r.stage) }}</td>
         <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
         <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>

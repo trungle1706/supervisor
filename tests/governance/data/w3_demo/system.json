@@ -1,0 +1,9 @@
+{
+ "system_id": "sys_09de2a203645ba45",
+ "name": "payment-ops-copilot",
+ "personal_data": "identifiable",
+ "money_movement": 1,
+ "human_control": "pre_approval",
+ "risk_level": "unspecified",
+ "autonomy_level": "l3_tool_using_supervised"
+}

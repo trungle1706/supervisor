@@ -175,7 +175,8 @@ def test_toolbar_always_names_the_effective_window(
         r = console.get(f"/console/analytics?tab={tab}")
         m = re.search(r'id="an-window" data-window="(\w+)">([^<]+)<', r.text)
         assert m and m.group(1) == kind, (tab, m)
-        assert "Window:" in m.group(2), tab
+        # the stored-days window reads "All days on record ..." (no "Window:" prefix)
+        assert ("All days on record" if kind == "stored" else "Window:") in m.group(2), tab
         if kind == "days":
             assert re.search(r"\d{4}-\d\d-\d\d \.\. \d{4}-\d\d-\d\d", m.group(2))
             assert "(default)" in m.group(2), tab

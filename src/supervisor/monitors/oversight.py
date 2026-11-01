@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from supervisor.core.canonical import format_ts, sha256_hex
+from supervisor.core.rows import rows_by
 from supervisor.evidence.verify import GENESIS_HASH, detect_entry_version, entry_hash
 from supervisor.judge.mrm.agreement import agree_bp, agreement_pairs
 from supervisor.monitors.common import (
@@ -173,12 +174,15 @@ class OversightMetrics:
             if start <= as_dt(c["opened_at"]) < end
         ]
         tth: list[int] = []
+        case_events = rows_by(
+            self.ctx.tables,
+            "case_event",
+            "case_id",
+            [c["case_id"] for c in cases],
+            columns=("case_id", "ts", "actor_kind"),
+        )
         for c in cases:
-            human = [
-                e
-                for e in self.ctx.tables.query("case_event", {"case_id": c["case_id"]})
-                if e["actor_kind"] == "user"
-            ]
+            human = [e for e in case_events.get(c["case_id"], []) if e["actor_kind"] == "user"]
             if human:
                 first = min(as_dt(e["ts"]) for e in human)
                 tth.append(max(0, int((first - as_dt(c["opened_at"])).total_seconds())))

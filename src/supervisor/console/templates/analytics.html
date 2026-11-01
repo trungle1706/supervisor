@@ -6,8 +6,8 @@
 {% block title %}{{ t('nav_analytics') }}{% endblock %}
 {% block content %}
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}<link rel="stylesheet" href="/console/static/ux5_g5.css">
-{% set head_actions %}<a class="btn" href="/console/alerts?lang={{ lang }}">{{ t('alerts') }}</a>{% endset %}
-{{ u5.page_head(t('nav_analytics'), t('an_purpose'), actions=head_actions) }}
+{# UI-192: no Alerts button here; Alerts is a tab of Cases & alerts #}
+{{ u5.page_head(t('nav_analytics'), t('an_purpose')) }}
 {% else %}
 {{ ui.crumbs([(t('nav_analytics'), None)]) }}
 {% call ui.pagehead(t('nav_analytics')) %}

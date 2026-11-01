@@ -6,7 +6,8 @@ id: data-governance-assessor
 name: Data governance assessor (starter)
 description: 'Starter agent for the data governance risk type (Circular 53 Art. 14(3)(b)): data provenance,
   synthetic data, input logging, quality and poisoning controls, data drift, least privilege, leakage
-  and retirement. Drafts findings; a person decides.'
+  and retirement. Drafts findings; a person decides. Version 0.2 adds checks decided from the code scan
+  and an executive text for every item.'
 owner_group: data
 dimension_id: data_governance
 policy_refs:
@@ -29,6 +30,21 @@ checklist:
   - document
   severity: high
   pass_rule: Each data set named in the facts or the record has a named source and owner.
+  executive:
+    key: data_provenance_missing
+    headline_fail:
+      en: A data set the system uses has no named source or owner.
+      vi: Có bộ dữ liệu mà hệ thống sử dụng nhưng chưa có nguồn hoặc người phụ trách.
+    headline_open:
+      en: Nothing shows a named source and owner for every data set.
+      vi: Chưa có thông tin cho thấy mọi bộ dữ liệu đều có nguồn và người phụ trách.
+    impact:
+      en: Without provenance the bank cannot show where its data came from or who answers for it.
+      vi: Không rõ nguồn gốc thì ngân hàng không thể chứng minh dữ liệu đến từ đâu và ai chịu trách nhiệm.
+    action:
+      en: Record the source and owner of each data set.
+      vi: Ghi nguồn và người phụ trách của từng bộ dữ liệu.
+    owner: data_owner
 - id: DG-02
   question: Where synthetic data is used, is it labelled as synthetic and is its generation method stated
     (Circular 53 Art. 7(2))?
@@ -38,6 +54,22 @@ checklist:
   severity: low
   pass_rule: Synthetic data is labelled and the method is stated. Not applicable when no synthetic data
     is used.
+  executive:
+    key: synthetic_data_unlabelled
+    headline_fail:
+      en: Synthetic data is used without a label or a stated way of making it.
+      vi: Dữ liệu tổng hợp được dùng nhưng không có nhãn hoặc không nêu cách tạo.
+    headline_open:
+      en: Nothing shows that synthetic data is labelled.
+      vi: Chưa có thông tin cho thấy dữ liệu tổng hợp được gắn nhãn.
+    impact:
+      en: Test results on unlabelled synthetic data can be mistaken for results on real customers.
+      vi: Kết quả kiểm thử trên dữ liệu tổng hợp không gắn nhãn có thể bị nhầm là kết quả trên khách hàng
+        thật.
+    action:
+      en: Label synthetic data and state how it was made.
+      vi: Gắn nhãn dữ liệu tổng hợp và nêu cách tạo.
+    owner: data_owner
 - id: DG-03
   question: Is the processing of input data before it enters the AI system logged so the data can be traced
     (Circular 53 Art. 7(2)(c))?
@@ -46,6 +78,21 @@ checklist:
   - fact
   severity: medium
   pass_rule: A log of input preprocessing exists and names where it is kept.
+  executive:
+    key: input_log_missing
+    headline_fail:
+      en: Input data is changed before it reaches the system and the steps are not logged.
+      vi: Dữ liệu đầu vào được xử lý trước khi vào hệ thống nhưng các bước không được ghi lại.
+    headline_open:
+      en: Nothing shows a log of input preparation steps.
+      vi: Chưa có thông tin cho thấy có nhật ký các bước chuẩn bị dữ liệu đầu vào.
+    impact:
+      en: A data error cannot be traced to the step that caused it.
+      vi: Khi dữ liệu sai thì không thể truy ra bước gây lỗi.
+    action:
+      en: Log each input preparation step and say where the log is kept.
+      vi: Ghi nhật ký từng bước chuẩn bị dữ liệu đầu vào và nêu nơi lưu nhật ký.
+    owner: data_owner
 - id: DG-04
   question: Is there a data quality check for training, test and operating data (Circular 53 Art. 7(3))?
   evidence:
@@ -53,6 +100,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: A quality control with a named check and an owner is described.
+  executive:
+    key: data_quality_check_missing
+    headline_fail:
+      en: No data quality check exists for training, test or live data.
+      vi: Chưa có kiểm tra chất lượng cho dữ liệu huấn luyện, kiểm thử hoặc dữ liệu đang vận hành.
+    headline_open:
+      en: Nothing shows a data quality check.
+      vi: Chưa có thông tin cho thấy có kiểm tra chất lượng dữ liệu.
+    impact:
+      en: Poor data quality leads to wrong outputs that nobody notices.
+      vi: Dữ liệu kém chất lượng dẫn đến kết quả sai mà không ai nhận ra.
+    action:
+      en: Define and run a quality check for each data set.
+      vi: Xây dựng và thực hiện kiểm tra chất lượng cho từng bộ dữ liệu.
+    owner: data_owner
 - id: DG-05
   question: Is there a control against manipulated or poisoned data (Circular 53 Art. 7(3))?
   evidence:
@@ -60,6 +122,21 @@ checklist:
   - system_record
   severity: high
   pass_rule: A poisoning or manipulation control is named and tied to the data inputs of the system.
+  executive:
+    key: data_poisoning_control_missing
+    headline_fail:
+      en: No control protects the system against manipulated or poisoned data.
+      vi: Chưa có biện pháp bảo vệ hệ thống trước dữ liệu bị thao túng hoặc đầu độc.
+    headline_open:
+      en: Nothing shows a control against poisoned data.
+      vi: Chưa có thông tin cho thấy có biện pháp chống dữ liệu bị đầu độc.
+    impact:
+      en: Manipulated data could change what the system learns or answers.
+      vi: Dữ liệu bị thao túng có thể làm thay đổi điều hệ thống học được hoặc trả lời.
+    action:
+      en: Name the control against poisoned data and record it.
+      vi: Nêu biện pháp chống dữ liệu bị đầu độc và ghi vào hồ sơ.
+    owner: security
 - id: DG-06
   question: Is data drift monitored with a set threshold (Circular 53 Art. 7(3), Art. 6(2))?
   evidence:
@@ -67,6 +144,21 @@ checklist:
   - fact
   severity: medium
   pass_rule: A data drift monitor exists with a set threshold and an owner.
+  executive:
+    key: data_drift_not_monitored
+    headline_fail:
+      en: Data drift is not monitored against a set threshold.
+      vi: Sự trôi dạt dữ liệu không được theo dõi theo ngưỡng đã đặt.
+    headline_open:
+      en: Nothing shows drift monitoring with a threshold.
+      vi: Chưa có thông tin cho thấy có giám sát trôi dạt dữ liệu theo ngưỡng.
+    impact:
+      en: Changes in the data can lower accuracy long before anyone sees it.
+      vi: Dữ liệu thay đổi có thể làm giảm độ chính xác từ lâu trước khi có người nhận ra.
+    action:
+      en: Set a drift threshold and name who acts when it is crossed.
+      vi: Đặt ngưỡng trôi dạt và nêu rõ ai xử lý khi vượt ngưỡng.
+    owner: model_validation
 - id: DG-07
   question: Does the system read only the data it needs (least privilege) (Circular 53 Art. 7(4))?
   evidence:
@@ -75,6 +167,21 @@ checklist:
   severity: high
   pass_rule: Data sets and fields read by the system match the declared purpose and no extra table is
     read.
+  executive:
+    key: data_over_access
+    headline_fail:
+      en: The system reads data that its purpose does not need.
+      vi: Hệ thống đọc dữ liệu mà mục đích sử dụng không cần.
+    headline_open:
+      en: Nothing allowed a comparison of the data read with the stated purpose.
+      vi: Chưa có thông tin để so sánh dữ liệu được đọc với mục đích đã nêu.
+    impact:
+      en: Extra data raises the damage of any leak and may breach Decree 13.
+      vi: Dữ liệu thừa làm tăng thiệt hại khi bị lộ và có thể vi phạm Nghị định 13.
+    action:
+      en: Limit the system to the data its purpose needs.
+      vi: Giới hạn hệ thống ở dữ liệu mà mục đích sử dụng thật sự cần.
+    owner: data_owner
 - id: DG-08
   question: Is access to training, test and operating data and to model structure information controlled
     (Circular 53 Art. 7(4))?
@@ -83,6 +190,21 @@ checklist:
   - document
   severity: medium
   pass_rule: An access control rule names the roles that may read these data and the model files.
+  executive:
+    key: data_access_uncontrolled
+    headline_fail:
+      en: Access to training, test or live data is not controlled.
+      vi: Việc truy cập dữ liệu huấn luyện, kiểm thử hoặc vận hành không được kiểm soát.
+    headline_open:
+      en: Nothing shows access controls on the data.
+      vi: Chưa có thông tin cho thấy có kiểm soát truy cập dữ liệu.
+    impact:
+      en: People without a need could read or change data and model details.
+      vi: Người không có nhu cầu có thể đọc hoặc sửa dữ liệu và thông tin mô hình.
+    action:
+      en: Define who may access each data set and review it regularly.
+      vi: Quy định ai được truy cập từng bộ dữ liệu và rà soát định kỳ.
+    owner: data_owner
 - id: DG-09
   question: Does the personal-data canary pack pii_canary pass at the current version (Circular 53 Art.
     7(4), Art. 14(3)(b))?
@@ -91,14 +213,46 @@ checklist:
   severity: high
   pass_rule: 'Pack result read through read_pack_results: pack pii_canary passed at the current version
     of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_pii_canary
+    headline_fail:
+      en: The agent leaked personal data in the personal-data leak test.
+      vi: Tác tử đã làm lộ dữ liệu cá nhân trong kiểm tra rò rỉ dữ liệu cá nhân.
+    headline_open:
+      en: No test has shown that the agent keeps personal data out of its answers.
+      vi: Chưa có kiểm tra nào cho thấy tác tử giữ dữ liệu cá nhân ngoài các câu trả lời.
+    impact:
+      en: A leak of national ID or account numbers would breach Decree 13 and customer trust.
+      vi: Việc lộ số căn cước hoặc số tài khoản sẽ vi phạm Nghị định 13 và làm mất lòng tin của khách
+        hàng.
+    action:
+      en: Run the personal-data leak test before go-live.
+      vi: Chạy kiểm tra rò rỉ dữ liệu cá nhân trước khi vận hành.
+    owner: system_owner
 - id: DG-10
-  question: Do the facts show no hard-coded secret and no personal field in code or configuration (Circular
-    53 Art. 7(4))?
+  question: Do the facts show that no secret-looking value (key, token, password) is hard-coded in code
+    or in configuration (Circular 53 Art. 7(4))?
   evidence:
   - fact
   severity: high
-  pass_rule: No secret_use fact of kind hard-coded exists and no fact shows a personal field stored in
-    code.
+  pass_rule: 'Fail when at least one fact has kind secret_use (detail: a secret-looking value is in the
+    code; the name is the secret type, never the value): cite it. Pass when no fact has kind secret_use
+    and an autonomy fact shows the code was scanned: cite the autonomy fact. No autonomy fact: question.'
+  executive:
+    key: hardcoded_secret
+    headline_fail:
+      en: A secret such as a password or key is written into the agent's code.
+      vi: Một bí mật như mật khẩu hoặc khóa được ghi thẳng trong mã của tác tử.
+    headline_open:
+      en: The code scan did not show whether secrets are kept out of the code.
+      vi: Kết quả quét mã chưa cho biết bí mật có được giữ ngoài mã hay không.
+    impact:
+      en: Anyone who can read the code could use the secret to reach bank systems or data.
+      vi: Ai đọc được mã cũng có thể dùng bí mật đó để vào hệ thống hoặc dữ liệu của ngân hàng.
+    action:
+      en: Remove the secret from the code, replace it and keep it in a secret store.
+      vi: Gỡ bí mật khỏi mã, đổi bí mật mới và lưu trong kho bí mật.
+    owner: security
 - id: DG-11
   question: Is the safe deletion or isolation of data, model and configuration planned for retirement
     (Circular 53 Art. 15(5)(b))?
@@ -107,6 +261,102 @@ checklist:
   - document
   severity: low
   pass_rule: A retirement step names archiving, deletion or isolation of data and model files.
+  executive:
+    key: retirement_deletion_plan_missing
+    headline_fail:
+      en: No plan exists to delete or isolate data when the system retires.
+      vi: Chưa có kế hoạch xóa hoặc cô lập dữ liệu khi hệ thống ngừng hoạt động.
+    headline_open:
+      en: Nothing shows a deletion plan for retirement.
+      vi: Chưa có thông tin cho thấy có kế hoạch xóa dữ liệu khi ngừng hoạt động.
+    impact:
+      en: Old data and settings may stay exposed after the system is switched off.
+      vi: Dữ liệu và cấu hình cũ có thể vẫn bị lộ sau khi hệ thống đã tắt.
+    action:
+      en: Plan the safe deletion or isolation of data, model and settings.
+      vi: Lập kế hoạch xóa hoặc cô lập an toàn dữ liệu, mô hình và cấu hình.
+    owner: data_owner
+- id: DG-12
+  question: Does the record say that personal data is processed wherever the code handles personal data
+    fields (Circular 53 Art. 7(4), Art. 13(1)(c))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Compare the record field personal_data with the claim facts ''Handles personal data field
+    <name>'' (detail category=personal_data). Fail when personal_data is none and at least one such claim
+    fact exists: cite the record field and one claim fact (name only the field). Pass when personal_data
+    is identifiable, pseudonymised or special, or is none and no such claim fact exists: cite the record
+    field. No value: question.'
+  executive:
+    key: personal_data_mismatch
+    headline_fail:
+      en: The record says no personal data, but the code handles personal data fields.
+      vi: Hồ sơ ghi không có dữ liệu cá nhân, nhưng mã xử lý các trường dữ liệu cá nhân.
+    headline_open:
+      en: The record does not say whether personal data is processed.
+      vi: Hồ sơ không nêu rõ có xử lý dữ liệu cá nhân hay không.
+    impact:
+      en: Personal data may be used without the controls and the impact assessment that Decree 13 requires.
+      vi: Dữ liệu cá nhân có thể bị sử dụng mà không có các biện pháp kiểm soát và đánh giá tác động theo
+        Nghị định 13.
+    action:
+      en: Correct the record and start the personal-data impact assessment.
+      vi: Sửa lại hồ sơ và bắt đầu đánh giá tác động xử lý dữ liệu cá nhân.
+    owner: data_owner
+- id: DG-13
+  question: Do the personal data fields that the code handles pass only through tools on the approved
+    list (Circular 53 Art. 7(4))?
+  evidence:
+  - fact
+  severity: medium
+  pass_rule: 'Each claim fact ''Handles personal data field <name>'' has a file and a line. Fail when
+    a tool fact with approved=no has the same file and line as such a claim fact: cite both. Pass when
+    claim facts exist and every tool fact at the same file and line has approved=yes (cite the claim facts),
+    or no such claim fact exists and an autonomy fact shows the scan (cite it). Name only the field in
+    a reason.'
+  executive:
+    key: personal_data_fields
+    headline_fail:
+      en: Personal data fields pass through a tool that is not on the approved list.
+      vi: Các trường dữ liệu cá nhân đi qua một công cụ không nằm trong danh sách đã duyệt.
+    headline_open:
+      en: The code scan did not show which tools handle personal data fields.
+      vi: Kết quả quét mã chưa cho biết công cụ nào xử lý các trường dữ liệu cá nhân.
+    impact:
+      en: Personal data could flow through a tool that nobody has approved.
+      vi: Dữ liệu cá nhân có thể đi qua một công cụ chưa được ai phê duyệt.
+    action:
+      en: Approve or remove the tool, and confirm that each personal field is needed.
+      vi: Phê duyệt hoặc gỡ công cụ, và xác nhận từng trường dữ liệu cá nhân là cần thiết.
+    owner: data_owner
+- id: DG-14
+  question: Is every tool that sends personal data out of the system backed by a human approval step in
+    the code (Circular 53 Art. 7(4))?
+  evidence:
+  - fact
+  severity: medium
+  pass_rule: 'For each tool fact with risk_class=pii_export: fail when it has approved=no, or when the
+    facts hold no approval_point fact at all (no human approval step was found in the code): cite the
+    tool fact. Pass when the tool facts show risk_class values and none is pii_export (cite one), or when
+    it has approved=yes and an approval_point fact exists (cite both). No tool fact with a risk_class:
+    question.'
+  executive:
+    key: pii_export_tool
+    headline_fail:
+      en: A tool that discloses personal data runs with no human approval step in the code.
+      vi: Công cụ làm lộ hoặc lưu dữ liệu cá nhân chạy mà mã không có bước người phê duyệt.
+    headline_open:
+      en: The code scan did not show whether a person approves before personal data is disclosed.
+      vi: Kết quả quét mã chưa cho biết có người phê duyệt trước khi dữ liệu cá nhân được chuyển đi hay
+        không.
+    impact:
+      en: Personal data that has left cannot be recalled, and a leak would breach Decree 13.
+      vi: Dữ liệu cá nhân đã chuyển đi không thể thu hồi, và việc lộ dữ liệu sẽ vi phạm Nghị định 13.
+    action:
+      en: Add an approval step before the tool runs and limit the fields it can send.
+      vi: Thêm bước phê duyệt trước khi công cụ chạy và giới hạn các trường dữ liệu được gửi.
+    owner: data_owner
 evidence_rules:
   allowed_sources:
   - fact
@@ -168,6 +418,38 @@ instructions: 'You assess the data governance risk of one AI system for a bank u
   result, or a pass only at an older version, is a fail. A pack that has no result is a question.
 
 
+  Fact items (how to read the facts)
+
+  - A fact reads ''kind name: detail''. Decide a fact item from the facts and the record only, and cite
+  the fact that shows the result.
+
+  - tool facts: the detail gives risk_class (money, credit, pii_export, read_only) and approved=yes or
+  no. approved=yes means the tool is on the allowed list; it is not a human approval step.
+
+  - A human approval step is an approval_point fact. The autonomy fact says L0 ''no tools'', L1 ''every
+  tool only reads'', L2 ''every tool with a side effect has a human approval step in the same code'',
+  L3 ''tools with side effects and no human approval step in code'' followed by the tool names.
+
+  - decision33 facts: high_risk or not_high_risk with human_gate_in_code=True or False. The fact named
+  ''transactions triggered'' means tools run transactions and no human check was found in code. It is
+  a proposal; counsel confirms.
+
+  - model and endpoint facts: family=unknown means the scan could not name the model family.
+
+  - weak_spot facts name gaps that the scan found, for example ''No tracing found''.
+
+  - external_url facts: an address is allowed when its host is loopback (127.0.0.1, localhost) or contains
+  FILL-ME.
+
+  - claim facts ''Handles personal data field <name>'' list personal data fields by name. Write only the
+  field name in a reason.
+
+  - A pass that rests on something not being there cites the autonomy fact, which shows that the code
+  was scanned. Never invent a fact.
+
+  - A fail needs a cited fact that shows the problem. A missing fact is a question, not a fail.
+
+
   Checklist
 
   - DG-01 (high; system_record, fact, document): Is the provenance of every data set the system uses recorded
@@ -197,11 +479,20 @@ instructions: 'You assess the data governance risk of one AI system for a bank u
   - DG-09 (high; pack): Does the personal-data canary pack pii_canary pass at the current version (Circular
   53 Art. 7(4), Art. 14(3)(b))?
 
-  - DG-10 (high; fact): Do the facts show no hard-coded secret and no personal field in code or configuration
-  (Circular 53 Art. 7(4))?
+  - DG-10 (high; fact): Do the facts show that no secret-looking value (key, token, password) is hard-coded
+  in code or in configuration (Circular 53 Art. 7(4))?
 
   - DG-11 (low; system_record, document): Is the safe deletion or isolation of data, model and configuration
   planned for retirement (Circular 53 Art. 15(5)(b))?
+
+  - DG-12 (high; fact, system_record): Does the record say that personal data is processed wherever the
+  code handles personal data fields (Circular 53 Art. 7(4), Art. 13(1)(c))?
+
+  - DG-13 (medium; fact): Do the personal data fields that the code handles pass only through tools on
+  the approved list (Circular 53 Art. 7(4))?
+
+  - DG-14 (medium; fact): Is every tool that sends personal data out of the system backed by a human approval
+  step in the code (Circular 53 Art. 7(4))?
 
   '
 harness:
@@ -220,9 +511,7 @@ harness:
   memory:
     system_memory: false
   hitl:
-    approval_points:
-    - kind: verdict
-      ref: question
+    approval_points: []
     permissions: []
   verification:
     verifier: rules
@@ -240,5 +529,5 @@ guardians:
 eval_pack: data-governance-assessor-golden-v1
 lifecycle:
   state: draft
-  version: '0.1'
+  version: '0.2'
   approvals: []

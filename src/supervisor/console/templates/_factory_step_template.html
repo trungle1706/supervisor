@@ -11,8 +11,10 @@
   <form hx-post="/console/factory/{{ ed.agent.id }}/step/template" hx-target="#factory-step" hx-swap="innerHTML" method="post">
     {{ fu.hid(ed) }}
     <div class="g6-grid">
+      {% if g7_shell is not defined %}{# UI-132: the editor header already lists the dimension and the group #}
       <span class="g6-lab">{{ t('fa_f_dimension') }}</span><span data-locked="dimension_id">{{ t('fa_dim_' ~ ed.agent.dimension_id) }} <span class="muted">{{ t('fa_locked') }}</span></span>
       <span class="g6-lab">{{ t('fa_f_group') }}</span><span data-locked="owner_group">{{ ed.agent.owner_label }} <span class="muted">{{ t('fa_locked') }}</span></span>
+      {% endif %}
       <span class="g6-lab">{{ t('fa_f_schema') }}</span><span>v{{ ed.defn.schema_version }} <span class="muted">{{ t('fa_locked') }}</span></span>
       {% if ed.template %}<span class="g6-lab">{{ t('fa_f_template') }}</span><span data-template="{{ ed.template.template_id }}">{{ ed.template.label_en }} &middot; {{ t('fa_template_items', n=ed.template.checklist|length) }}</span>{% endif %}
       <label class="g6-lab" for="g6-name">{{ t('fa_f_name') }}</label>

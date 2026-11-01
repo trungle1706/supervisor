@@ -7,9 +7,10 @@ is a counter over SHA-256. All statistics are integers (basis points, counts).
 from __future__ import annotations
 
 import hashlib
-import math
 from collections.abc import Sequence
 from typing import TypeVar
+
+from supervisor.core.stats import wilson_bp
 
 T = TypeVar("T")
 
@@ -41,9 +42,6 @@ class DetRng:
             raise ValueError("choice of an empty sequence")
         return items[self._next() % len(items)]
 
-    def chance_bp(self, bp_value: int) -> bool:
-        return self._next() % 10000 < bp_value
-
     def shuffled(self, items: Sequence[T]) -> list[T]:
         out = list(items)
         for i in range(len(out) - 1, 0, -1):
@@ -52,28 +50,9 @@ class DetRng:
         return out
 
 
-def stable_int(*parts: object) -> int:
-    """A stable non-negative integer from the string forms of ``parts``."""
-    text = "\x1f".join(str(p) for p in parts)
-    return int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:8], "big")
-
-
 def bp(k: int, n: int) -> int | None:
     """k / n in integer basis points (floor); None when n is 0."""
     return None if n <= 0 else k * 10000 // n
-
-
-def wilson_bp(k: int, n: int, z: float = 1.96) -> tuple[int, int] | None:
-    """Wilson score interval for k of n, in basis points (low, high); None when n is 0."""
-    if n <= 0:
-        return None
-    p = k / n
-    denom = 1 + z * z / n
-    centre = (p + z * z / (2 * n)) / denom
-    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    return max(0, math.floor((centre - half) * 10000)), min(
-        10000, math.ceil((centre + half) * 10000)
-    )
 
 
 def median_int(values: Sequence[int]) -> int | None:

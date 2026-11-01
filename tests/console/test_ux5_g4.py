@@ -31,6 +31,7 @@ FLAGS = (
     "onboard_predeploy",
     "onboard_attach_view",
     "onboard_postdeploy",
+    "code_agent_enabled",
 )
 AGENT = "payments"
 
@@ -56,8 +57,12 @@ def test_agent_page_has_primary_tabs_and_a_more_menu(ux: Console) -> None:
     nav_html = html.split('class="g4-tabs"', 1)[1].split("</nav>", 1)[0]
     primary = re.findall(r'<a href="[^"]*\?tab=([a-z]+)&', nav_html.split("<details", 1)[0])
     assert primary == ["overview", "register", "guardians", "policy", "tools", "cases"]
-    for hidden in ("attach", "postdeploy", "source", "facts", "predeploy", "inventory"):
-        assert f"?tab={hidden}&" in nav_html  # reachable inside More
+    assert "?tab=inventory&" in nav_html  # reachable inside More
+    # UI-104: the onboarding steps show once a source was taken in; this agent has none
+    for hidden in ("attach", "postdeploy", "source", "facts", "predeploy"):
+        assert f"?tab={hidden}&" not in nav_html
+    opened = ux.get(f"/console/agents/{AGENT}?tab=source").text.split('class="g4-tabs"', 1)[1]
+    assert "?tab=source&" in opened.split("</nav>", 1)[0]  # the open tab stays in the strip
     assert "MOCK" not in html and "g4-id" in html
     assert html.count('class="g4-id"') == 1  # the id once, small, beside the name
 
@@ -114,21 +119,26 @@ def test_tools_tab_is_bounded_and_without_p95_columns(ux: Console) -> None:
 
 
 # ---------------------------------------------------------------- lists and catalogues
-def test_agents_list_pages_at_25_and_row_is_one_link(ux: Console) -> None:
+def test_agents_list_pages_at_25_and_row_is_one_link(
+    ux: Console, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # UI-011: with CONSOLE_MY_AGENTS on this list redirects to My agents; the old flag path stays
+    monkeypatch.setattr(ux.ctx.settings, "console_my_agents", False)
     html = ux.get("/console/agents").text
-    assert "Every agent the bank runs, and its gate state." in html
+    assert "All agents the bank runs and their current state." in html
     assert "Pause, resume and quarantine are on the agent page" not in html
     assert re.findall(r'class="head rowlink" href="/console/agents/[^"?]+', html)
 
 
-def test_catalogue_tabs_search_and_page(ux: Console) -> None:
+def test_catalogue_tabs_search_and_page(ux: Console, monkeypatch: pytest.MonkeyPatch) -> None:
     for tab in ("models", "tools", "datasets", "mcp"):
         r = ux.get(f"/console/catalogues?tab={tab}")
         assert r.status_code == 200
         assert "python -m supervisor.jobs.inventory" not in r.text
     r = ux.get("/console/catalogues?tab=models&q=zzz-no-such-model")
-    assert r.status_code == 200 and ("Nothing matches" in r.text or "Nothing here yet" in r.text)
+    assert r.status_code == 200 and ("Nothing matches" in r.text or "Nothing found yet" in r.text)
     assert ux.get("/console/catalogues?tab=models&page=junk&status=bogus").status_code == 200
+    monkeypatch.setattr(ux.ctx.settings, "console_my_agents", False)  # UI-011: old flag path
     assert re.search(r"sec-tabs.*?Inventory</a>", ux.get("/console/agents").text, re.S)  # renamed
 
 
@@ -143,7 +153,7 @@ def test_credentials_has_no_env_flag_and_no_empty_column(ux: Console) -> None:
     r = ux.get("/console/credentials", user="admin.chi")
     assert r.status_code == 200
     assert "INGRESS_AUTH_ENABLED" not in r.text and "Last used" not in r.text
-    assert "How to issue or rotate a key" in r.text
+    assert "How to issue or replace a key" in r.text
 
 
 def test_integrations_folds_identical_agents(ux: Console) -> None:

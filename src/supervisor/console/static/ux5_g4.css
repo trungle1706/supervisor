@@ -29,7 +29,6 @@
 .ux5 .g4-stat b { display: block; font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--u5-ink); }
 .ux5 .g4-stat span { font-size: 12px; color: var(--u5-muted); }
 .ux5 .g4-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
-.ux5 .g4-card-actions { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
 .ux5 article.agent.g4 { display: block; }
 .ux5 article.agent.g4 .side { margin-top: 10px; max-width: 420px; position: static; height: auto; overflow: visible; display: grid; }
 
@@ -37,7 +36,6 @@
 .ux5 details.g4-fold { margin: 10px 0; }
 .ux5 details.g4-fold > summary { cursor: pointer; color: var(--u5-muted); font-size: 14px; padding: 4px 0; }
 .ux5 details.g4-fold[open] > summary { margin-bottom: 8px; }
-.ux5 .g4-empty { padding: 14px; border: 1px dashed var(--u5-line); border-radius: var(--r-s); color: var(--u5-muted); font-size: 14px; max-width: 72ch; }
 .ux5 .g4-empty a { margin-left: 6px; }
 .ux5 .g4-searchbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0 12px; }
 .ux5 .g4-searchbar input[type=search] { min-width: 240px; }
@@ -45,8 +43,7 @@
 .ux5 .g4-note { font-size: 13px; color: var(--u5-muted); max-width: 72ch; }
 
 /* tables that may grow: sticky header when open */
-.ux5 .g4-scroll { max-height: 70vh; overflow: auto; }
-.ux5 .g4-scroll thead th { position: sticky; top: 0; background: var(--u5-panel); z-index: 1; }
+.ux5 .g4-scroll { overflow-x: auto; } /* UI-103: no max-height; the page scrolls, not a 630px box inside it */
 .ux5 table.g4-matrix td, .ux5 table.g4-matrix th { padding: 6px 8px; }
 .ux5 table.g4-matrix td { text-align: center; }
 .ux5 table.g4-matrix th[scope=row] { text-align: left; min-width: 280px; }

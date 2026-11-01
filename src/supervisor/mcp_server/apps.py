@@ -17,6 +17,7 @@ from typing import Any
 
 from supervisor.core import rbac
 from supervisor.core.errors import DuplicateKeyError, NotFoundError, SupervisorError
+from supervisor.core.people import same_person
 from supervisor.mcp_server import SCOPES
 
 STATUSES: tuple[str, ...] = ("pending", "approved", "blocked")
@@ -158,7 +159,7 @@ class McpAppService:
             raise NotFoundError(f"connected app {app_id} does not exist")
         if cur["status"] == "approved":
             raise McpAppError(f"{app_id} is already approved")
-        if by == cur["created_by"]:
+        if same_person(by, cur["created_by"]):
             raise McpAppError("the person who issued the app cannot approve it (two people)")
         return self._change(
             app_id, {"status": "approved", "approved_by": by, "approved_at": self.clock.now()}

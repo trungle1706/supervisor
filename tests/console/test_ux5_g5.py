@@ -97,7 +97,7 @@ def test_catalog_is_one_list_without_dev_text_for_a_reviewer(ux: Any) -> None:
     assert "Guardian catalog" in html and "Can block" in html and "g5-row" in html
     assert "docs/" not in html and "DETECTORS_ENABLED" not in html and "WP-D" not in html
     assert "Technical details" not in html  # admin only
-    assert "Ask the platform team to turn it on" in html
+    assert html.count("Ask the platform team to turn it on") == 1  # UI-161: once, not per row
     assert 'class="cat-card' not in html  # rows, not cards
     assert words(html) < 1500
 
@@ -179,7 +179,7 @@ def test_new_form_puts_business_fields_first_and_json_under_advanced(ux: Any) ->
     assert "Benchmark pack id" not in html and "Test pack (optional)" in html
     assert words(html) < 400
     vi = ux.get("/console/guardian-factory/new?lang=vi", user=AN).text
-    assert "Mô tả guardian" in vi
+    assert "Mô tả bộ bảo vệ" in vi
 
 
 def test_detail_has_section_nav_plain_words_and_folded_findings(ux: Any) -> None:
@@ -267,7 +267,7 @@ def test_analytics_tabs_render_and_stay_short(ux: Any) -> None:
 def test_metrics_tab_folds_not_applicable_agents(ux: Any) -> None:
     html = ux.get("/console/analytics?tab=metrics", user=AN).text
     assert "monitors.quality" not in html and "monitors.split_payment" not in html
-    assert "Chain status" not in html and "Evidence chain" in html
+    assert "Chain status" not in html and "Evidence" in html  # the nav entry was "Evidence chain"
 
 
 def test_metrics_redirect_target_is_the_analytics_tab(ux: Any) -> None:

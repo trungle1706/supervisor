@@ -43,6 +43,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from supervisor.core.canonical import format_ts
+from supervisor.core.flags import truthy
+from supervisor.core.rows import rows_by
 from supervisor.governance.actions_model import (
     ID_PATTERN,
     SEVERITIES,
@@ -76,10 +78,30 @@ def _sev(value: Any, default: str = "low") -> str:
     return str(value) if value in SEVERITIES else default
 
 
-def _true(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
+_true = truthy
+
+
+def chain_payloads(
+    tables: Any, entries: Iterable[Mapping[str, Any]]
+) -> dict[tuple[Any, Any], list[str]]:
+    """The payload texts of chain entries, read in few statements (audit N8, N9): one batch read
+    by ``payload_hash``, then matched by (lane, seq). Read only; nothing is written."""
+    entries = list(entries)
+    by_hash = rows_by(
+        tables,
+        "chain_payload",
+        "payload_hash",
+        [e["payload_hash"] for e in entries],
+        columns=("lane", "seq", "payload_hash", "payload"),
+    )
+    wanted = {(e["lane"], e["seq"]) for e in entries}
+    out: dict[tuple[Any, Any], list[str]] = {}
+    for rows in by_hash.values():
+        for r in rows:
+            key = (r["lane"], r["seq"])
+            if key in wanted:
+                out.setdefault(key, []).append(r["payload"])
+    return out
 
 
 # --------------------------------------------------------------------------- sources
@@ -294,9 +316,11 @@ def pack_no_go(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[Governan
 def chain_breaks(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[GovernanceEvent]:
     out = []
     for rtype in CHAIN_VERIFY_TYPES:
-        for e in read_range(ctx, "chain_entry", lo, hi, {"record_type": rtype}):
-            rows = ctx.tables.query("chain_payload", {"lane": e["lane"], "seq": e["seq"]})
-            p = json.loads(rows[0]["payload"]) if rows else {}
+        entries = read_range(ctx, "chain_entry", lo, hi, {"record_type": rtype})
+        payloads = chain_payloads(ctx.tables, entries)
+        for e in entries:
+            rows = payloads.get((e["lane"], e["seq"]), [])
+            p = json.loads(rows[0]) if rows else {}
             ok = p["ok"] if "ok" in p else p.get("verify_ok")
             if ok is None or _true(ok):
                 continue
@@ -317,9 +341,11 @@ def model_changes(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[Gover
     is read (small) only for an agent that has one."""
     fresh = _range(ctx, "agent_version", "deployed_at", lo, hi)
     out = []
-    for agent in sorted({str(r["agent_id"]) for r in fresh}):
+    agents = sorted({str(r["agent_id"]) for r in fresh})
+    history = rows_by(ctx.tables, "agent_version", "agent_id", agents)
+    for agent in agents:
         rows = sorted(
-            ctx.tables.query("agent_version", {"agent_id": agent}),
+            history.get(agent, []),
             key=lambda r: (as_dt(r["deployed_at"]), str(r["version"])),
         )
         for i, r in enumerate(rows):
@@ -388,12 +414,18 @@ def regkb_changes(ctx: MonitorContext, lo: datetime, hi: datetime) -> list[Gover
         str(s["system_id"]) for s in ctx.state.query("ai_system") if s["status"] != "archived"
     )
     out: list[GovernanceEvent] = []
+    statuses = rows_by(
+        ctx.state,
+        "obligation_status",
+        "obligation_id",
+        [str(x) for c in rows for x in _json_list(c.get("obligations_affected"))],
+    )
     for c in rows:
         affected = [str(x) for x in _json_list(c.get("obligations_affected"))]
         hit = _true(c.get("classification_hit"))
         by_system: dict[str, list[dict[str, Any]]] = {}
         for oid in affected:
-            for r in ctx.state.query("obligation_status", {"obligation_id": oid}):
+            for r in statuses.get(oid, []):
                 by_system.setdefault(str(r["system_id"]), []).append(dict(r))
         targets = sorted(set(by_system) | (set(open_ids) if hit else set()))
         ref = safe_ref("regkb_change", c["change_id"])

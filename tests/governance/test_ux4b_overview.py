@@ -113,8 +113,12 @@ def test_guardian_cover_counts_systems_with_all_agents_covered(
     make(v3, "No agent yet")
     monkeypatch.setattr(s, "detectors_enabled", False)
     off = main(v3.get("/console/?scope=all&lang=en").text)
-    assert re.search(r"0 / 1", off) and "DETECTORS_ENABLED=1" in off and "1 without an agent" in off
-    assert "below floor" in off
+    assert (
+        re.search(r"0 / 1", off)
+        and "Detectors are switched off" in off
+        and "1 without an agent" in off
+    )
+    assert "below the minimum" in off
     monkeypatch.setattr(s, "detectors_enabled", True)
     on = main(v3.get("/console/?scope=all&lang=en").text)
     # the mandatory detectors come from the file; the demo agents carry the same overrides as the
@@ -183,7 +187,7 @@ def test_governance_overview_classification_rate_is_a_basis_point_figure(v3: Con
     bp, pct = pct_title(html, "classified")
     assert bp == 1 * 10000 // 3 == 3333 and pct == 33
     assert "1 of 3 systems" in html
-    assert "Aggregated over the systems you may view: 3 of 3." in html
+    assert "Totals for the systems you can view: 3 of 3." in html
 
 
 def test_governance_overview_counts_stages_and_pending_approvals(v3: Console) -> None:
@@ -235,7 +239,7 @@ def test_governance_overview_readiness_not_available_when_controls_are_off(
     monkeypatch.setattr(v3.ctx.settings, "controls_enabled", False)
     make(v3, "Alpha")
     html = main(v3.get("/console/governance?scope=all&lang=en").text)
-    assert html.count("not available") >= 2 and "CONTROLS_ENABLED=1" in html
+    assert html.count("not available") >= 2 and "Controls are switched off" in html
 
 
 def test_governance_overview_overdue_counts_required_tasks_of_systems(v3: Console) -> None:
@@ -250,7 +254,7 @@ def test_governance_overview_overdue_counts_required_tasks_of_systems(v3: Consol
     for t in v3.ctx.state.query("task", {"agent_id": sid}):
         v3.ctx.state.update("task", {"task_id": t["task_id"]}, {"due_at": past}, t["row_version"])
     html = main(v3.get("/console/governance?scope=all&lang=en").text)
-    assert num(html, "overdue") == 2 and "oldest 9 d" in html
+    assert num(html, "overdue") == 2 and "oldest: 9 days" in html
 
 
 def test_governance_overview_policy_rows_match_the_matrix(v3: Console) -> None:
@@ -287,7 +291,7 @@ def test_governance_overview_risk_posture_follows_the_linked_agents(v3: Console)
         sid, next(c["component_id"] for c in ctx.systems.get(sid)["components"]), "x"
     )
     without = main(v3.get("/console/governance?scope=all&lang=en").text)
-    assert "No active risk in scope." in without
+    assert "No active risks in scope." in without
 
 
 def test_autonomy_breakdown_counts_systems_by_level(v3: Console) -> None:

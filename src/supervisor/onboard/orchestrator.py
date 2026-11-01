@@ -80,6 +80,43 @@ RULE_SECONDS = 30
 TOTAL_SECONDS = 900
 AGENT_TOKENS = caps.LOOP_BUDGET_DEFAULT
 TOTAL_TOKENS = 8 * caps.LOOP_BUDGET_DEFAULT
+# Plain-English text of each plan reason code (the console shows it through ``orch_reason_<code>``).
+REASON_EN = {
+    "bank_only": "This risk type applies to banks only.",
+    "high_all_eight": "High-risk systems are assessed on all eight risk types.",
+    "core": "Core risk type: always assessed.",
+    "customer_decision_or_personal_data": (
+        "The system makes customer decisions or uses personal data."
+    ),
+    "no_customer_decision_no_personal_data": (
+        "The system makes no customer decisions and uses no personal data."
+    ),
+    "low_core_only": "Low-risk systems are assessed on core risk types only.",
+    "unknown_assume_applies": "It is not known whether this applies, so it is assessed.",
+    "third_party_signal": "The system relies on a third-party model or service.",
+    "no_third_party_signal": "The system does not rely on a third-party model or service.",
+    "dependency_signal": "The system depends on outside tools, services or data.",
+    "no_dependency_signal": "The system has no outside dependencies.",
+    "customer_facing": "Customers use this system directly.",
+    "medium_customer_facing_only": (
+        "Medium-risk systems are assessed on this type only when customers use them."
+    ),
+    "applies": "This risk type applies.",
+    "classification_required": "The system has no approved classification yet.",
+    "prohibited": "The system is prohibited, so nothing is assessed.",
+    "not_system": "This is not an AI system, so nothing is assessed.",
+}
+# Short names of the eight risk types, for the text of findings.
+DIMENSION_EN = {
+    "model": "Model risk",
+    "data_governance": "Data governance risk",
+    "cybersecurity": "Cybersecurity risk",
+    "legal_compliance": "Legal compliance risk",
+    "ethics": "Ethics risk",
+    "third_party": "Third-party risk",
+    "supply_chain": "Supply chain risk",
+    "reputation": "Reputation risk",
+}
 STALE_S = 1800  # a queued or running row older than this, with no thread, was cut by a restart
 MAX_SUMMARY = 300
 MAX_NOTE = 300
@@ -114,8 +151,9 @@ def ensure_on(settings: Any) -> None:
     if not enabled(settings):
         raise OrchestratorError(
             "orchestrator_off",
-            "the onboarding orchestrator is off (ONBOARD_ORCHESTRATOR=1 turns it on; "
-            "needs GOVERNANCE_ENABLED, RISK_DIMENSIONS and CLASSIFICATION_V2)",
+            "Risk assessment runs are switched off. Ask an administrator to set "
+            "ONBOARD_ORCHESTRATOR=1 (it also needs GOVERNANCE_ENABLED, RISK_DIMENSIONS and "
+            "CLASSIFICATION_V2).",
         )
 
 
@@ -129,6 +167,7 @@ class LiveAgent:
     agent_id: str
     version: str
     definition: Mapping[str, Any] = field(default_factory=dict)
+    kind: str = "live"  # "live", or "draft" (ORCH_RUN_DRAFT_AGENTS, demo): not tested, not approved
 
 
 class AgentCatalog(Protocol):
@@ -214,6 +253,7 @@ class PlanItem:
     agent_version: str
     budget_seconds: int
     budget_tokens: int
+    agent_kind: str = "rule"  # "rule", "live" or "draft"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -222,6 +262,7 @@ class PlanItem:
             "applies": self.applies,
             "reason": self.reason,
             "agent": self.agent,
+            "agent_kind": self.agent_kind,
             "budget_seconds": self.budget_seconds,
             "budget_tokens": self.budget_tokens,
         }
@@ -251,6 +292,15 @@ class Plan:
     @property
     def plan_hash(self) -> str:
         return hashlib.sha256(canonical_json(self.to_dict()).encode("utf-8")).hexdigest()
+
+
+def settings_budget(settings: Any) -> Budget:
+    """The platform budget with the agent and total time limits of ORCH_AGENT_SECONDS and
+    ORCH_TOTAL_SECONDS (defaults 120 and 900). The rule runner keeps its own limit."""
+    return Budget(
+        agent_seconds=int(getattr(settings, "orch_agent_seconds", AGENT_SECONDS) or AGENT_SECONDS),
+        total_seconds=int(getattr(settings, "orch_total_seconds", TOTAL_SECONDS) or TOTAL_SECONDS),
+    )
 
 
 def _truthy(value: Any) -> bool:
@@ -393,6 +443,7 @@ def plan(
                     live.version,
                     budget.agent_seconds,
                     tokens,
+                    live.kind if live.kind in ("live", "draft") else "live",
                 )
             )
         else:
@@ -407,6 +458,7 @@ def plan(
                     "1",
                     budget.rule_seconds if applies else 0,
                     0,
+                    "rule",
                 )
             )
     return Plan(sid, outcome, blocked, tuple(items), budget)
@@ -451,6 +503,36 @@ def _summary(findings: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     }
 
 
+def _check_rationale(kind: str, check_id: str, state: str, required: bool) -> str:
+    """One plain sentence for a mapped test (pack) or monitor and its state."""
+    what = ("Required " if required else "Optional ") + ("test" if kind == "pack" else "monitor")
+    if state == "ok":
+        return f"{what} {check_id} passed."
+    if state == "fail":
+        return f"{what} {check_id} failed."
+    if state == "missing":
+        return (
+            f"{what} {check_id} has not been run yet."
+            if kind == "pack"
+            else f"{what} {check_id} has no data yet."
+        )
+    if state == "stale":
+        return f"{what} {check_id} is out of date. Run it again."
+    if state == "weak":
+        return f"{what} {check_id} gave a weak result. Review it."
+    return f"{what} {check_id} has no clear result."
+
+
+def _reads_rationale(dim_id: str, verdict: str) -> str:
+    """The legal compliance finding that reads the report of another risk type."""
+    name = DIMENSION_EN.get(dim_id, dim_id.replace("_", " ").capitalize())
+    if verdict == "pass":
+        return f"{name} passed."
+    if verdict == "fail":
+        return f"{name} failed, so legal compliance cannot pass."
+    return f"{name} is still open, so legal compliance stays open."
+
+
 def rule_findings(
     dim_id: str, proposal: Mapping[str, Any], prior: Mapping[str, Mapping[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -479,11 +561,7 @@ def rule_findings(
                 "checklist_id": f"{check['kind']}:{check['id']}"[:64],
                 "verdict": verdict,
                 "evidence": evidence,
-                "rationale": (
-                    f"{check['kind']} {check['id']} is {state} "
-                    f"({'required' if required else 'optional'}); the stored result is the "
-                    "evidence."
-                ),
+                "rationale": _check_rationale(check["kind"], str(check["id"]), state, required),
                 "confidence": "high" if evidence else "low",
             }
         )
@@ -500,7 +578,7 @@ def rule_findings(
                     if verdict == "fail"
                     else "question",
                     "evidence": [{"kind": "system_record", "ref": f"report:{rep['report_id']}"}],
-                    "rationale": f"Read the report of {other}: worst verdict {verdict}.",
+                    "rationale": _reads_rationale(other, verdict),
                     "confidence": "high",
                 }
             )
@@ -512,8 +590,7 @@ def rule_findings(
                 "verdict": "question",
                 "evidence": [],
                 "rationale": (
-                    "No pack or monitor decides this risk type; a person decides it "
-                    "(see the Duties step)."
+                    "No automated test covers this risk type. You decide it at the Duties step."
                 ),
                 "confidence": "high",
             }
@@ -656,8 +733,28 @@ def call_limited(fn: Callable[[], Any], seconds: float) -> tuple[str, Any]:
 # ------------------------------------------------------------------------------ storage helpers
 
 
+def _reason_text(code: str) -> str:
+    """Plain-English sentence of a plan reason code (the code itself when unknown)."""
+    return REASON_EN.get(code, code)
+
+
+def _stop_text(code: str) -> str:
+    """Plain-English sentence of a stop point (``high_fail:<id>`` or ``approval_point:<ref>``)."""
+    kind, _, ref = code.partition(":")
+    if kind == "high_fail":
+        return f"A high-severity check failed ({ref}). It needs your review."
+    if kind == "approval_point":
+        return f"This result needs your approval ({ref})."
+    return "It needs your review."
+
+
 def _clean(text: Any, limit: int) -> str:
     return agent_log.clean(text, limit)
+
+
+def _json_object(value: Any) -> dict[str, Any] | None:
+    got = _json(value, None) if isinstance(value, str) else value
+    return dict(got) if isinstance(got, Mapping) else None
 
 
 def _json(value: Any, default: Any) -> Any:
@@ -784,8 +881,13 @@ def system_row(ctx: Any, system_id: str) -> dict[str, Any]:
 
 
 def classification_outcome(ctx: Any, system_id: str) -> str | None:
-    """The outcome of the newest approved classification record, or ``None``."""
-    cur = ctx.classification_v2.get(system_id).get("current")
+    """The outcome of the newest approved classification record, or ``None``. With
+    ASSESS_PENDING_CLASS on (demo), a newer saved record that waits for its approval counts
+    first."""
+    got = ctx.classification_v2.get(system_id)
+    cur = got.get("current")
+    if getattr(ctx.settings, "assess_pending_class", False) and got.get("pending"):
+        cur = got["pending"]
     return str(cur["outcome"]) if cur else None
 
 
@@ -800,10 +902,18 @@ def facts_for(ctx: Any, system_id: str) -> dict[str, Any] | None:
     svc = FactsService(ctx.settings, ctx.state, ctx.clock, tables=ctx.tables)
     merged: list[dict[str, Any]] = []
     nodes: list[str] = []
+    refs: list[str] = []
     for comp in ctx.state.query("system_component", {"system_id": system_id}):
-        ref = str(comp["ref_id"])
         if str(comp.get("active", True)).lower() in ("false", "0"):
             continue
+        refs.append(str(comp["ref_id"]))
+    # A system registered from a scanned inventory object keeps the node id in its tags
+    # (``tags.node_id``) and may have no component row: read that card too.
+    row = ctx.state.get("ai_system", {"system_id": system_id})
+    node_id = str((_json_object(row.get("tags")) or {}).get("node_id") or "") if row else ""
+    if node_id and node_id not in refs:
+        refs.append(node_id)
+    for ref in refs:
         try:
             doc = export_card(svc.card(ref))
         except Exception:  # noqa: BLE001, S112 - a node without a card adds nothing
@@ -847,7 +957,7 @@ def _close_stale(ctx: Any, system_id: str) -> None:
                 {
                     "status": "failed",
                     "finished_at": ctx.clock.now(),
-                    "summary": "the run was cut short (the server restarted)",
+                    "summary": "The assessment stopped when the server restarted. Run it again.",
                 },
             )
 
@@ -869,8 +979,9 @@ def start(
     ensure_on(ctx.settings)
     system = system_row(ctx, system_id)
     if system.get("status") == "archived":
-        raise OrchestratorError("archived", "the AI system is archived; it cannot be assessed")
+        raise OrchestratorError("archived", "This AI system is archived, so it cannot be assessed.")
     catalog = catalog or get_catalog()
+    budget = budget or settings_budget(ctx.settings)
     outcome = classification_outcome(ctx, system_id)
     facts = facts_for(ctx, system_id)
     the_plan = plan(
@@ -886,23 +997,27 @@ def start(
         raise OrchestratorError(
             "plan_blocked",
             {
-                "classification_required": "the AI system has no approved classification; "
-                "classify and approve it first (step 4)",
-                "prohibited": "the classification outcome is prohibited; nothing is assessed",
-                "not_system": "the classification outcome is not_system; nothing is assessed",
+                "classification_required": "This AI system has no approved classification. "
+                "Classify and approve it at step 4, then run the assessment.",
+                "prohibited": "The classification outcome is prohibited, so nothing is assessed.",
+                "not_system": "The classification outcome is not an AI system, so nothing is "
+                "assessed.",
             }[the_plan.blocked],
         )
     with _LOCK:
         if system_id in _RUNNING:
             raise OrchestratorError(
-                "run_in_progress", f"a run for {system_id} is in progress; wait for it"
+                "run_in_progress",
+                f"An assessment for {system_id} is already running. Wait for it to finish.",
             )
         _close_stale(ctx, system_id)
         n = int(attempt_n) if attempt_n is not None else _attempt_next(ctx, system_id)
         if n < 1:
-            raise OrchestratorError("bad_attempt", "attempt_n must be 1 or more")
+            raise OrchestratorError("bad_attempt", "The attempt number must be 1 or more.")
         if any(int(r["attempt_n"]) == n for r in runs_of(ctx, system_id)):
-            raise OrchestratorError("attempt_exists", f"attempt {n} of {system_id} already ran")
+            raise OrchestratorError(
+                "attempt_exists", f"Attempt {n} of {system_id} already exists. Use a new number."
+            )
         now = ctx.clock.now()
         run_id = (
             "orc_" + hashlib.sha256(f"{system_id}|{n}|{time.time_ns()}".encode()).hexdigest()[:20]
@@ -914,6 +1029,7 @@ def start(
                 "applies": i.applies,
                 "reason": i.reason,
                 "agent": i.agent,
+                "agent_kind": i.agent_kind,
                 "status": "queued" if i.applies else "not_applicable",
                 "verdict": "",
                 "proposed_status": "",
@@ -1011,6 +1127,28 @@ def _thread(
                 del _RUNNING[sid]
 
 
+def _runner_error_note(exc: BaseException) -> str:
+    """Plain words for a runner that raised. A missing model is named; the rest by class."""
+    if getattr(exc, "code", "") == "model_not_configured":
+        return (
+            "The AI model is not set up, so this agent could not run. "
+            "Ask an administrator to check the model settings."
+        )
+    return f"The assessment failed with {type(exc).__name__}. Run it again."
+
+
+def _model_failed_note(diag: Mapping[str, Any]) -> str:
+    """The item note when calls to the AI model failed (the counts and the first reason)."""
+    failed, calls = int(diag.get("model_calls_failed") or 0), int(diag.get("model_calls") or 0)
+    left = int(diag.get("model_items_failed") or 0)
+    why = str(diag.get("model_error") or "")
+    text = f"The AI model failed on {failed} of {calls} calls"
+    text += f" ({why})." if why else "."
+    if left:
+        text += f" {left} item(s) were left open for a person."
+    return text + " Check the model settings and run it again."
+
+
 def _log(ctx: Any, run_id: str, sid: str, n: int, what: str) -> None:
     agent_log.log(ctx, sid, "orchestrate", what, f"run {run_id}", "rule", "rule", attempt_n=n)
 
@@ -1080,7 +1218,9 @@ def _write_status(
     """Write the proposal into ``risk_dimension_status``. Returns the status written or ``""`` when
     the row is left alone (waived by a person). Never writes ``pass``."""
     if status == "pass":  # defence in depth: the caller never passes it
-        raise OrchestratorError("pass_needs_person", "the orchestrator never writes pass")
+        raise OrchestratorError(
+            "pass_needs_person", "An assessment run never sets Pass. A person confirms each type."
+        )
     row = rd._need_row(env, system, dim_id)
     if row["status"] == "waived":
         return ""
@@ -1111,7 +1251,7 @@ def _write_na(env: rd.Env, system: Mapping[str, Any], dim_id: str, reason: str) 
     row = rd._need_row(env, system, dim_id)
     if row["status"] in ("waived", "pass", "fail", "not_applicable"):
         return ""
-    note = rd.clean_text(f"not applicable by rule: {reason} (orchestrator plan)", "the note", 20)
+    note = rd.clean_text(f"Not applicable: {_reason_text(reason)}", "the note", 20)
     rd._store(
         env,
         row,
@@ -1181,19 +1321,22 @@ def _execute(
         dim = pi.dimension_id
         if not pi.applies:
             item["status_written"] = _write_na(env, system, dim, pi.reason)
-            item["note"] = _clean(f"not applicable: {pi.reason}", MAX_NOTE)
+            item["note"] = _clean(f"Not applicable: {_reason_text(pi.reason)}", MAX_NOTE)
             _log(ctx, run_id, sid, n, f"{dim}: not applicable ({pi.reason})")
             continue
         item["status"] = "running"
         push()
         _log(ctx, run_id, sid, n, f"{dim}: start, agent {pi.agent}")
+        pace_ms = int(getattr(ctx.settings, "orch_demo_pace_ms", 0) or 0)
+        if pace_ms > 0:  # ORCH_DEMO_PACE_MS (demo): the progress bar shows each type
+            time.sleep(pace_ms / 1000)
         remaining_s = budget.total_seconds - (time.monotonic() - t_start)
         remaining_t = budget.total_tokens - used_tokens
         limit_s = min(float(pi.budget_seconds), remaining_s)
         limit_t = min(pi.budget_tokens, remaining_t) if pi.agent != "rule" else 0
         if limit_s <= 0 or (pi.agent != "rule" and limit_t <= 0):
             item["status"] = "budget_exceeded"
-            item["note"] = "the budget of the run was used up before this type started"
+            item["note"] = "The time or token budget ran out before this type started."
             _log(ctx, run_id, sid, n, f"{dim}: budget exceeded before start")
             push()
             continue
@@ -1205,6 +1348,7 @@ def _execute(
                 la = None
             definition = la.definition if la else None
         report_id = f"{run_id}-{dim}"
+        diag: dict[str, Any] = {}  # what a live agent tells beside its report (model failures)
         req = AgentRequest(
             run_id=run_id,
             system_id=sid,
@@ -1220,6 +1364,8 @@ def _execute(
                 "proposal": proposals[dim],
                 "prior": prior,
                 "now": now_ts,
+                "settings": ctx.settings,
+                "diag": diag,
             },
             budget_seconds=int(limit_s),
             budget_tokens=int(limit_t),
@@ -1231,13 +1377,13 @@ def _execute(
         item["ms_used"] = ms
         if outcome == "timeout":
             item["status"] = "budget_exceeded"
-            item["note"] = f"cut after {int(limit_s)} s (time budget)"
+            item["note"] = f"Stopped after {int(limit_s)} s, the time limit for this type."
             _log(ctx, run_id, sid, n, f"{dim}: cut by the time budget")
             push()
             continue
         if outcome == "error":
             item["status"] = "failed"
-            item["note"] = _clean(f"the runner raised {type(value).__name__}", MAX_NOTE)
+            item["note"] = _clean(_runner_error_note(value), MAX_NOTE)
             _log(ctx, run_id, sid, n, f"{dim}: runner failed ({type(value).__name__})")
             push()
             continue
@@ -1247,21 +1393,30 @@ def _execute(
                 raise ValueError("report is for another type or system")
         except Exception as exc:  # noqa: BLE001 - an invalid report fails the item
             item["status"] = "failed"
-            item["note"] = _clean(f"invalid assessment_report_v1: {type(exc).__name__}", MAX_NOTE)
+            item["note"] = _clean(
+                f"The agent returned an invalid report ({type(exc).__name__}). Run it again.",
+                MAX_NOTE,
+            )
             _log(ctx, run_id, sid, n, f"{dim}: report not valid")
             push()
             continue
         tokens = _tokens_used(report)
+        if live and diag.get("model_calls_failed"):
+            item["model_error"] = _clean(diag.get("model_error") or "", 120)
+            item["note"] = _clean(_model_failed_note(diag), MAX_NOTE)
         item["tokens_used"] = tokens
         used_tokens += tokens
         if live and tokens > limit_t:
             item["status"] = "budget_exceeded"
-            item["note"] = f"used {tokens} tokens; the budget was {limit_t}"
+            item["note"] = f"Used {tokens} tokens; the limit was {limit_t}."
             _log(ctx, run_id, sid, n, f"{dim}: cut by the token budget")
             push()
             continue
         path = out_dir / f"{dim}.json"
         sha = write_json(path, report)
+        from supervisor.onboard import executive  # ORCH_EXEC_FINDINGS (off): never fails the run
+
+        executive.after_report(ctx, system, facts, dim, report, out_dir, definition)
         verdict = worst_verdict(report["findings"])
         stop = stop_point(report, req, proposals[dim])
         item.update(
@@ -1289,9 +1444,9 @@ def _execute(
             f"{pi.agent}"[:128],
             report["report_id"],
             pointers,
-            f"orchestrator run {run_id}: verdict {verdict}"
-            + (f", stop point {stop}" if stop else "")
-            + "; a person confirms",
+            f"Suggested by assessment run {run_id}: {verdict}."
+            + (f" {_stop_text(stop)}" if stop else "")
+            + " A person confirms.",
         )
         prior[dim] = {"report_id": report["report_id"], "verdict": verdict}
         _log(
@@ -1307,9 +1462,9 @@ def _execute(
     write_json(out_dir / "duties_prefill.json", prefill)
     c = _counts(items)
     summary = (
-        f"{len(the_plan.applicable())} types planned: {c['done']} done, {c['needs_person']} need a "
-        f"person, {c['budget_exceeded']} over budget, {c['failed']} failed; "
-        f"{c['not_applicable']} not applicable"
+        f"{len(the_plan.applicable())} risk types assessed: {c['done']} done, "
+        f"{c['needs_person']} need your review, {c['budget_exceeded']} over budget, "
+        f"{c['failed']} failed. {c['not_applicable']} not applicable."
     )
     push()
     _finish(ctx, run_id, "done", summary)

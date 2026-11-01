@@ -24,7 +24,7 @@
 {%- else -%}{{ val }}{%- endif -%}
 {%- endmacro %}
 {% macro mark(name) %}{% set m = marks.get(name) %}{% if v3 and ai_from.get(name) %}<span class="pill teal" data-mark="facts" title="{{ ai_from.get(name) }}">{{ t('rg3_from_facts') }}</span>{% elif m == 'person' %}<span class="pill neutral" data-mark="person">{{ t('rg2_by_person') }}</span>{% elif m %}<span class="pill teal" data-mark="{{ m }}">{{ t('rg2_by_' ~ m) }}</span>{% endif %}{% endmacro %}
-{% macro chip(name) %}{% set s = sg.get(name) %}{% if s %}<div class="rg2-sug" data-suggest="{{ name }}"><span class="hint">{{ t('rg2_suggested') }}: <b>{{ valtxt(name, s.value) }}</b> - {{ t(s.reason_key) }} ({{ t('rg2_src_' ~ s.source) }}){% if s.get('fact') %} <span class="mono" data-fact="1">[{{ s.get('fact') }}]</span>{% endif %}</span>{% if v.get(name) != s.value %} <button class="chipbtn" type="submit" name="accept" value="{{ name }}">{{ t('rg2_accept') }}</button>{% endif %}</div>{% endif %}{% endmacro %}
+{% macro chip(name) %}{% set s = sg.get(name) %}{% if s %}<div class="rg2-sug" data-suggest="{{ name }}"><span class="hint">{{ t('rg2_suggested') }}: <b>{{ valtxt(name, s.value) }}</b> - {{ t(s.reason_key) }} ({{ t('rg2_src_' ~ s.source) }}){% if s.get('fact') %} <span class="mono" data-fact="1">[{{ s.get('fact') }}]</span>{% endif %}</span>{% if v.get(name) != s.value %} <button class="chipbtn" type="submit" name="accept" formnovalidate value="{{ name }}">{{ t('rg2_accept') }}</button>{% endif %}</div>{% endif %}{% endmacro %}
 {% macro text(name, required=False, area=False, maxlen=200) %}
 <label>{{ t('rg2_f_' ~ name) }} {{ mark(name) }}
   {% if area %}<textarea name="{{ name }}" rows="3" maxlength="{{ maxlen }}"{% if required %} required{% endif %}>{{ posted.get(name, v.get(name, '')) }}</textarea>
@@ -45,17 +45,17 @@
 {% macro chkbox(name) %}
 <label class="chk"><input type="checkbox" name="{{ name }}" value="1"{% if v.get(name) %} checked{% endif %}> {{ t('sy_f_' ~ name) }} {{ mark(name) }}</label>{{ chip(name) }}
 {% endmacro %}
-{% macro buttons(last=False) %}
+{% macro buttons(last=False, form=None) %}
 {% if ux5 %}<div class="g2-foot rg2-buttons">
   {% if step > 1 %}<a class="btn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>{% endif %}
   <a class="g2-sp" href="/console/register?lang={{ lang }}" style="text-align:right">{{ t('rg2_my_drafts') }}</a>
-  <button class="btn" type="submit" formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('g2_reg_save_draft') }}</button>
-  <button class="btn primary" type="submit">{{ t('rg2_continue') }}</button>
+  <button class="btn" type="submit"{% if form %} form="{{ form }}"{% endif %} formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('g2_reg_save_draft') }}</button>
+  <button class="btn primary" type="submit"{% if form %} form="{{ form }}"{% endif %}>{{ t('rg2_continue') }}</button>
 </div>
 {% else %}<p class="rg2-buttons">
   {% if step > 1 %}<a class="chipbtn" href="{{ base }}/step/{{ step - 1 }}?lang={{ lang }}">{{ t('rg2_back') }}</a>{% endif %}
-  <button class="btn" type="submit">{{ t('rg2_continue') }}</button>
-  <button class="chipbtn" type="submit" formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('rg2_save_later') }}</button>
+  <button class="btn" type="submit"{% if form %} form="{{ form }}"{% endif %}>{{ t('rg2_continue') }}</button>
+  <button class="chipbtn" type="submit"{% if form %} form="{{ form }}"{% endif %} formnovalidate formaction="{{ base }}/step/{{ step }}?save=1&amp;lang={{ lang }}">{{ t('rg2_save_later') }}</button>
   <a href="/console/register?lang={{ lang }}">{{ t('rg2_my_drafts') }}</a>
 </p>{% endif %}
 {% endmacro %}
@@ -83,7 +83,15 @@
 
 {% elif key == 'facts' %}
 {% if not live.facts %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_FACTS') }}</div>
+{% else %}
+{% if live.analysis %}
+<div class="tabs" role="tablist" aria-label="{{ t('tabs_label') }}" data-register="facts-tabs">
+  <a role="tab" data-tab="facts" class="on" aria-selected="true" href="#" hx-get="/console/facts/{{ src_key|urlencode }}?lang={{ lang }}" hx-target="#facts-tabbody" hx-swap="innerHTML" hx-push-url="false">{{ t('fk_title') }}</a>
+  <a role="tab" data-tab="analysis" aria-selected="false" href="/console/code-analysis/{{ src_key|urlencode }}?lang={{ lang }}" hx-get="/console/code-analysis/{{ src_key|urlencode }}?lang={{ lang }}" hx-target="#facts-tabbody" hx-swap="innerHTML" hx-push-url="false">{{ t('atab_analysis') }}</a>
+</div>
+<div id="facts-tabbody" class="tabpanel" role="tabpanel">{% include "_facts_panel.html" %}</div>
 {% else %}{% include "_facts_panel.html" %}{% endif %}
+{% endif %}
 <form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="facts">
   <p class="hint">{{ t('rg3_facts_next') }}</p>
   {{ buttons() }}
@@ -121,7 +129,7 @@
       <span class="hint">{{ t('rg3_flag_rule_' ~ f) }}</span></label>
     {% endfor %}
   </fieldset>
-  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
+  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" formnovalidate value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
   <p class="hint">{{ t('rg3_system_made') }}</p>
   {{ buttons() }}
 </form>
@@ -154,7 +162,7 @@
   {% if scoped %}<p class="hint">{{ t('rg2_owner_scoped', user=v.get('owner_user', '')) }}</p>{% else %}{{ text('owner_user', True, maxlen=128) }}{% endif %}
   {{ text('owner_team', True, maxlen=128) }}
   {{ text('description', False, True, 500) }}
-  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
+  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" formnovalidate value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
   {{ buttons() }}
 </form>
 
@@ -171,7 +179,7 @@
   {{ chkbox('credit_decision') }}
   {{ text('model_family', maxlen=64) }}
   {{ text('data_sources', False, True, 600) }}
-  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
+  {% if sg %}<p><button class="chipbtn" type="submit" name="accept" formnovalidate value="*">{{ t('rg2_accept_all') }}</button></p>{% endif %}
   {{ buttons() }}
 </form>
 
@@ -312,7 +320,7 @@
 {% if sg_on %}{% include "_smart_guardian_panel.html" %}{% endif %}
 {% if pd %}{% include "_predeploy_panel.html" %}{% else %}<div class="notice" data-register="turn-on"><span class="dot"></span>{{ t('rg3_turn_on', flag='ONBOARD_PREDEPLOY') }}</div>{% endif %}
 {% endif %}
-<form class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="step5">
+<form id="rg-guardians-form" class="card wizform" method="post" action="{{ base }}/step/{{ step }}?lang={{ lang }}" data-register="step5">
   <input type="hidden" name="bind_form" value="1">
   {% if not g.bindings_on %}<div class="notice"><span class="dot"></span>{{ t('rg2_bindings_off') }}</div>{% endif %}
   {% if not g.floor_known %}<p class="hint">{{ t('rg2_need_steps_12') }}</p>{% endif %}
@@ -330,8 +338,15 @@
     {% endfor %}
     </tbody></table></div>
   <p class="hint">{{ t('rg2_guardian_hint') }}</p>
-  {{ buttons() }}
 </form>
+{# GUARDIAN_KIT / red team: the blocks sit outside the form (they hold buttons of their own); Back, Save
+   and Continue stay at the end and submit the form above. Context for the blocks: system_id, source_key. #}
+{% if v3 %}
+{% set gk_sid = system_id %}{% set gk_src = source_key %}
+{% include "_guardian_kit.html" %}
+{% include "_redteam_step_panel.html" ignore missing %}
+{% endif %}
+{{ buttons(form='rg-guardians-form') }}
 
 {% else %}
 <div class="card" data-register="review">

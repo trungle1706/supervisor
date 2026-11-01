@@ -33,6 +33,8 @@ import yaml
 
 from supervisor.core.canonical import canonical_json, format_ts
 from supervisor.core.errors import ConcurrencyError, SupervisorError
+from supervisor.core.people import is_system_owner
+from supervisor.core.rows import rows_by
 
 log = logging.getLogger(__name__)
 
@@ -121,7 +123,8 @@ def ensure_on(settings: Any) -> None:
     if not enabled(settings):
         raise RiskDimensionError(
             "risk_dimensions_off",
-            "risk dimensions are off (RISK_DIMENSIONS=1 turns them on; needs GOVERNANCE_ENABLED)",
+            "Risk assessment is switched off. Ask an administrator to set RISK_DIMENSIONS=1 "
+            "(it also needs GOVERNANCE_ENABLED).",
         )
 
 
@@ -164,7 +167,7 @@ class Config:
             if d.id == dim_id:
                 return d
         raise RiskDimensionError(
-            "unknown_dimension", f"dimension must be one of {', '.join(DIMENSION_IDS)}"
+            "unknown_dimension", f"Unknown risk type. Use one of: {', '.join(DIMENSION_IDS)}."
         )
 
 
@@ -438,13 +441,18 @@ def _check_pack(
     current = versions.get(m.id)
     pointers: list[str] = []
     states: list[str] = []
+    # The newest result of every agent in one batch read.
+    latest = rows_by(
+        env.tables,
+        "eval_result",
+        "target_id",
+        agents,
+        where={"target_kind": "agent", "pack_id": m.id},
+        order_by=["-ts"],
+        per_key_limit=1,
+    )
     for agent in agents:
-        rows = env.tables.query(
-            "eval_result",
-            {"target_kind": "agent", "target_id": agent, "pack_id": m.id},
-            order_by=["-ts"],
-            limit=1,
-        )
+        rows = latest.get(agent, [])
         if not rows:
             states.append("missing")
             continue
@@ -476,10 +484,10 @@ def _check_monitor(env: Env, m: Measure, agents: list[str]) -> dict[str, Any]:
     table = MONITOR_TABLES[m.id]
     pointers: list[str] = []
     ok = bool(agents)
+    store = env.tables if table == "fairness_slice" else env.state  # append-only | state
+    seen = rows_by(store, table, "agent_id", agents, columns=("agent_id",), per_key_limit=1)
     for agent in agents:
-        store = env.tables if table == "fairness_slice" else env.state  # append-only | state
-        rows = store.query(table, {"agent_id": agent}, limit=1)
-        if rows:
+        if seen.get(agent):
             pointers.append(f"monitor:{m.id}:{agent}"[:158])
         else:
             ok = False
@@ -534,44 +542,48 @@ def clean_pointers(value: Any) -> list[str]:
     if isinstance(value, str):
         value = [p for p in re.split(r"[\s,]+", value) if p]
     if not isinstance(value, list):
-        raise RiskDimensionError("bad_evidence", "evidence must be a list of pointers")
+        raise RiskDimensionError("bad_evidence", "Evidence must be a list of references.")
     out: list[str] = []
     for p in value:
         if not isinstance(p, str) or not _POINTER.match(p.strip()):
             raise RiskDimensionError(
                 "bad_evidence",
-                "an evidence pointer looks like pack:<pack>:<run>:<agent>, fact:<id> or doc:<id>",
+                "This evidence reference is not valid. Use pack:<pack>:<run>:<agent>, "
+                "fact:<id> or doc:<id>.",
             )
         if p.strip() not in out:
             out.append(p.strip())
     if len(out) > MAX_POINTERS:
-        raise RiskDimensionError("bad_evidence", f"at most {MAX_POINTERS} evidence pointers")
+        raise RiskDimensionError(
+            "bad_evidence", f"Too many evidence references. Keep at most {MAX_POINTERS}."
+        )
     return out
 
 
 def clean_text(value: Any, what: str, minimum: int = 0) -> str:
     text = value.strip() if isinstance(value, str) else ""
     if len(text) < minimum:
-        raise RiskDimensionError("reason_too_short", f"{what} needs at least {minimum} characters")
+        raise RiskDimensionError(
+            "reason_too_short",
+            f"{what[0].upper()}{what[1:]} needs at least {minimum} characters. Add more detail.",
+        )
     if len(text) > MAX_NOTE:
-        raise RiskDimensionError("note_too_long", f"{what} is longer than {MAX_NOTE} characters")
+        raise RiskDimensionError(
+            "note_too_long",
+            f"{what[0].upper()}{what[1:]} is longer than {MAX_NOTE} characters. Shorten it.",
+        )
     if _CTRL_CHARS.search(text):
-        raise RiskDimensionError("bad_text", f"{what} has control characters")
+        raise RiskDimensionError(
+            "bad_text",
+            f"{what[0].upper()}{what[1:]} has characters that are not allowed. Remove them.",
+        )
     from supervisor.governance.triage import scrub
 
     return scrub(text)
 
 
 def is_owner(system: Mapping[str, Any], user: str) -> bool:
-    from supervisor.governance.lifecycle import same
-
-    if same(str(system.get("owner_user") or ""), user):
-        return True
-    return any(
-        same(str(m.get("user_id") or ""), user) and m.get("team_role") == "system_owner"
-        for m in system.get("team") or []
-        if m.get("active", True)
-    )
+    return is_system_owner(system, system.get("team") or [], user)
 
 
 def _evidence_hash(pointers: Iterable[str]) -> str:
@@ -614,7 +626,9 @@ def _need_row(env: Env, system: Mapping[str, Any], dim_id: str) -> dict[str, Any
         "risk_dimension_status", {"status_id": status_id(str(system["system_id"]), dim_id)}
     )
     if raw is None:
-        raise RiskDimensionError("unknown_dimension", "no such row")
+        raise RiskDimensionError(
+            "unknown_dimension", "This risk type was not found. Reload the page."
+        )
     return _row(raw)
 
 
@@ -628,13 +642,14 @@ def _store(env: Env, row: Mapping[str, Any], changes: Mapping[str, Any]) -> None
         )
     except ConcurrencyError:
         raise RiskDimensionError(
-            "changed", f"{row['dimension_id']} was changed by someone else; reload"
+            "changed",
+            f"{row['dimension_id']} was changed by someone else. Reload the page and try again.",
         ) from None
 
 
 def _need_open(system: Mapping[str, Any]) -> None:
     if system.get("status") == "archived":
-        raise RiskDimensionError("archived", "the AI system is archived; it cannot be changed")
+        raise RiskDimensionError("archived", "This AI system is archived, so it cannot be changed.")
 
 
 def _valid_until(env: Env, dim: Dimension, status: str, given: Any) -> str | None:
@@ -642,7 +657,7 @@ def _valid_until(env: Env, dim: Dimension, status: str, given: Any) -> str | Non
         try:
             return dt.date.fromisoformat(str(given)[:10]).isoformat()
         except ValueError:
-            raise RiskDimensionError("bad_date", "valid_until must be a date YYYY-MM-DD") from None
+            raise RiskDimensionError("bad_date", "Enter the review date as YYYY-MM-DD.") from None
     if status == "pass" and dim.review_days:
         return (_now(env).date() + dt.timedelta(days=dim.review_days)).isoformat()
     return None
@@ -666,15 +681,19 @@ def set_status(
     _need_open(system)
     if status == "waived":
         raise RiskDimensionError(
-            "use_waive", "a waiver has its own action: it needs a reason and a second person"
+            "use_waive", "Use Waive for this. A waiver needs a reason and a second approver."
         )
     if status not in SETTABLE:
-        raise RiskDimensionError("bad_status", f"status must be one of {', '.join(SETTABLE)}")
+        raise RiskDimensionError(
+            "bad_status", f"Unknown status. Use one of: {', '.join(SETTABLE)}."
+        )
     dim = env.cfg.get(dim_id)
     row = _need_row(env, system, dim_id)
     pointers = clean_pointers(evidence) if evidence not in (None, "") else list(row["evidence"])
     if status == "pass" and not pointers:
-        raise RiskDimensionError("evidence_required", "pass needs at least one evidence pointer")
+        raise RiskDimensionError(
+            "evidence_required", "Pass needs at least one piece of evidence. Add it, then save."
+        )
     text = clean_text(note, "the note", 20 if status == "not_applicable" else 0)
     changes: dict[str, Any] = {
         "status": status,
@@ -689,7 +708,9 @@ def set_status(
         changes["threshold_json"] = check_threshold(threshold)
     if report_ref not in (None, ""):
         if not isinstance(report_ref, str) or not _REF.match(report_ref):
-            raise RiskDimensionError("bad_report_ref", "report_ref must be a report id")
+            raise RiskDimensionError(
+                "bad_report_ref", "This is not a valid report id. Check it and try again."
+            )
         changes["report_ref"] = report_ref
     _store(env, row, changes)
     _record(env, str(system["system_id"]), dim_id, str(row["status"]), status, actor, pointers)
@@ -708,7 +729,10 @@ def confirm_proposal(
     ensure_on(env.settings)
     prop = propose(env, str(system["system_id"]), dim_id)[dim_id]
     if prop["status"] == "not_started":
-        raise RiskDimensionError("no_proposal", "the rules have no proposal for this type yet")
+        raise RiskDimensionError(
+            "no_proposal",
+            "There is no suggested result for this risk type yet. Set the status yourself.",
+        )
     out = set_status(
         env,
         actor,
@@ -716,7 +740,7 @@ def confirm_proposal(
         dim_id,
         prop["status"],
         evidence=prop["evidence"] or None,
-        note="from rule proposal, confirmed by a person",
+        note="Suggested by the rules, confirmed by a person.",
     )
     out["from_proposal"] = True
     return out
@@ -732,12 +756,14 @@ def waive(
     if is_owner(system, actor):
         raise RiskDimensionError(
             "owner_cannot_waive",
-            "the owner of a system cannot waive a risk type of the own system; "
-            "a second person with approval rights does it",
+            "The system owner cannot waive a risk type of their own system. "
+            "Ask a second approver to do it.",
         )
     row = _need_row(env, system, dim_id)
     if row["status"] == "waived":
-        raise RiskDimensionError("already_waived", f"{dim_id} is already waived")
+        raise RiskDimensionError(
+            "already_waived", f"{dim_id} is already waived. No further action is needed."
+        )
     _store(
         env,
         row,
@@ -815,11 +841,15 @@ def summary(env: Env, system_ids: Iterable[str]) -> dict[str, Any]:
     rows counts as not_started for every type (the rows are made when the system is read)."""
     ids = list(system_ids)
     by_dim = {d.id: dict.fromkeys(STATUSES, 0) for d in env.cfg.dimensions}
+    rows = rows_by(
+        env.state,
+        "risk_dimension_status",
+        "system_id",
+        ids,
+        columns=("system_id", "dimension_id", "status"),
+    )
     for sid in ids:
-        have = {
-            r["dimension_id"]: r["status"]
-            for r in env.state.query("risk_dimension_status", {"system_id": sid})
-        }
+        have = {r["dimension_id"]: r["status"] for r in rows.get(sid, [])}
         for d in env.cfg.dimensions:
             st = str(have.get(d.id, "not_started"))
             by_dim[d.id][st] = by_dim[d.id].get(st, 0) + 1

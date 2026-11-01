@@ -45,6 +45,7 @@ from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, SupervisorError
 from supervisor.core.ports import Clock, EvidenceSink, Masker, Notifier, StateStore, TableStore
+from supervisor.core.rows import rows_by
 from supervisor.evidence.casefile.builder import (
     CaseFile,
     SbvClocks,
@@ -205,11 +206,25 @@ class CaseService:
     def linked_verdicts(self, case_id: str) -> list[dict[str, Any]]:
         """Verdict rows of the case's sources (gate decisions and judge verdicts)."""
         out: dict[str, dict[str, Any]] = {}
-        for link in self.links(case_id):
+        links = self.links(case_id)
+        # One batch read per source kind, not one query per link.
+        gate = rows_by(
+            self.tables,
+            "verdict",
+            "event_id",
+            [lk["source_ref"] for lk in links if lk["source_kind"] == "gate"],
+        )
+        judge = rows_by(
+            self.tables,
+            "verdict",
+            "verdict_id",
+            [lk["source_ref"] for lk in links if lk["source_kind"] == "judge"],
+        )
+        for link in links:
             if link["source_kind"] == "gate":
-                rows = self.tables.query("verdict", {"event_id": link["source_ref"]})
+                rows = gate.get(link["source_ref"], [])
             elif link["source_kind"] == "judge":
-                rows = self.tables.query("verdict", {"verdict_id": link["source_ref"]})
+                rows = judge.get(link["source_ref"], [])
             else:
                 rows = []
             for r in rows:
@@ -622,14 +637,31 @@ class CaseService:
         """Alert grouping: an open case of this agent already opened by the same rule."""
         if not rule_id:
             return None
-        for case in self.list_cases(agent_id=agent_id):
-            if case["status"] == "closed":
-                continue
-            for link in self.links(case["case_id"]):
-                if link["source_kind"] != "gate":
-                    continue
-                rows = self.tables.query("verdict", {"event_id": link["source_ref"]})
-                if any(r.get("rule_id") == rule_id for r in rows):
+        open_cases = [c for c in self.list_cases(agent_id=agent_id) if c["status"] != "closed"]
+        if not open_cases:
+            return None
+        # Two batch reads (links of all open cases, then verdicts of all gate refs) in place of
+        # one query per open case and per gate link.
+        links = rows_by(self.tables, "case_link", "case_id", [c["case_id"] for c in open_cases])
+        refs = [
+            lk["source_ref"]
+            for c in open_cases
+            for lk in links.get(c["case_id"], [])
+            if lk["source_kind"] == "gate"
+        ]
+        verdicts = rows_by(
+            self.tables,
+            "verdict",
+            "event_id",
+            refs,
+            columns=("event_id", "rule_id"),
+        )
+        hit = {
+            ref for ref, rows in verdicts.items() if any(r.get("rule_id") == rule_id for r in rows)
+        }
+        for case in open_cases:
+            for link in links.get(case["case_id"], []):
+                if link["source_kind"] == "gate" and link["source_ref"] in hit:
                     return case
         return None
 

@@ -16,14 +16,8 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
+from supervisor.core.flags import truthy as _on
 from supervisor.governance.model import SystemsError
-
-
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
-
 
 log = logging.getLogger("supervisor.governance.events")
 

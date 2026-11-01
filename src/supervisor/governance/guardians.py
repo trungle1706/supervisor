@@ -35,6 +35,8 @@ import yaml
 from supervisor.controls.model import actor_ref
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import ConcurrencyError, NotFoundError
+from supervisor.core.flags import truthy as _on
+from supervisor.core.people import same_person
 from supervisor.governance.model import SystemsError, check_system_id, check_user, ensure_on
 
 log = logging.getLogger("supervisor.governance")
@@ -54,12 +56,6 @@ NEVER_BINDABLE = frozenset({"policy_rules"})  # the gate rules block; a person n
 CACHE_TTL_S = 5.0
 
 _generation = 0  # bumped by every write in this process, so a narrower never serves a stale set
-
-
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
 
 
 class GuardianOffError(SystemsError):
@@ -445,7 +441,7 @@ class GuardianService:
             raise NotFoundError(f"switch-off request {request_id} does not exist")
         if req["status"] != "pending":
             raise GuardianOffError(f"the request was already answered ({req['status']})")
-        if str(req["requested_by"]).casefold() == approver.casefold():
+        if same_person(req["requested_by"], approver):
             raise GuardianOffError(
                 "same_person: the person who asked for the switch-off cannot answer it; "
                 "a second person does"

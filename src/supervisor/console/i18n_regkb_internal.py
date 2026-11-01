@@ -7,8 +7,8 @@ from __future__ import annotations
 RI: dict[str, tuple[str, str]] = {
     "ri_title": ("Internal documents", "Tài liệu nội bộ"),
     "ri_hint": (
-        "Upload a policy, standard or procedure (.txt, .md or .pdf with a text layer, up to {mb} MB). Personal data is masked first; only the masked text goes to the gateway model. The model drafts one duty per section; a person with the compliance sign-off role confirms each row. Confirmed rows become the internal instrument VN-INT-<id>.",
-        "Tải lên chính sách, tiêu chuẩn hoặc quy trình (.txt, .md hoặc .pdf có lớp chữ, tối đa {mb} MB). Dữ liệu cá nhân được che trước; chỉ văn bản đã che được gửi tới mô hình của cổng. Mô hình soạn một nghĩa vụ cho mỗi mục; người có vai trò xác nhận tuân thủ xác nhận từng dòng. Các dòng đã xác nhận trở thành văn bản nội bộ VN-INT-<id>.",
+        "Upload a policy, standard or procedure (.txt, .md, or .pdf with text; max {mb} MB). Personal data is masked first. AI drafts one duty per section, and a compliance reviewer confirms each one.",
+        "Tải lên chính sách, tiêu chuẩn hoặc quy trình (.txt, .md, hoặc .pdf có chữ; tối đa {mb} MB). Dữ liệu cá nhân được che trước. AI soạn một nghĩa vụ cho mỗi mục, và người rà soát tuân thủ xác nhận từng nghĩa vụ.",
     ),
     "ri_banner": (
         "Not legal advice. Bank counsel must confirm.",
@@ -35,19 +35,18 @@ RI: dict[str, tuple[str, str]] = {
     "ri_f_version": ("Version label", "Nhãn phiên bản"),
     "ri_send": ("Upload", "Tải lên"),
     "ri_view_only": (
-        "You can read this page. Uploading needs the upload permission.",
-        "Bạn chỉ xem được trang này. Tải lên cần quyền tải lên.",
+        "You can read this page but not upload. Ask for the upload permission.",
+        "Bạn chỉ xem được trang này. Hãy xin quyền tải lên để tải tài liệu.",
     ),
-    "ri_instrument": ("Instrument", "Văn bản"),
+    "ri_instrument": ("Register entry", "Mục đăng ký"),
     "ri_has_instrument": ("in RegKB", "đã vào RegKB"),
-    "ri_not_yet": ("not yet", "chưa"),
+    "ri_not_yet": ("Not in RegKB yet", "Chưa vào RegKB"),
     "ri_drafted_note": (
-        "{id}: {kept} draft(s) written, {dropped} dropped by the rules, {nodut} section(s) without a duty.",
-        "{id}: đã ghi {kept} bản nháp, {dropped} bị quy tắc loại, {nodut} mục không có nghĩa vụ.",
+        "{id}: {kept} draft(s) saved, {dropped} dropped by the rules, {nodut} section(s) without a duty.",
+        "{id}: đã lưu {kept} bản nháp, quy tắc loại {dropped}, {nodut} mục không có nghĩa vụ.",
     ),
     "ri_uploaded_note": (
         "{id} uploaded; {n} section(s) found.",
         "Đã tải lên {id}; tìm thấy {n} mục.",
     ),
-    "ri_factory_link": ("Internal documents", "Tài liệu nội bộ"),
 }

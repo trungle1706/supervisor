@@ -1,0 +1,12 @@
+{# Brief report of one assessment run as a page (opened in a new tab from the panel, or from the
+   Open report link of a risk type with ?dim=). Variables: s, brief_* (systems_orch.brief_view). #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('g2_br_title', n=brief_run.attempt_n) }} - {{ s.name }}{% endblock %}
+{% block content %}
+{% if ux5 %}<link rel="stylesheet" href="/console/static/ux5_g2.css">{% endif %}
+{{ ui.crumbs([(t('nv3_gov'), None), (t('nv3_systems'), '/console/systems?lang=' ~ lang), (s.name, '/console/systems/' ~ s.system_id ~ '?tab=riskdim&lang=' ~ lang), (t('g2_br_title', n=brief_run.attempt_n), None)]) }}
+<section class="card g2-br-page">
+{% include "_system_orch_brief.html" %}
+</section>
+{% endblock %}

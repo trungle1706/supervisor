@@ -68,12 +68,6 @@ def same_person(a: str | None, b: str | None) -> bool:
     return bool(a) and bool(b) and str(a).strip().casefold() == str(b).strip().casefold()
 
 
-def _denied(text: str) -> Exception:
-    from supervisor.cases.service import PermissionDenied
-
-    return PermissionDenied(text)
-
-
 def _clean(text: Any, limit: int) -> str:
     s = "".join(c for c in str(text or "") if c >= " " or c in "\n\t").strip()
     return s[:limit]

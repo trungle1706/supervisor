@@ -22,7 +22,6 @@ Not legal advice. Bank counsel must confirm.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
@@ -40,6 +39,7 @@ import yaml
 
 from supervisor.config import timeout_setting
 from supervisor.core.canonical import format_ts
+from supervisor.core.canonical import sha256_bytes_hex as _sha
 from supervisor.core.errors import ConcurrencyError, SupervisorError
 from supervisor.core.ports import ChatModel
 from supervisor.regkb.drafts import MAX_QUOTE, DraftStore, quote_key
@@ -366,10 +366,6 @@ class RunSummary:
 
 
 # ---------------------------------------------------------------------------- the service
-
-
-def _sha(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def _write(path: Path, data: bytes) -> None:

@@ -27,6 +27,8 @@ from supervisor.controls.model import actor_ref
 from supervisor.core import rbac
 from supervisor.core.canonical import format_ts, sha256_hex
 from supervisor.core.errors import NotFoundError
+from supervisor.core.flags import truthy as _on
+from supervisor.core.people import is_system_owner, same_person
 from supervisor.governance import decision33 as d33
 from supervisor.governance.conditions import RulesError
 from supervisor.governance.model import (
@@ -78,12 +80,6 @@ class JustificationTooShort(SystemsError):
     """An answer has a justification under 20 characters (code ``justification_too_short``)."""
 
     code = "justification_too_short"
-
-
-def _on(value: Any) -> bool:
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true")
-    return bool(value)
 
 
 def classification_id(system_id: str, n: int) -> str:
@@ -462,12 +458,8 @@ class ClassificationService:
     def _is_owner(self, system_id: str, uid: str) -> bool:
         """The owner of the system: ``owner_user`` or an active ``system_owner`` team member."""
         row = self.state.get("ai_system", {"system_id": system_id})
-        if row is not None and row.get("owner_user") == uid:
-            return True
-        return any(
-            _on(m["active"]) and m["team_role"] == "system_owner"
-            for m in self.state.query("system_team", {"system_id": system_id, "user_id": uid})
-        )
+        team = self.state.query("system_team", {"system_id": system_id})
+        return is_system_owner(row, team, uid)
 
     def _check_apply(self, system_id: str, user: Any, draft: Mapping[str, Any]) -> None:
         roles = frozenset(getattr(user, "roles", ()) or ())
@@ -476,8 +468,8 @@ class ClassificationService:
 
             raise PermissionDenied("applying a classification needs systems.edit")
         uid = str(user.user_id)
-        for m in self.state.query("system_team", {"system_id": system_id, "user_id": uid}):
-            if _on(m["active"]) and m["team_role"] in SOD_ROLES:
+        for m in self.state.query("system_team", {"system_id": system_id}):
+            if same_person(m["user_id"], uid) and _on(m["active"]) and m["team_role"] in SOD_ROLES:
                 raise SegregationOfDuties(
                     f"segregation of duties: {uid} is {m['team_role']} of this system and "
                     "cannot apply its classification"

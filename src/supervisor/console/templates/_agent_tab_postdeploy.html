@@ -1,2 +1,5 @@
 {# Post-deploy tab of the Agent page (WP-O5): statistics, timeline and the agent log. #}
+{% if stab_link is defined and stab_link %}
+<p class="hint" data-link="stability"><a class="btn sm" href="{{ stab_link }}&amp;lang={{ lang }}">{{ t('st_from_agent') }}</a> {{ t('st_from_agent_hint') }}</p>
+{% endif %}
 {% include "_postdeploy_panel.html" %}

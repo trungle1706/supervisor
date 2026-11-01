@@ -7,13 +7,12 @@ Decision 33 lines are shortened, and the raw text stays reachable (``raw`` / tec
 
 from __future__ import annotations
 
-import csv
-import io
 import re
 from collections.abc import Callable
 from typing import Any
 
 from supervisor.console.ux5 import PAGE_SIZE
+from supervisor.core.csvsafe import write_csv
 
 OPEN_GROUPS = 3
 TABS = ("summary", "d33", "all")
@@ -78,17 +77,21 @@ def evidence_label(row: dict[str, Any], t: Callable[..., str]) -> str:
         return reason
     present, missing = m.group(1), m.group(2)
     have = [] if present.strip() == "none" else [_item_name(i) for i in _split_top(present)]
-    lack = []
+    lack: list[str] = []  # missing, the feature is on
+    off: list[str] = []  # missing because the feature is not switched on
     if missing.strip() != "none":
         for item in _split_top(missing):
             name = _item_name(item)
-            if re.search(r"\((catalogue|monitor|evidence) not on\)", item):
-                name += " (" + t("g3_ev_off") + ")"
-            lack.append(name)
+            bucket = off if re.search(r"\((catalogue|monitor|evidence) not on\)", item) else lack
+            if name not in bucket:  # UI-114: one name once
+                bucket.append(name)
+    names = ", ".join(lack)
+    if off:  # UI-114: "not switched on" once per row, after the names it applies to
+        names += ("; " if lack else "") + ", ".join(off) + " (" + t("g3_ev_off") + ")"
     parts = []
     if have:
         parts.append(t("g3_ev_have", names=", ".join(have)))
-    parts.append(t("g3_ev_missing", names=", ".join(lack)) if lack else t("g3_ev_nomissing"))
+    parts.append(t("g3_ev_missing", names=names) if (lack or off) else t("g3_ev_nomissing"))
     return " ".join(parts)
 
 
@@ -160,19 +163,32 @@ def _vnd(n: Any) -> str:
         return str(n)
 
 
+_RULE_ID = re.compile(r"^[A-Z]{2,}-[0-9]+$")  # a gate rule id such as PAY-03
+
+
 def thresholds(m: dict[str, Any], t: Callable[..., str]) -> list[dict[str, Any]]:
-    out = []
+    """The limits table. UI-110: the matrix lists the effective daily ceiling as one more row that
+    repeats the smallest daily limit, so a row equal to an earlier one (rule, period, limit, cap,
+    verdict) is dropped; a limit named by a manifest key (``daily_transfer_max_minor``) is
+    labelled as the agent's own setting, with the key only in the tooltip."""
+    out: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
     for f in m.get("thresholds", []):
         per_txn = f.get("period") == "per_transaction"
         period = t("g3_th_txn") if per_txn else t("g3_th_day")
         verdict = f.get("verdict", "")
         key = {"exceeds": "g3_th_exceeds", "at_cap": "g3_th_atcap"}.get(verdict, "g3_th_within")
-        raw_id = f.get("limit_id", "")
-        lid = words(raw_id) if "_" in raw_id else raw_id
+        raw_id = str(f.get("limit_id", ""))
+        same = (raw_id, f.get("period"), f.get("limit_vnd"), f.get("cap_vnd"), verdict)
+        if same in seen:
+            continue
+        seen.add(same)
+        lid = raw_id if _RULE_ID.match(raw_id) or "_" not in raw_id else t("b1_th_manifest")
         out.append(
             {
                 "id": f.get("id", ""),
                 "label": f"{lid} · {period}",
+                "key": raw_id,
                 "limit": _vnd(f.get("limit_vnd")),
                 "cap": _vnd(f.get("cap_vnd")),
                 "verdict": verdict,
@@ -264,32 +280,26 @@ def groups(
 
 
 def csv_text(rows: list[dict[str, Any]]) -> str:
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(
-        [
-            "obligation_id",
-            "instrument",
-            "article",
-            "applies",
-            "status",
-            "summary_en",
-            "status_reason",
-        ]
-    )
-    for r in rows:
-        w.writerow(
-            [
-                r.get("obligation_id", ""),
-                r.get("instrument_number", ""),
-                r.get("article_ref", ""),
-                r.get("applies", ""),
-                r.get("status", ""),
-                r.get("summary_en", ""),
-                r.get("status_reason", ""),
-            ]
-        )
-    return buf.getvalue()
+    """The obligations as CSV text. Every cell goes through the shared formula guard."""
+    header = [
+        "obligation_id",
+        "instrument",
+        "article",
+        "applies",
+        "status",
+        "summary_en",
+        "status_reason",
+    ]
+    keys = [
+        "obligation_id",
+        "instrument_number",
+        "article_ref",
+        "applies",
+        "status",
+        "summary_en",
+        "status_reason",
+    ]
+    return write_csv(header, ([r.get(k, "") for k in keys] for r in rows), "\r\n")
 
 
 def build(

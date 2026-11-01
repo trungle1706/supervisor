@@ -98,17 +98,19 @@
 {{ ui.empty(t('tk_tab_off')) }}
 {% endif %}
 {% for tk in task_agents %}
+{# UI-069: "required" is the rule; the column shows only when some task is optional #}
+{% set req_all = (tk.tasks|rejectattr('required')|list|length) == 0 %}
 <section class="card" data-section="system-tasks-{{ tk.agent_id }}">
   <h3>{% if tk.get('system_own') %}{{ t('g2_tk_lifecycle') }}{% else %}<span class="mono">{{ tk.agent_id }}</span>{% endif %}</h3>
   {% if tk.get('system_own') %}
   <div class="tablewrap flat"><table data-table="system-own-tasks">
-    <thead><tr><th scope="col">{{ t('tk_col_task') }}</th><th scope="col">{{ t('tk_col_stage') }}</th><th scope="col">{{ t('tk_col_required') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('tk_col_due') }}</th>{% if wf is defined %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
+    <thead><tr><th scope="col">{{ t('tk_col_task') }}</th><th scope="col">{{ t('tk_col_stage') }}</th>{% if not req_all %}<th scope="col">{{ t('tk_col_required') }}</th>{% endif %}<th scope="col">{{ t('status') }}</th><th scope="col">{{ t('tk_col_due') }}</th>{% if wf is defined %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
     <tbody>
     {% for r in tk.tasks if not r.template_id.startswith('DUTY-') %}
       <tr>
-        <td><b>{{ r.title }}</b><div class="idline" title="{{ r.template_id }}">{{ r.template_id }}</div></td>
+        <td><b>{{ label_text('task', r.template_id, r.title) }}</b><div class="idline" title="{{ r.template_id }}">{{ r.template_id }}</div></td>
         <td>{{ t('tk_stage_' ~ r.stage) }}</td>
-        <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
+        {% if not req_all %}<td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>{% endif %}
         <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>
         <td class="mono">{{ (r.due_at or '-')[:10] }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
         {% if wf is defined %}<td>{% if r.wf is defined and (r.wf.done or r.wf.waive or r.wf.waive_answer) %}<details class="g2-menu"><summary class="btn sm" data-act="task-menu">{{ t('wf_actions') }}</summary><div class="g2-menu-body">{{ task_actions(r) }}</div></details>{% elif r.waive_pending %}<span class="hint">{{ t('wf_waive_pending') }}</span>{% endif %}</td>{% endif %}
@@ -124,13 +126,13 @@
   {% if tk.get('initiation_only') %}<p class="hint">{{ t('sy_tasks_initiation_only') }}</p>{% endif %}
   <p>{{ ui.bar(tk.stage_done_bp, 'ok') }}{{ t('tk_required_open', n=tk.required_open, total=tk.required_total) }}{% if tk.overdue %} · {{ ui.pill(t('rk_overdue') ~ ' ' ~ tk.overdue, 'bad') }}{% endif %}</p>
   <div class="tablewrap flat"><table>
-    <thead><tr><th scope="col">{{ t('tk_col_task') }}</th><th scope="col">{{ t('tk_col_stage') }}</th><th scope="col">{{ t('tk_col_required') }}</th><th scope="col">{{ t('status') }}</th><th scope="col">{{ t('tk_col_due') }}</th>{% if wf is defined %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
+    <thead><tr><th scope="col">{{ t('tk_col_task') }}</th><th scope="col">{{ t('tk_col_stage') }}</th>{% if not req_all %}<th scope="col">{{ t('tk_col_required') }}</th>{% endif %}<th scope="col">{{ t('status') }}</th><th scope="col">{{ t('tk_col_due') }}</th>{% if wf is defined %}<th scope="col">{{ t('wf_actions') }}</th>{% endif %}</tr></thead>
     <tbody>
     {% for r in tk.tasks if not r.template_id.startswith('DUTY-') %}
       <tr>
-        <td><b>{{ r.title }}</b><div class="idline" title="{{ r.template_id }}">{{ r.template_id }}</div></td>
+        <td><b>{{ label_text('task', r.template_id, r.title) }}</b><div class="idline" title="{{ r.template_id }}">{{ r.template_id }}</div></td>
         <td>{{ t('tk_stage_' ~ r.stage) }}</td>
-        <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
+        {% if not req_all %}<td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>{% endif %}
         <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>
         <td class="mono">{{ (r.due_at or '-')[:10] }}{% if r.overdue %} {{ ui.pill(t('rk_overdue'), 'bad') }}{% endif %}</td>
         {% if wf is defined %}<td>{% if r.wf is defined and (r.wf.done or r.wf.waive or r.wf.waive_answer) %}<details class="g2-menu"><summary class="btn sm" data-act="task-menu">{{ t('wf_actions') }}</summary><div class="g2-menu-body">{{ task_actions(r) }}</div></details>{% elif r.waive_pending %}<span class="hint">{{ t('wf_waive_pending') }}</span>{% endif %}</td>{% endif %}

@@ -6,7 +6,8 @@ id: third-party-assessor
 name: Third-party risk assessor (starter)
 description: 'Starter agent for the third-party risk type (Circular 53 Art. 14(3)(e)): vendor assessment,
   contract terms, certificates, quality reports, log access, exit and fallback plans, remedy and model
-  dependency inventory. Drafts findings; a person decides.'
+  dependency inventory. Drafts findings; a person decides. Version 0.2 adds checks decided from the code
+  scan and an executive text for every item.'
 owner_group: third_party
 dimension_id: third_party
 policy_refs:
@@ -30,12 +31,43 @@ checklist:
   - system_record
   severity: high
   pass_rule: A vendor assessment with a date within 365 days is referenced.
+  executive:
+    key: vendor_not_assessed
+    headline_fail:
+      en: The vendor of the model or platform has not been assessed.
+      vi: Nhà cung cấp mô hình hoặc nền tảng chưa được đánh giá.
+    headline_open:
+      en: Nothing shows a vendor assessment on file.
+      vi: Chưa có thông tin cho thấy đã lưu đánh giá nhà cung cấp.
+    impact:
+      en: The bank may depend on a vendor whose risks it does not know.
+      vi: Ngân hàng có thể phụ thuộc vào một nhà cung cấp mà rủi ro của họ chưa được biết.
+    action:
+      en: Assess the vendor and file the result.
+      vi: Đánh giá nhà cung cấp và lưu kết quả.
+    owner: risk_team
 - id: TP-02
   question: Does the contract follow the SBV rules for IT service contracts (Circular 53 Art. 18(3))?
   evidence:
   - document
   severity: high
   pass_rule: The contract summary states compliance with the SBV rules for IT service contracts.
+  executive:
+    key: contract_not_compliant
+    headline_fail:
+      en: The contract does not follow the SBV rules for IT service contracts.
+      vi: Hợp đồng không tuân theo quy định của NHNN về hợp đồng dịch vụ công nghệ thông tin.
+    headline_open:
+      en: Nothing shows that the contract follows the SBV rules.
+      vi: Chưa có thông tin cho thấy hợp đồng tuân theo quy định của NHNN.
+    impact:
+      en: A non-compliant contract may fail an inspection and leave the bank without remedy.
+      vi: Hợp đồng không tuân thủ có thể không qua thanh tra và khiến ngân hàng không có biện pháp khắc
+        phục.
+    action:
+      en: Check the contract against the SBV rules and amend it.
+      vi: Đối chiếu hợp đồng với quy định của NHNN và sửa đổi.
+    owner: legal
 - id: TP-03
   question: Does the vendor have a yearly independent IT audit or a valid SOC 2, ISO/IEC 27001 or ISO/IEC
     42001 certificate (Circular 53 Art. 18(3))?
@@ -44,6 +76,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: At least one audit report or certificate is listed and its validity date has not passed.
+  executive:
+    key: vendor_certificate_missing
+    headline_fail:
+      en: The vendor has no yearly independent audit or valid security certificate.
+      vi: Nhà cung cấp chưa có kiểm toán độc lập hằng năm hoặc chứng chỉ an toàn còn hiệu lực.
+    headline_open:
+      en: Nothing shows an independent audit or a valid certificate.
+      vi: Chưa có thông tin cho thấy có kiểm toán độc lập hoặc chứng chỉ còn hiệu lực.
+    impact:
+      en: The bank cannot rely on the vendor's controls.
+      vi: Ngân hàng không thể tin cậy vào các biện pháp kiểm soát của nhà cung cấp.
+    action:
+      en: Ask the vendor for its audit report or certificate.
+      vi: Yêu cầu nhà cung cấp cung cấp báo cáo kiểm toán hoặc chứng chỉ.
+    owner: risk_team
 - id: TP-04
   question: Does the vendor supply a model quality report each year or for each version (Circular 53 Art.
     18(3))?
@@ -52,6 +99,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: The contract requires it and the latest report is on file.
+  executive:
+    key: vendor_quality_report_missing
+    headline_fail:
+      en: The vendor does not supply a model quality report.
+      vi: Nhà cung cấp không cung cấp báo cáo chất lượng mô hình.
+    headline_open:
+      en: Nothing shows a vendor model quality report.
+      vi: Chưa có thông tin cho thấy có báo cáo chất lượng mô hình của nhà cung cấp.
+    impact:
+      en: The bank cannot judge whether a new model version is still fit for use.
+      vi: Ngân hàng không thể đánh giá phiên bản mô hình mới còn phù hợp để sử dụng hay không.
+    action:
+      en: Ask the vendor for a quality report each year and for each version.
+      vi: Yêu cầu nhà cung cấp gửi báo cáo chất lượng hằng năm và cho từng phiên bản.
+    owner: model_validation
 - id: TP-05
   question: Does the contract give the bank tools, an API or logs for monitoring, and ban training on
     bank data (Circular 53 Art. 18(3))?
@@ -60,6 +122,22 @@ checklist:
   severity: high
   pass_rule: The contract summary states both the log or API access and the ban on training with bank
     data.
+  executive:
+    key: contract_monitoring_terms
+    headline_fail:
+      en: The contract gives the bank no monitoring access and does not ban training on bank data.
+      vi: Hợp đồng không cho ngân hàng quyền giám sát và không cấm dùng dữ liệu ngân hàng để huấn luyện.
+    headline_open:
+      en: Nothing shows the monitoring and data terms of the contract.
+      vi: Chưa có thông tin về các điều khoản giám sát và dữ liệu trong hợp đồng.
+    impact:
+      en: The vendor could use bank data to train its models, and the bank could not watch the service.
+      vi: Nhà cung cấp có thể dùng dữ liệu ngân hàng để huấn luyện mô hình, và ngân hàng không thể giám
+        sát dịch vụ.
+    action:
+      en: Add monitoring access and a ban on training with bank data to the contract.
+      vi: Bổ sung vào hợp đồng quyền giám sát và điều khoản cấm huấn luyện bằng dữ liệu ngân hàng.
+    owner: legal
 - id: TP-06
   question: Is the dependence on one platform recorded with an exit option (Circular 53 Art. 18(4)(đ))?
   evidence:
@@ -67,6 +145,21 @@ checklist:
   - document
   severity: medium
   pass_rule: The record names the platform and an exit or switch plan.
+  executive:
+    key: platform_dependence
+    headline_fail:
+      en: Dependence on one platform is not recorded, and there is no exit option.
+      vi: Sự phụ thuộc vào một nền tảng chưa được ghi nhận và chưa có phương án rút lui.
+    headline_open:
+      en: Nothing shows the platform dependence and an exit plan.
+      vi: Chưa có thông tin về sự phụ thuộc vào nền tảng và phương án rút lui.
+    impact:
+      en: The bank could be stuck if the platform fails or raises its price.
+      vi: Ngân hàng có thể bị kẹt nếu nền tảng gặp sự cố hoặc tăng giá.
+    action:
+      en: Record the dependence and write an exit plan.
+      vi: Ghi nhận sự phụ thuộc và lập phương án rút lui.
+    owner: risk_team
 - id: TP-07
   question: 'When the vendor updates or changes the model: is the impact assessed and a fallback plan
     kept (Circular 53 Art. 8(3)(b))?'
@@ -76,6 +169,21 @@ checklist:
   severity: high
   pass_rule: An impact assessment step and a fallback plan are on file. Not applicable when the system
     uses no vendor model.
+  executive:
+    key: vendor_change_plan_missing
+    headline_fail:
+      en: No impact check or fallback plan exists for vendor model changes.
+      vi: Chưa có đánh giá tác động hoặc phương án dự phòng khi nhà cung cấp thay đổi mô hình.
+    headline_open:
+      en: Nothing shows a plan for vendor model changes.
+      vi: Chưa có thông tin về kế hoạch khi nhà cung cấp thay đổi mô hình.
+    impact:
+      en: A vendor update could change results overnight with no way back.
+      vi: Một bản cập nhật của nhà cung cấp có thể làm đổi kết quả chỉ sau một đêm mà không có đường lui.
+    action:
+      en: Agree how vendor changes are assessed and keep a fallback plan.
+      vi: Thống nhất cách đánh giá thay đổi của nhà cung cấp và giữ phương án dự phòng.
+    owner: system_owner
 - id: TP-08
   question: Is a remedy and complaint process set for harm caused by an outsourced AI system (Circular
     53 Art. 18(4)(e))?
@@ -84,6 +192,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: A remedy route and a compensation rule are named in the contract or the process.
+  executive:
+    key: outsourcing_remedy_missing
+    headline_fail:
+      en: No remedy or complaint process exists for harm caused by the outsourced AI.
+      vi: Chưa có quy trình khắc phục hoặc khiếu nại cho thiệt hại do AI thuê ngoài gây ra.
+    headline_open:
+      en: Nothing shows a remedy and complaint process.
+      vi: Chưa có thông tin về quy trình khắc phục và khiếu nại.
+    impact:
+      en: Customers harmed by the vendor's system may get no redress.
+      vi: Khách hàng bị thiệt hại do hệ thống của nhà cung cấp có thể không được bồi thường.
+    action:
+      en: Set a remedy and complaint process with the vendor.
+      vi: Thiết lập quy trình khắc phục và khiếu nại cùng nhà cung cấp.
+    owner: legal
 - id: TP-09
   question: Does the model dependency pack model_dependency_inventory pass at the current version (Circular
     53 Art. 18(2)(a))?
@@ -92,6 +215,21 @@ checklist:
   severity: medium
   pass_rule: 'Pack result read through read_pack_results: pack model_dependency_inventory passed at the
     current version of the system (a failed result, or a pass only at an older version, is a fail).'
+  executive:
+    key: pack_model_dependency_inventory
+    headline_fail:
+      en: The model dependency check did not pass on the current version.
+      vi: Kiểm tra phụ thuộc vào mô hình không đạt ở phiên bản hiện tại.
+    headline_open:
+      en: The model dependency check has not been run on the current version.
+      vi: Chưa chạy kiểm tra phụ thuộc vào mô hình ở phiên bản hiện tại.
+    impact:
+      en: The bank may not know which outside models the system depends on.
+      vi: Ngân hàng có thể không biết hệ thống phụ thuộc vào những mô hình bên ngoài nào.
+    action:
+      en: Run the test on the current version and fix every failure before go-live.
+      vi: Chạy kiểm tra ở phiên bản hiện tại và sửa mọi lỗi trước khi vận hành.
+    owner: risk_team
 - id: TP-10
   question: Are the hosting region of the vendor model and the bank data the vendor can see recorded (Circular
     53 Art. 18(3))?
@@ -101,6 +239,21 @@ checklist:
   severity: medium
   pass_rule: The endpoint facts or the record name the hosting region and the data classes sent to the
     vendor.
+  executive:
+    key: hosting_region_unknown
+    headline_fail:
+      en: The hosting region and the bank data the vendor can see are not recorded.
+      vi: Khu vực lưu trữ và dữ liệu ngân hàng mà nhà cung cấp có thể xem chưa được ghi nhận.
+    headline_open:
+      en: Nothing shows the hosting region and the data the vendor can see.
+      vi: Chưa có thông tin về khu vực lưu trữ và dữ liệu nhà cung cấp có thể xem.
+    impact:
+      en: Bank data may sit in a country or be seen by people the bank has not approved.
+      vi: Dữ liệu ngân hàng có thể nằm ở quốc gia hoặc bị người mà ngân hàng chưa duyệt nhìn thấy.
+    action:
+      en: Record the hosting region and the data classes sent to the vendor.
+      vi: Ghi nhận khu vực lưu trữ và các loại dữ liệu gửi cho nhà cung cấp.
+    owner: data_owner
 - id: TP-11
   question: 'Does the bank keep its own responsibility: is an accountable bank owner named for the outsourced
     system (Circular 53 Art. 18(1)(b))?'
@@ -108,6 +261,72 @@ checklist:
   - system_record
   severity: medium
   pass_rule: An accountable owner of the bank is named in the record.
+  executive:
+    key: accountable_owner_missing
+    headline_fail:
+      en: No accountable bank owner is named for the outsourced system.
+      vi: Chưa nêu người chịu trách nhiệm của ngân hàng cho hệ thống thuê ngoài.
+    headline_open:
+      en: Nothing shows an accountable bank owner.
+      vi: Chưa có thông tin về người chịu trách nhiệm của ngân hàng.
+    impact:
+      en: When something goes wrong, nobody at the bank answers for it.
+      vi: Khi có sự cố, không ai tại ngân hàng chịu trách nhiệm.
+    action:
+      en: Name an accountable owner at the bank.
+      vi: Chỉ định người chịu trách nhiệm tại ngân hàng.
+    owner: system_owner
+- id: TP-12
+  question: Does the code scan name the family of every model and endpoint the system uses, so the vendor
+    can be assessed (Circular 53 Art. 18(2)(a))?
+  evidence:
+  - fact
+  - system_record
+  severity: medium
+  pass_rule: 'Look at the model and endpoint facts (detail has family=...). Fail when one has family=unknown:
+    cite it. Pass when every model and endpoint fact names a family other than unknown: cite one. No model
+    or endpoint fact, or a fact with no family: question.'
+  executive:
+    key: model_unknown
+    headline_fail:
+      en: The code uses a model whose family the scan could not identify.
+      vi: Mã dùng một mô hình mà bước quét không xác định được dòng mô hình.
+    headline_open:
+      en: The scan did not list the model and its family.
+      vi: Bước quét chưa liệt kê mô hình và dòng mô hình.
+    impact:
+      en: An unnamed model cannot be validated, and a judge model may end up the same as the agent's model.
+      vi: Mô hình chưa xác định tên thì không thể kiểm định, và mô hình đánh giá có thể trùng với mô hình
+        của tác tử.
+    action:
+      en: Name the model and its family in the record.
+      vi: Ghi rõ tên mô hình và dòng mô hình vào hồ sơ.
+    owner: risk_team
+- id: TP-13
+  question: Are vendor service addresses set at deployment and not fixed in the code, so the vendor list
+    stays under the bank's control (Circular 53 Art. 18(3))?
+  evidence:
+  - fact
+  severity: medium
+  pass_rule: 'Check every external_url fact. An address is allowed when its host is loopback (127.0.0.1,
+    localhost, ::1) or contains FILL-ME (a placeholder set at deployment). Fail when one external_url
+    fact has any other host: cite it. Pass when every external_url fact is allowed (cite one), or none
+    exists and an autonomy fact shows the code was scanned (cite it). No autonomy fact: question.'
+  executive:
+    key: external_endpoint
+    headline_fail:
+      en: The code contains a fixed vendor address instead of a setting made at deployment.
+      vi: Mã chứa địa chỉ nhà cung cấp cố định thay vì cấu hình khi triển khai.
+    headline_open:
+      en: The code scan did not show which vendor addresses the code calls.
+      vi: Kết quả quét mã chưa cho biết mã gọi đến những địa chỉ nhà cung cấp nào.
+    impact:
+      en: Data could go to a vendor that is not on the bank's vendor list.
+      vi: Dữ liệu có thể đi đến một nhà cung cấp không có trong danh sách của ngân hàng.
+    action:
+      en: Move the address to deployment settings and add the vendor to the vendor list.
+      vi: Chuyển địa chỉ sang cấu hình khi triển khai và đưa nhà cung cấp vào danh sách nhà cung cấp.
+    owner: security
 evidence_rules:
   allowed_sources:
   - fact
@@ -169,6 +388,38 @@ instructions: 'You assess the third party risk of one AI system for a bank under
   result, or a pass only at an older version, is a fail. A pack that has no result is a question.
 
 
+  Fact items (how to read the facts)
+
+  - A fact reads ''kind name: detail''. Decide a fact item from the facts and the record only, and cite
+  the fact that shows the result.
+
+  - tool facts: the detail gives risk_class (money, credit, pii_export, read_only) and approved=yes or
+  no. approved=yes means the tool is on the allowed list; it is not a human approval step.
+
+  - A human approval step is an approval_point fact. The autonomy fact says L0 ''no tools'', L1 ''every
+  tool only reads'', L2 ''every tool with a side effect has a human approval step in the same code'',
+  L3 ''tools with side effects and no human approval step in code'' followed by the tool names.
+
+  - decision33 facts: high_risk or not_high_risk with human_gate_in_code=True or False. The fact named
+  ''transactions triggered'' means tools run transactions and no human check was found in code. It is
+  a proposal; counsel confirms.
+
+  - model and endpoint facts: family=unknown means the scan could not name the model family.
+
+  - weak_spot facts name gaps that the scan found, for example ''No tracing found''.
+
+  - external_url facts: an address is allowed when its host is loopback (127.0.0.1, localhost) or contains
+  FILL-ME.
+
+  - claim facts ''Handles personal data field <name>'' list personal data fields by name. Write only the
+  field name in a reason.
+
+  - A pass that rests on something not being there cites the autonomy fact, which shows that the code
+  was scanned. Never invent a fact.
+
+  - A fail needs a cited fact that shows the problem. A missing fact is a question, not a fail.
+
+
   Checklist
 
   - TP-01 (high; document, system_record): Is the vendor of the model or platform assessed and the result
@@ -204,6 +455,12 @@ instructions: 'You assess the third party risk of one AI system for a bank under
   - TP-11 (medium; system_record): Does the bank keep its own responsibility: is an accountable bank owner
   named for the outsourced system (Circular 53 Art. 18(1)(b))?
 
+  - TP-12 (medium; fact, system_record): Does the code scan name the family of every model and endpoint
+  the system uses, so the vendor can be assessed (Circular 53 Art. 18(2)(a))?
+
+  - TP-13 (medium; fact): Are vendor service addresses set at deployment and not fixed in the code, so
+  the vendor list stays under the bank''s control (Circular 53 Art. 18(3))?
+
   '
 harness:
   system_prompt:
@@ -221,9 +478,7 @@ harness:
   memory:
     system_memory: false
   hitl:
-    approval_points:
-    - kind: verdict
-      ref: question
+    approval_points: []
     permissions: []
   verification:
     verifier: rules
@@ -241,5 +496,5 @@ guardians:
 eval_pack: third-party-assessor-golden-v1
 lifecycle:
   state: draft
-  version: '0.1'
+  version: '0.2'
   approvals: []

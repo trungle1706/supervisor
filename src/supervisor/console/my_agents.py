@@ -19,7 +19,7 @@ from typing import Any
 from supervisor.console import agent_guardians, overview_v3, readmodels
 from supervisor.console.listing import (
     ListingError,
-    paginate,
+    paginate_query,
     parse_int,
     parse_sort,
     query_string,
@@ -301,7 +301,7 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
     col, direction = parse_sort(p["sort"], p["dir"], COLUMNS, "state", "asc")
     rows = [r for r in everyone if _matches(r, p)]
     rows = sort_rows(sorted(rows, key=lambda r: str(r["agent_id"])), col, direction, _KEYS)
-    page = paginate(rows, parse_int(p["page"], "page", 1), PAGE_SIZE)
+    page = paginate_query(rows, p, PAGE_SIZE)
     n_state = {s: sum(1 for r in everyone if r["state"] == s) for s in STATES}
     below = sum(1 for r in everyone if (r["guard"] or {}).get("cover") == "below_floor")
     clear = {"state": "", "cover": ""}
@@ -333,6 +333,15 @@ def list_view(ctx: Any, me: Any, query: Mapping[str, str]) -> dict[str, Any]:
         "base_qs": query_string(base),
         "list_qs": query_string({**base, "sort": col, "dir": direction}),
         "total_all": len(everyone),
+        # UI-350: what the tiles count (registered agents, as Home and Agents do, plus the rest)
+        "compose": {
+            "reg": sum(1 for r in everyone if r["kind"] == "registered"),
+            "run": sum(
+                1 for r in everyone if r["kind"] == "registered" and r["state"] == "RUNNING"
+            ),
+            "gate": sum(1 for r in everyone if r["kind"] == "policy_only"),
+            "cand": sum(1 for r in everyone if r["kind"] == "candidate"),
+        },
         "sys_links": bool(getattr(ctx.settings, "console_systems_enabled", False)),
     }
 

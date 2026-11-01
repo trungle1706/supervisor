@@ -14,7 +14,7 @@ NEW: dict[str, tuple[str, str]] = {
     ),
     "g3_ev_have": ("Evidence: {names}.", "Bằng chứng: {names}."),
     "g3_ev_missing": ("Missing: {names}.", "Còn thiếu: {names}."),
-    "g3_ev_nomissing": ("Missing: nothing.", "Còn thiếu: không."),
+    "g3_ev_nomissing": ("Nothing missing.", "Không thiếu gì."),
     "g3_ev_limit": (
         "A limit is above the legal cap. See Decision 33 and limits.",
         "Có hạn mức vượt mức trần theo luật. Xem Quyết định 33 và hạn mức.",
@@ -23,16 +23,16 @@ NEW: dict[str, tuple[str, str]] = {
     "g3_th_txn": ("single transfer", "một lần chuyển"),
     "g3_th_day": ("daily total", "tổng trong ngày"),
     "g3_th_exceeds": (
-        "{limit_id} allows {limit} as {period}. The legal cap is {cap} per day.",
-        "{limit_id} cho phép {limit} ({period}). Mức trần theo luật là {cap} mỗi ngày.",
+        "{limit_id} allows {limit} ({period}). This is above the legal cap of {cap} per day.",
+        "{limit_id} cho phép {limit} ({period}). Mức này vượt mức trần theo luật là {cap} mỗi ngày.",
     ),
     "g3_th_atcap": (
-        "{limit_id} allows {limit} as {period}. The legal cap is {cap} per day. One transfer can use the whole daily cap.",
+        "{limit_id} allows {limit} ({period}). The legal cap is {cap} per day. One transfer can use the whole daily cap.",
         "{limit_id} cho phép {limit} ({period}). Mức trần theo luật là {cap} mỗi ngày. Một lần chuyển có thể dùng hết mức trần ngày.",
     ),
     "g3_th_within": (
-        "{limit_id} allows {limit} as {period}. This is within the cap of {cap} per day.",
-        "{limit_id} cho phép {limit} ({period}). Nằm trong mức trần {cap} mỗi ngày.",
+        "{limit_id} allows {limit} ({period}). This is within the legal cap of {cap} per day.",
+        "{limit_id} cho phép {limit} ({period}). Nằm trong mức trần theo luật là {cap} mỗi ngày.",
     ),
     # --- compliance: tabs, blocks
     "g3_purpose_agent": (
@@ -61,8 +61,8 @@ NEW: dict[str, tuple[str, str]] = {
     "g3_d33_entry_credit": ("Credit", "Tín dụng"),
     "g3_reasoning": ("Show reasoning ({n} lines)", "Xem lập luận ({n} dòng)"),
     "g3_caveat": (
-        "Why a guardian pause does not lower the class",
-        "Vì sao tạm dừng bởi guardian không làm giảm hạng",
+        "Why a guardian pause does not lower the risk class",
+        "Vì sao việc bộ bảo vệ tạm dừng không làm giảm hạng rủi ro",
     ),
     "g3_d33_more": ("Full detail and limits", "Chi tiết đầy đủ và hạn mức"),
     "g3_by_inst": ("Duties by legal instrument", "Nghĩa vụ theo văn bản pháp lý"),
@@ -81,23 +81,19 @@ NEW: dict[str, tuple[str, str]] = {
     "g3_cnt_gap": ("{n} gap", "{n} thiếu"),
     "g3_export": ("Export CSV", "Xuất CSV"),
     "g3_legal_data": ("Legal data: RegKB {v} · {d}", "Dữ liệu pháp lý: RegKB {v} · {d}"),
-    "g3_show_full": ("Show full duty", "Xem đủ nghĩa vụ"),
     "g3_none_rows": ("No duty matches this filter.", "Không có nghĩa vụ nào khớp bộ lọc."),
     "g3_shown_n": (
         "Showing {n} duties in {g} instruments",
         "Hiển thị {n} nghĩa vụ trong {g} văn bản",
     ),
     "g3_th_col_id": ("Limit", "Hạn mức"),
-    "g3_all_agents": ("All agents", "Tất cả tác tử"),
     "g3_card_line": (
-        "{a} duties apply · {w} need an answer · {q} open questions · {g} limit gap",
-        "{a} nghĩa vụ áp dụng · {w} cần trả lời · {q} câu hỏi mở · {g} hạn mức vượt",
+        "{a} duties apply · {w} need an answer · {q} open questions · {g} limits above the legal cap",
+        "{a} nghĩa vụ áp dụng · {w} cần trả lời · {q} câu hỏi mở · {g} hạn mức vượt mức trần luật",
     ),
     "g3_col_agent": ("Agent", "Tác tử"),
     "g3_col_status": ("Duties", "Nghĩa vụ"),
     "g3_col_risk": ("Decision 33", "Quyết định 33"),
-    "g3_col_gaps": ("Gaps", "Thiếu sót"),
-    "g3_col_ask": ("Questions", "Câu hỏi"),
     # --- compliance: obligation page
     "g3_ob_applies": ("Applies to this agent", "Áp dụng cho tác tử này"),
     "g3_ob_wait": ("Depends on an open answer", "Phụ thuộc câu trả lời còn mở"),
@@ -118,14 +114,12 @@ NEW: dict[str, tuple[str, str]] = {
     "g3_src_note": ("Source note", "Ghi chú nguồn"),
     "g3_instr_row": ("{number} · {issuer} · {status}", "{number} · {issuer} · {status}"),
     # --- risks / controls / policies
-    "g3_how_residual": ("How the residual score works", "Điểm dư được tính thế nào"),
     "g3_risks_nowork": (
-        "{n} risks have no working control evidence. Their residual score equals the inherent score.",
-        "{n} rủi ro chưa có bằng chứng kiểm soát hoạt động. Điểm dư của chúng bằng điểm gốc.",
+        "{n} risks have no evidence that their controls work, so the residual score equals the inherent score.",
+        "{n} rủi ro chưa có bằng chứng kiểm soát đang hoạt động, nên điểm dư bằng điểm gốc.",
     ),
     "g3_same": ("same", "như điểm dư"),
     "g3_ct_open_list": ("Open the list", "Mở danh sách"),
-    "g3_ct_working": ("What counts as working", "Thế nào là hoạt động"),
     "g3_pol_version_line": (
         "Version {hash}, in force since {since}, {n} rules.",
         "Phiên bản {hash}, có hiệu lực từ {since}, {n} quy tắc.",
@@ -135,13 +129,11 @@ NEW: dict[str, tuple[str, str]] = {
     "g3_fail_mode": ("If the gate fails", "Khi cổng bị lỗi"),
     "g3_fm_closed": ("blocks", "chặn"),
     "g3_fm_open": ("allows", "cho qua"),
-    "g3_pol_title": ("Gate rules", "Quy tắc của cổng"),
     # --- internal documents, law changes, drafts
     "g3_ri_purpose": (
-        "Policies, standards and procedures the bank uploaded. The model drafts duties; a person confirms.",
-        "Chính sách, tiêu chuẩn và quy trình ngân hàng đã tải lên. Mô hình soạn nghĩa vụ; một người xác nhận.",
+        "Bank policies, standards and procedures you uploaded. The AI model drafts duties; a reviewer confirms them.",
+        "Chính sách, tiêu chuẩn và quy trình của ngân hàng đã tải lên. Mô hình AI soạn nghĩa vụ; người rà soát xác nhận.",
     ),
-    "g3_ri_copy": ("Copy id", "Sao chép mã"),
     "g3_ri_dr": (
         "{d} draft · {c} confirmed · {x} dropped",
         "{d} nháp · {c} đã xác nhận · {x} đã bỏ",
@@ -152,16 +144,16 @@ NEW: dict[str, tuple[str, str]] = {
     ),
     "g3_dr_title": ("Drafts for {name}", "Bản nháp cho {name}"),
     "g3_dr_purpose": (
-        "Duties the model drafted. A draft is not an obligation until a person confirms it.",
-        "Nghĩa vụ do mô hình soạn. Bản nháp chưa phải nghĩa vụ cho đến khi một người xác nhận.",
+        "Duties drafted by the AI model. A draft becomes a duty only after a reviewer confirms it.",
+        "Nghĩa vụ do mô hình AI soạn. Bản nháp chỉ trở thành nghĩa vụ sau khi người rà soát xác nhận.",
     ),
     "g3_dr_internal": (
-        "{title}, {version}, owner {owner}. The model read masked text only.",
-        "{title}, {version}, chủ sở hữu {owner}. Mô hình chỉ đọc văn bản đã che.",
+        "{title}, {version}, owner {owner}. The AI model read masked text only.",
+        "{title}, {version}, chủ sở hữu {owner}. Mô hình AI chỉ đọc văn bản đã che dữ liệu.",
     ),
     "g3_dr_internal_note": (
-        "A confirmed row joins the internal instrument at once.",
-        "Dòng đã xác nhận được đưa vào văn bản nội bộ ngay.",
+        "A confirmed duty is added to the internal document right away.",
+        "Nghĩa vụ đã xác nhận được đưa ngay vào văn bản nội bộ.",
     ),
     "g3_dr_all_docs": ("All internal documents", "Mọi tài liệu nội bộ"),
     "g3_dr_draft": ("Drafts", "Bản nháp"),
@@ -181,18 +173,17 @@ NEW: dict[str, tuple[str, str]] = {
     "g3_dr_clause": ("Clause {c}", "Khoản {c}"),
     "g3_dr_section": ("Section {s}", "Mục {s}"),
     "g3_dr_subject": ("Subject", "Đối tượng"),
-    "g3_dr_trigger": ("Trigger", "Điều kiện kích hoạt"),
-    "g3_dr_evidence": ("Evidence asked", "Bằng chứng yêu cầu"),
+    "g3_dr_trigger": ("When it applies", "Khi nào áp dụng"),
+    "g3_dr_evidence": ("Evidence required", "Bằng chứng yêu cầu"),
     "g3_dr_decided": ("Decided by", "Quyết định bởi"),
     "g3_dr_confirm": ("Confirm", "Xác nhận"),
     "g3_dr_drop": ("Drop", "Bỏ"),
-    "g3_dr_mock": ("Mock model", "Mô hình giả lập"),
+    "g3_dr_mock": ("Test model (mock)", "Mô hình thử nghiệm (mock)"),
     "g3_dr_cli": ("Command line", "Dòng lệnh"),
     "g3_dr_notext": (
-        "The stored official text of this instrument was not found, so quotes show without the article around them.",
-        "Không tìm thấy văn bản chính thức đã lưu của văn bản này, nên trích dẫn hiển thị không kèm điều xung quanh.",
+        "The official text is not on file, so quotes appear without the surrounding article.",
+        "Chưa có văn bản chính thức được lưu, nên các trích dẫn hiển thị không kèm điều xung quanh.",
     ),
-    "g3_technical_cmd": ("Command", "Lệnh"),
 }
 
 UX5: dict[str, tuple[str, str]] = {
@@ -203,17 +194,17 @@ UX5: dict[str, tuple[str, str]] = {
     ),
     "cp_counts": ("Status of the duties that apply", "Trạng thái các nghĩa vụ áp dụng"),
     "cp_thresholds": ("Limits above the legal cap", "Hạn mức vượt mức trần theo luật"),
-    "cp_decides": ("blocks {n} duties", "chặn {n} nghĩa vụ"),
+    "cp_decides": ("{n} duties wait on this answer", "{n} nghĩa vụ đang chờ câu trả lời này"),
     "cp_any": ("All", "Tất cả"),
     "cp_showing": ("Showing {n} of {m} duties", "Hiển thị {n} / {m} nghĩa vụ"),
     "cp_open": ("Open compliance matrix", "Mở ma trận tuân thủ"),
     "cp_source_demo": ("demo", "demo"),
-    "cp_source_onboard": ("onboarded", "đã tiếp nhận"),
+    "cp_source_onboard": ("registered", "đã đăng ký"),
     "cp_col_obligation": ("Duty", "Nghĩa vụ"),
     "cp_none": ("None", "Không có"),
     "cp_no_text_vi": (
-        "No Vietnamese text stored for this duty.",
-        "Chưa lưu văn bản tiếng Việt cho nghĩa vụ này.",
+        "No Vietnamese text for this duty yet.",
+        "Chưa có văn bản tiếng Việt cho nghĩa vụ này.",
     ),
     "cp_status_reason": ("Why this status", "Vì sao có trạng thái này"),
     # risks
@@ -247,14 +238,14 @@ UX5: dict[str, tuple[str, str]] = {
     ),
     # internal documents
     "ri_hint": (
-        "Upload a policy, standard or procedure (.txt, .md, .pdf with text; max {mb} MB). Personal data is masked first. The model drafts one duty per section; a person with the compliance sign-off role confirms each row.",
-        "Tải lên chính sách, tiêu chuẩn hoặc quy trình (.txt, .md, .pdf có chữ; tối đa {mb} MB). Dữ liệu cá nhân được che trước. Mô hình soạn một nghĩa vụ cho mỗi mục; người có vai trò xác nhận tuân thủ xác nhận từng dòng.",
+        "Upload a policy, standard or procedure (.txt, .md, or .pdf with text; max {mb} MB). Personal data is masked first. AI drafts one duty per section, and a compliance reviewer confirms each one.",
+        "Tải lên chính sách, tiêu chuẩn hoặc quy trình (.txt, .md, hoặc .pdf có chữ; tối đa {mb} MB). Dữ liệu cá nhân được che trước. AI soạn một nghĩa vụ cho mỗi mục, và người rà soát tuân thủ xác nhận từng nghĩa vụ.",
     ),
     "ri_banner": (
         "Not legal advice. Bank counsel confirms.",
         "Không phải tư vấn pháp lý. Pháp chế ngân hàng xác nhận.",
     ),
-    "ri_not_yet": ("No register entry yet", "Chưa có trong sổ đăng ký"),
+    "ri_not_yet": ("Not in RegKB yet", "Chưa vào RegKB"),
     "ri_open_drafts": ("Review drafts", "Xem bản nháp"),
     # law changes
     "rc_banner": (
@@ -262,11 +253,11 @@ UX5: dict[str, tuple[str, str]] = {
         "Không phải tư vấn pháp lý. Pháp chế ngân hàng xác nhận.",
     ),
     "rc_hint": (
-        "An update package brings a new text. The law agent compares it article by article and drafts the changed duties. A person accepts or drops each draft, then applies the change.",
-        "Gói cập nhật mang đến văn bản mới. Tác nhân pháp lý so sánh theo từng điều và soạn các nghĩa vụ thay đổi. Một người chấp nhận hoặc bỏ từng bản nháp rồi áp dụng thay đổi.",
+        "An update package brings new text. The law agent compares it article by article and drafts the changed duties. A reviewer accepts or drops each draft, then applies the change.",
+        "Gói cập nhật mang văn bản mới. Tác tử pháp lý so sánh từng điều và soạn các nghĩa vụ thay đổi. Người xem xét chấp nhận hoặc bỏ từng bản nháp, rồi áp dụng thay đổi.",
     ),
     "rc_none": (
-        "No imported change yet. Import an update package to start.",
-        "Chưa có thay đổi nào được nhập. Hãy nhập một gói cập nhật để bắt đầu.",
+        "No changes imported yet. Import an update package to start.",
+        "Chưa nhập thay đổi nào. Hãy nhập gói cập nhật để bắt đầu.",
     ),
 }

@@ -13,10 +13,10 @@
 {% endif %}
 {% if not scope_all %}<p class="hint">{{ t('sy_scope_note') }}</p>{% endif %}
 <section id="systems" aria-label="{{ t('nav_systems') }}">
-{{ ui.tiles(tiles, '/console/systems', '/console/systems/rows') }}
+{{ ui.tiles(tiles, '/console/systems', '/console/systems/rows', static=ux5) }}
 {{ ui.filterbar('/console/systems', '/console/systems/rows', [
   {'name': 'q', 'label': t('sy_col_name'), 'kind': 'search', 'value': params.q},
-  {'name': 'owner_team', 'label': t('sy_col_team'), 'kind': 'select', 'value': params.owner_team, 'options': team_opts},
+  {'name': 'owner_team', 'label': t('b3_col_owner'), 'kind': 'select', 'value': params.owner_team, 'options': team_opts},
   {'name': 'lifecycle_stage', 'label': t('sy_col_stage'), 'kind': 'select', 'value': params.lifecycle_stage, 'options': stage_opts},
   {'name': 'risk', 'label': t('sy_col_risk'), 'kind': 'select', 'value': params.risk, 'options': risk_opts},
   {'name': 'system_type', 'label': t('sy_f_system_type'), 'kind': 'select', 'value': params.system_type, 'options': type_opts},

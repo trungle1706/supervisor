@@ -115,7 +115,7 @@ def test_case_story_is_grouped_without_duplicates(ux: Console) -> None:
     r = ux.get(f"/console/cases/{cid}")
     assert r.status_code == 200
     html = r.text
-    assert "Next action" in html and "Waiting for a person: triage." in html
+    assert "Next action" in html and "Needs a decision: assess and prioritise." in html
     assert html.index("Next action") < html.index("What happened")
     assert "u6_" not in html and "ux5_g6.css" in html
     # no rules table and no transcript copy inside the story
@@ -128,7 +128,7 @@ def test_case_rules_tab_is_one_table(ux: Console) -> None:
     cid = _pay07(ux)["case_id"]
     html = ux.get(f"/console/cases/{cid}/tab/rules").text
     assert html.count("<table") <= 2  # grouped table + closed check details
-    assert "Hits" in html and "Check details" in html
+    assert "Times" in html and "Check details" in html
     assert "Every check on this case" not in html
     vi = ux.get(f"/console/cases/{cid}/tab/rules?lang=vi").text
     assert "Số lần" in vi
@@ -139,8 +139,8 @@ def test_case_transcript_and_evidence_tabs(ux: Console) -> None:
     t = ux.get(f"/console/cases/{cid}/tab/transcript").text
     assert "Show masked text" in t and "Masked arguments / result" in t
     e = ux.get(f"/console/cases/{cid}/tab/evidence").text
-    assert "Chain details" in e and "entries" in e
-    assert e.index("entries") < e.index("Chain details")
+    assert "Evidence chain details" in e and "entries" in e
+    assert e.index("entries") < e.index("Evidence chain details")
     full = ux.get(f"/console/cases/{cid}").text
     assert "g6-evid" in full  # one-line evidence card
     assert ux.get(f"/console/cases/{cid}?tab=transcript&page=99").status_code == 200
@@ -154,7 +154,7 @@ def test_cases_list_ux5(ux: Console) -> None:
     assert "Opened by</th>" not in html
     assert "Unassigned" in html or "<td>—</td>" not in html
     vi = ux.get("/console/cases?lang=vi").text
-    assert "Vụ việc cần con người quyết định" in vi
+    assert "Vụ việc cần bạn quyết định" in vi
     assert ux.get("/console/queue/rows", headers=HX).status_code == 200
 
 
@@ -202,7 +202,7 @@ def test_factory_editor_stages_and_harness_grid(ux: Console) -> None:
     assert html.index('data-step="harness"') < html.index('data-section="events"')
     assert "Event log" in html and "u6_" not in html
     t1 = ux.get("/console/factory/mr-agent?step=template").text
-    assert 'class="g6-grid"' in t1 and "Test pack used by the gate" in t1
+    assert 'class="g6-grid"' in t1 and "Tests the gate runs" in t1
     vi = ux.get("/console/factory/mr-agent?step=harness&lang=vi").text
     assert "Ghi nhớ" in vi
     # fragments still answer (htmx tabs)
@@ -223,7 +223,7 @@ def test_simulation_review_questions_and_one_save(
     assert page.count("g6-q") >= 12  # a question on every card
     assert "Does the system record name" in page or "?" in page.split("g6-q", 1)[1][:300]
     assert page.count('data-act="mark"') == 1  # one Save for the page
-    assert 'type="radio"' in page and "Save marks" in page
+    assert 'type="radio"' in page and "Save your views" in page
     assert ux.get(url, "viewer.hoa").text.count('data-act="mark"') == 0
     ok = ux.post(
         url + "/mark",

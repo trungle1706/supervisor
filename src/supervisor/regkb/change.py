@@ -45,6 +45,7 @@ from typing import Any
 import yaml
 
 from supervisor.core.canonical import format_ts
+from supervisor.core.canonical import sha256_bytes_hex as sha256_hex
 from supervisor.core.errors import ConcurrencyError, DuplicateKeyError, SupervisorError
 from supervisor.regkb import lawagent, package
 from supervisor.regkb.drafts import DraftStore
@@ -144,10 +145,6 @@ def overrides_root(data_dir: Path | str) -> Path:
 
 def override_path(data_dir: Path | str, instrument_id: str) -> Path:
     return overrides_root(data_dir) / instrument_id / OVERRIDE_FILE
-
-
-def sha256_hex(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def _write(path: Path, data: bytes) -> None:

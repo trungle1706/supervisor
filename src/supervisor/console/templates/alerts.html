@@ -4,7 +4,7 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ t('alerts') }}{% endblock %}
 {% block content %}
-{{ ui.crumbs([(t('nav_g_watch'), None), (t('alerts'), None)]) }}
+{{ ui.crumbs([(t('nv3_sup'), None), (t('alerts'), None)]) }}
 {% if ux5 %}{% import "_ux5.html" as u5 with context %}
 {{ u5.page_head(t('alerts'), t('alerts_purpose')) }}
 {% else %}

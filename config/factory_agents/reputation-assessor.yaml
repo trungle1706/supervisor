@@ -4,9 +4,9 @@
 schema_version: '1.0'
 id: reputation-assessor
 name: Reputation risk assessor (TEMPLATE)
-description: 'TEMPLATE, not a live agent: starting point for the reputation risk type (Circular 53 Art.
-  14(3)(h); commercial banks and foreign bank branches). The bank defines the meaning and the measure;
-  the golden set is empty and a person confirms every result.'
+description: Starter agent for the reputation risk type (Circular 53 Art. 14(3)(h); commercial banks and
+  foreign bank branches). The bank defines the meaning and the measure; a person confirms every result.
+  Version 0.2 adds checks decided from the code scan and an executive text for every item.
 owner_group: ethics
 dimension_id: reputation
 policy_refs:
@@ -27,6 +27,21 @@ checklist:
   - system_record
   severity: medium
   pass_rule: A document or record states the impact, the bank-defined criteria and an owner.
+  executive:
+    key: trust_impact_undescribed
+    headline_fail:
+      en: The effect of a wrong or harmful output on public trust is not described.
+      vi: Tác động lên niềm tin công chúng của một kết quả sai hoặc gây hại chưa được mô tả.
+    headline_open:
+      en: Nothing describes the effect on public trust.
+      vi: Chưa có mô tả về tác động lên niềm tin công chúng.
+    impact:
+      en: The bank may be unprepared for damage to its name.
+      vi: Ngân hàng có thể không chuẩn bị trước cho thiệt hại đối với uy tín.
+    action:
+      en: Describe the effect on trust using the bank's criteria.
+      vi: Mô tả tác động lên niềm tin theo tiêu chí của ngân hàng.
+    owner: risk_team
 - id: RP-02
   question: Is there a complaint route for the people who use the system (Circular 53 Art. 20(4))?
   evidence:
@@ -34,6 +49,21 @@ checklist:
   - document
   severity: medium
   pass_rule: A complaint route is named.
+  executive:
+    key: user_complaint_route_missing
+    headline_fail:
+      en: People who use the system have no complaint route.
+      vi: Người dùng hệ thống chưa có kênh khiếu nại.
+    headline_open:
+      en: Nothing shows a complaint route for users.
+      vi: Chưa có thông tin về kênh khiếu nại cho người dùng.
+    impact:
+      en: Unhappy users may go to the press or social media instead.
+      vi: Người dùng không hài lòng có thể tìm đến báo chí hoặc mạng xã hội.
+    action:
+      en: Set up a complaint route and tell users about it.
+      vi: Thiết lập kênh khiếu nại và thông báo cho người dùng.
+    owner: system_owner
 - id: RP-03
   question: Is there a tested way to stop the system quickly when it harms customers (Circular 53 Art.
     5(2))?
@@ -42,6 +72,21 @@ checklist:
   - system_record
   severity: high
   pass_rule: An emergency stop exists and its test date is within 12 months.
+  executive:
+    key: emergency_stop
+    headline_fail:
+      en: No tested way to stop the system quickly was found.
+      vi: Không tìm thấy cách dừng nhanh hệ thống đã được kiểm thử.
+    headline_open:
+      en: Nothing shows a tested emergency stop.
+      vi: Chưa có thông tin cho thấy có cách dừng khẩn cấp đã được kiểm thử.
+    impact:
+      en: Harm to customers could continue while the bank looks for a way to stop it.
+      vi: Thiệt hại cho khách hàng có thể tiếp diễn trong lúc ngân hàng tìm cách dừng.
+    action:
+      en: Set up an emergency stop, test it and record the date.
+      vi: Thiết lập chức năng dừng khẩn cấp, kiểm thử và ghi lại ngày thực hiện.
+    owner: system_owner
 - id: RP-04
   question: Is a communication plan ready for a public incident with this system (Circular 53 Art. 14(4))?
   evidence:
@@ -49,6 +94,72 @@ checklist:
   - system_record
   severity: low
   pass_rule: A communication plan with a named owner is referenced.
+  executive:
+    key: incident_comms_plan_missing
+    headline_fail:
+      en: No communication plan is ready for a public incident.
+      vi: Chưa có kế hoạch truyền thông sẵn sàng cho sự cố công khai.
+    headline_open:
+      en: Nothing shows a communication plan.
+      vi: Chưa có thông tin về kế hoạch truyền thông.
+    impact:
+      en: A slow or unclear response can make a small incident a public crisis.
+      vi: Phản ứng chậm hoặc thiếu rõ ràng có thể biến sự cố nhỏ thành khủng hoảng công khai.
+    action:
+      en: Write a communication plan and name who speaks for the bank.
+      vi: Lập kế hoạch truyền thông và nêu rõ ai phát ngôn thay mặt ngân hàng.
+    owner: risk_team
+- id: RP-05
+  question: Does a person approve every money move before it runs, so a wrong transfer cannot become a
+    public incident (Circular 53 Art. 5(2), Art. 14(4))?
+  evidence:
+  - fact
+  - system_record
+  severity: high
+  pass_rule: 'Fail when a tool fact has risk_class=money and the autonomy fact names that tool among ''tools
+    with side effects and no human approval step in code'', or a decision33 fact says human_gate_in_code=False:
+    cite the tool fact and that fact. approved=yes only means the tool is on the allowed list, not that
+    a person approves. Pass when the tool facts show risk_class values and none is money, or the autonomy
+    fact is L2, or an approval_point fact exists: cite it. No tool fact with a risk_class: question.'
+  executive:
+    key: money_tool_no_gate
+    headline_fail:
+      en: A tool that moves money can run without a human approval step in the code.
+      vi: Công cụ chuyển tiền có thể chạy mà mã không có bước người phê duyệt.
+    headline_open:
+      en: The code scan did not show whether a person approves before money moves.
+      vi: Kết quả quét mã chưa cho biết có người phê duyệt trước khi tiền được chuyển hay không.
+    impact:
+      en: A wrong or manipulated instruction could move customer money with no person checking first.
+      vi: Một chỉ dẫn sai hoặc bị thao túng có thể chuyển tiền của khách hàng mà không ai kiểm tra trước.
+    action:
+      en: Add a human approval step before any money tool runs, or limit the amount it can move.
+      vi: Thêm bước người phê duyệt trước khi công cụ chuyển tiền chạy, hoặc giới hạn số tiền được chuyển.
+    owner: system_owner
+- id: RP-06
+  question: Does the code trace what the agent does, so the bank can rebuild the facts of a public incident
+    (Circular 53 Art. 14(4), Art. 6(2))?
+  evidence:
+  - fact
+  severity: medium
+  pass_rule: 'Fail when a weak_spot fact says ''No tracing found'' (no OpenTelemetry or MLflow use): cite
+    it. Pass when an autonomy fact exists and no weak_spot fact says so: cite the autonomy fact. No autonomy
+    fact: question.'
+  executive:
+    key: no_tracing
+    headline_fail:
+      en: The code does not record traces of what the agent does.
+      vi: Mã không ghi lại dấu vết hoạt động của tác tử.
+    headline_open:
+      en: The code scan did not show whether the agent's actions are traced.
+      vi: Kết quả quét mã chưa cho biết hoạt động của tác tử có được ghi dấu vết hay không.
+    impact:
+      en: Without traces the bank cannot rebuild what happened or watch the agent in operation.
+      vi: Không có dấu vết, ngân hàng không thể dựng lại sự việc hay giám sát tác tử khi vận hành.
+    action:
+      en: Add the tracing hook from the onboarding pull request.
+      vi: Thêm đoạn ghi dấu vết từ yêu cầu hợp nhất khi đưa vào hệ thống.
+    owner: system_owner
 evidence_rules:
   allowed_sources:
   - fact
@@ -100,6 +211,38 @@ instructions: 'You assess the reputation risk of one AI system for a bank under 
   - A fail on a high severity item always goes to a person.
 
 
+  Fact items (how to read the facts)
+
+  - A fact reads ''kind name: detail''. Decide a fact item from the facts and the record only, and cite
+  the fact that shows the result.
+
+  - tool facts: the detail gives risk_class (money, credit, pii_export, read_only) and approved=yes or
+  no. approved=yes means the tool is on the allowed list; it is not a human approval step.
+
+  - A human approval step is an approval_point fact. The autonomy fact says L0 ''no tools'', L1 ''every
+  tool only reads'', L2 ''every tool with a side effect has a human approval step in the same code'',
+  L3 ''tools with side effects and no human approval step in code'' followed by the tool names.
+
+  - decision33 facts: high_risk or not_high_risk with human_gate_in_code=True or False. The fact named
+  ''transactions triggered'' means tools run transactions and no human check was found in code. It is
+  a proposal; counsel confirms.
+
+  - model and endpoint facts: family=unknown means the scan could not name the model family.
+
+  - weak_spot facts name gaps that the scan found, for example ''No tracing found''.
+
+  - external_url facts: an address is allowed when its host is loopback (127.0.0.1, localhost) or contains
+  FILL-ME.
+
+  - claim facts ''Handles personal data field <name>'' list personal data fields by name. Write only the
+  field name in a reason.
+
+  - A pass that rests on something not being there cites the autonomy fact, which shows that the code
+  was scanned. Never invent a fact.
+
+  - A fail needs a cited fact that shows the problem. A missing fact is a question, not a fail.
+
+
   Checklist
 
   - RP-01 (medium; document, system_record): Is the impact on public trust described for a wrong or harmful
@@ -113,6 +256,12 @@ instructions: 'You assess the reputation risk of one AI system for a bank under 
 
   - RP-04 (low; document, system_record): Is a communication plan ready for a public incident with this
   system (Circular 53 Art. 14(4))?
+
+  - RP-05 (high; fact, system_record): Does a person approve every money move before it runs, so a wrong
+  transfer cannot become a public incident (Circular 53 Art. 5(2), Art. 14(4))?
+
+  - RP-06 (medium; fact): Does the code trace what the agent does, so the bank can rebuild the facts of
+  a public incident (Circular 53 Art. 14(4), Art. 6(2))?
 
   '
 harness:
@@ -130,9 +279,7 @@ harness:
   memory:
     system_memory: false
   hitl:
-    approval_points:
-    - kind: verdict
-      ref: question
+    approval_points: []
     permissions: []
   verification:
     verifier: rules
@@ -150,5 +297,5 @@ guardians:
 eval_pack: reputation-assessor-golden-v1
 lifecycle:
   state: draft
-  version: '0.1'
+  version: '0.2'
   approvals: []

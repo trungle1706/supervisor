@@ -105,7 +105,7 @@
     <tbody>
     {% for r in tk.tasks %}
       <tr>
-        <td><span class="mono">{{ r.template_id }}</span><div class="idline">{{ r.title }}</div></td>
+        <td><span class="mono">{{ r.template_id }}</span><div class="idline">{{ label_text('task', r.template_id, r.title) }}</div></td>
         <td>{{ t('tk_stage_' ~ r.stage) }}</td>
         <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
         <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>
@@ -126,7 +126,7 @@
     <tbody>
     {% for r in tk.tasks %}
       <tr>
-        <td><span class="mono">{{ r.template_id }}</span><div class="idline">{{ r.title }}</div></td>
+        <td><span class="mono">{{ r.template_id }}</span><div class="idline">{{ label_text('task', r.template_id, r.title) }}</div></td>
         <td>{{ t('tk_stage_' ~ r.stage) }}</td>
         <td>{% if r.required %}{{ ui.pill(t('tk_required'), 'warn') }}{% else %}<span class="muted">{{ t('tk_optional') }}</span>{% endif %}</td>
         <td>{{ ui.pill(t('tk_st_' ~ r.status), {'done': 'ok', 'waived': 'neutral', 'in_progress': 'teal'}.get(r.status, 'warn'), True) }}</td>

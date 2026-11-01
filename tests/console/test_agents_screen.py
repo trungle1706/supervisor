@@ -50,12 +50,12 @@ def test_agents_cards_show_state_rule_action(console: Console) -> None:
     assert "You are the reviewer." in card
     assert card.count('data-stage-state="done"') == 5 and 'data-stage="operate"' in card
     assert re.search(r'data-coverage="\d+"', card)
-    assert "money-moving" in card and "fail mode closed" in card
+    assert "can move money" in card and "fail mode closed" in card
     # a running agent offers pause (one click) with the rule under the button
     o = console.get("/console/agents/credit_prequal")
     other = o.text.split('data-agent="credit_prequal"', 1)[1].split("</article>", 1)[0]
     assert "/console/agents/credit_prequal/pause" in other and "Pause now" in other
-    assert "One click by any reviewer." in other
+    assert "Any reviewer can pause with one click." in other
     # admin-only quarantine is not offered to a reviewer
     assert "/quarantine" not in r.text and "/quarantine" not in o.text
     admin = console.get("/console/agents/credit_prequal", user="admin.chi")
@@ -77,7 +77,7 @@ def test_coverage_never_counts_planned_capabilities(console: Console) -> None:
     assert cov["source"] != "cov_src_capabilities" and cov["planned"] == 2 and cov["caps"] == 3
     r = console.get("/console/agents/payments")
     card = r.text.split('data-agent="payments"', 1)[1].split("</article>", 1)[0]
-    assert "2 of 3 monitoring capabilities planned by Onboard" in card
+    assert "2 of 3 monitoring functions planned, not yet active" in card
     state.update("coverage", {"agent_id": "payments", "capability_id": "cap0"}, {"status": "on"}, 1)
     cov = _coverage(console.ctx, "payments")
     assert cov["source"] == "cov_src_capabilities" and cov["bp"] == 3333

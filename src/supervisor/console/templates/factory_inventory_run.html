@@ -1,0 +1,21 @@
+{# One inventory run (W4): the progress bar while it goes, then the dashboard. #}
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ t('finv_title') }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/console/static/finv.css">
+{{ ui.crumbs([(t('fa_title'), '/console/factory'), (agent.name|replace(' demo:showcase', ''), '/console/factory/' ~ agent.id), (t('finv_title'), '/console/factory/' ~ agent.id ~ '/inventory'), (run.run_id[:12], None)]) }}
+<div class="finv" data-page="finv-run" data-status="{{ run.status }}" data-draft="{{ 1 if run.draft else 0 }}">
+  <header class="finv-head">
+    <h1>{{ agent.name|replace(' demo:showcase', '') }}: {{ t('finv_title') }}</h1>
+    <div class="finv-chips">
+      {{ ui.pill('v' ~ run.agent_version, 'neutral') }}
+      {% if run.draft %}{{ ui.pill(t('finv_draft_label'), 'warn', True) }}{% endif %}
+      {{ ui.pill(t('finv_status_' ~ run.status), {'done': 'ok', 'failed': 'bad', 'cancelled': 'neutral'}.get(run.status, 'info'), True) }}
+    </div>
+  </header>
+  <p class="finv-banner{{ ' finv-draft' if run.draft }}" data-banner="1">{{ t('finv_banner') }}{% if run.draft %} {{ t('finv_draft_label') }}.{% endif %}</p>
+  {% if run.active %}{% include "_factory_inventory_progress.html" %}
+  {% else %}{% include "_factory_inventory_dashboard.html" %}{% endif %}
+</div>
+{% endblock %}

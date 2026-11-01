@@ -34,15 +34,15 @@
 {% else %}
 {{ ui.crumbs([('Regulations', None), (instrument, None), ('Law agent drafts', None)]) }}
 {{ ui.pagehead('Law agent drafts: ' ~ instrument, ui.pill('Drafts only', 'info')) }}
-<div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ banner }}</b> A draft is not an obligation. The model drafted it; a person confirms or drops it.</div>
+<div class="notice" data-regkb-banner="1"><span class="dot"></span><b>{{ banner }}</b> A draft is not an obligation. An AI model wrote it. You confirm or drop each draft.</div>
 {% if is_internal %}
 <p class="hint" data-internal-doc="{{ doc.doc_id }}">{{ instrument_title }} ({{ doc.version_label }}, owner {{ doc.owner_group }}). Internal document: the model read the masked text only.
-  A confirmed row becomes part of the internal instrument <code>{{ instrument }}</code> at once (no pull request).
+  A confirmed draft joins the internal instrument <code>{{ instrument }}</code> straight away, without a pull request.
   <a href="/console/regkb/internal?lang={{ lang }}">All internal documents</a>.</p>
 {% else %}
-<p class="hint">{{ instrument_title }}. The agent runs from the command line:
+<p class="hint">{{ instrument_title }}. Run the agent from the command line:
   <code>python -m supervisor.regkb.lawagent --instrument {{ instrument }}</code>.
-  Confirmed drafts are exported with <code>--export-confirmed</code> into the YAML files by a pull request.</p>
+  Then export confirmed drafts with <code>--export-confirmed</code>. A pull request adds them to the YAML files.</p>
 {% endif %}
 <p style="margin:0 0 12px" id="draft-counts">
   {% for s in ('draft', 'confirmed', 'dropped') %}
@@ -51,7 +51,7 @@
   <a href="/console/regkb/{{ instrument }}/drafts?status=all&amp;lang={{ lang }}" data-status-filter="all">{{ ui.pill('all', 'info' if status == 'all' else 'neutral', status == 'all') }}</a>
 </p>
 {% if not has_text %}
-<div class="notice"><span class="dot"></span>The stored official text of this instrument was not found, so quotes are shown without the article around them.</div>
+<div class="notice"><span class="dot"></span>The official text of this instrument is not stored, so quotes show without their article.</div>
 {% endif %}
 {% for g in groups %}
 <section class="card lawdraft" data-article="{{ g.number }}">
